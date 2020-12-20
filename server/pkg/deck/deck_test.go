@@ -1,6 +1,10 @@
 package deck
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/google/go-cmp/cmp"
+)
 
 func TestNewDeckHasCorrectCards(t *testing.T) {
 	nd := NewDeck()
@@ -41,14 +45,24 @@ func TestNewDeckHasCorrectCards(t *testing.T) {
 }
 
 func TestShuffle(t *testing.T) {
-	// TODO
-	//nd := NewDeck()
-	//d := nd.(*deck)
-	//original := copy.Copy(d.cards)
-	//d.Shuffle()
-	//if original == d.cards {
-	//t.Fatalf("deck not shuffled")
-	//}
+	nd := NewDeck()
+	d := nd.(*deck)
+	original := make([]Card, 32)
+	for i := 0; i < 32; i++ {
+		original[i] = d.cards[i]
+	}
+	d.Shuffle()
+	if diff := cmp.Diff(original, d.cards); diff == "" {
+		t.Errorf("hand matches")
+	}
+	// Verify all cards are unique.
+	m := make(map[Card]bool)
+	for i := 0; i < 32; i++ {
+		if _, present := m[d.cards[i]]; present {
+			t.Fatalf("card already present, %s", d.cards[i])
+		}
+		m[d.cards[i]] = true
+	}
 }
 
 func TestDeal(t *testing.T) {

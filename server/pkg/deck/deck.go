@@ -9,10 +9,10 @@ import (
 type Suit string
 
 const (
-	Hearts   Suit = "hearts"
-	Diamonds Suit = "diamonds"
-	Spades   Suit = "spades"
-	Clubs    Suit = "clubs"
+	Hearts   Suit = "Hearts"
+	Diamonds Suit = "Diamonds"
+	Spades   Suit = "Spades"
+	Clubs    Suit = "Clubs"
 )
 
 type Card struct {
@@ -21,7 +21,20 @@ type Card struct {
 }
 
 func (c Card) String() string {
-	return fmt.Sprintf("%s of %s", c.Num, c.Suit)
+	n := c.Num
+	switch n {
+	case "T":
+		n = "10"
+	case "J":
+		n = "Jack"
+	case "Q":
+		n = "Queen"
+	case "K":
+		n = "King"
+	case "A":
+		n = "Ace"
+	}
+	return fmt.Sprintf("%s of %s", n, c.Suit)
 }
 
 type Deck interface {
@@ -30,7 +43,6 @@ type Deck interface {
 }
 
 func NewDeck() Deck {
-	// TODO
 	d := &deck{}
 	numset := []string{"8", "9", "T", "J", "Q", "K", "A"}
 	suitset := []Suit{Hearts, Diamonds, Spades, Clubs}
@@ -51,15 +63,12 @@ type deck struct {
 }
 
 func (d *deck) Shuffle() {
-	// TODO
-	a := d.cards
 	rand.Seed(time.Now().UnixNano())
-	rand.Shuffle(len(a), func(i, j int) { a[i], a[j] = a[j], a[i] })
+	rand.Shuffle(len(d.cards), func(i, j int) { d.cards[i], d.cards[j] = d.cards[j], d.cards[i] })
 	return
 }
 
 func (d *deck) Deal() [][]Card {
-	// TODO
 	result := make([][]Card, 4)
 	for i := 0; i < 32; i++ {
 		result[i%4] = append(result[i%4], d.cards[i])
