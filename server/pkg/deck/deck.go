@@ -19,8 +19,9 @@ type Deck interface {
 	Deal() [][]Card // 4 hands of 8 cards
 }
 
-func NewDeck() *Deck {
+func NewDeck() Deck {
 	// TODO
+	return &deck{}
 }
 
 type deck struct {
@@ -29,8 +30,10 @@ type deck struct {
 
 func (d *deck) Shuffle() {
 	// TODO
+	return
 }
 
 func (d *deck) Deal() [][]Card {
 	// TODO
+	return nil
 }

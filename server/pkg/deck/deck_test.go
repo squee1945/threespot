@@ -21,7 +21,7 @@ func TestNewDeckHasCorrectCards(t *testing.T) {
 	// Check for special cards
 	for _, c := range []Card{
 		{Num: "7", Suit: Clubs},
-		{Num: "7", Suit: Dimonds},
+		{Num: "7", Suit: Diamonds},
 		{Num: "3", Suit: Spades},
 		{Num: "5", Suit: Hearts},
 	} {
@@ -39,7 +39,7 @@ func TestDeal(t *testing.T) {
 	// TODO
 }
 
-func hasCard(t *testing.T, d Deck, wantNum string, wantSuit Suit) bool {
+func hasCard(t *testing.T, d *deck, wantNum string, wantSuit Suit) bool {
 	t.Helper()
 	for _, c := range d.cards {
 		if c.Num == wantNum && c.Suit == wantSuit {
