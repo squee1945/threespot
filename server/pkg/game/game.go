@@ -4,52 +4,25 @@ import (
 	"github.com/squee1945/threespot/server/pkg/deck"
 )
 
-type GameState string
-type TrickState string
-
-const (
-	GameActive GameState = "active"
-	GameDone   GameState = "done"
-
-	TrickActive TrickState = "active"
-	TrickDone   TrickState = "done"
-)
-
 type Game interface{}
 
 type game struct {
-	state        GameState
-	teamA, teamB Team
-	tricks       []Trick
+	players []Player // Position 0/2 are a team, 1/3 are a team.
+	hands   []Hand
 }
 
-type players struct {
-	teamA, teamB Team
+type Hand interface{}
+
+type hand struct {
+	dealerPos, bidPos int
+	trump             *deck.Suit // nil for no-trump
+	tricks            []Trick
 }
 
-type Team interface{}
-
-type team struct {
-	player1, player2 Player
-	score            int
-}
-
-type Trick struct {
-	state TrickState
-	trump deck.Suit
-	plays []Play
-}
-
-type Play struct {
-	player Player
-	card   deck.Card
-}
-
-func NewGame(teamA, teamB Team) (Game, error) {
+func NewGame(players []Player) (Game, error) {
 	return nil, nil
 }
 
-func NewTeam(player1, player2 Player) (Team, error) {
+func NewHand(dealerPos int) (Hand, error) {
 	return nil, nil
-
 }

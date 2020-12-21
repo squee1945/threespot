@@ -13,6 +13,7 @@ const (
 	Diamonds Suit = "D"
 	Spades   Suit = "S"
 	Clubs    Suit = "C"
+	NoTrump  Suit = ""
 )
 
 var (
