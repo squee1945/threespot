@@ -15,6 +15,27 @@ const (
 	Clubs    Suit = "C"
 )
 
+var (
+	validNums = map[string]bool{
+		"7": true,
+		"8": true,
+		"9": true,
+		"T": true,
+		"J": true,
+		"Q": true,
+		"K": true,
+		"A": true,
+		"3": true,
+		"5": true,
+	}
+	validSuits = map[Suit]bool{
+		Hearts:   true,
+		Diamonds: true,
+		Spades:   true,
+		Clubs:    true,
+	}
+)
+
 type Card string
 
 func (c Card) Num() string {
@@ -63,8 +84,14 @@ func (c Card) String() string {
 	return fmt.Sprintf("%s of %s", n, s)
 }
 
-func NewCard(num string, suit Suit) Card {
-	return Card(num + string(suit))
+func NewCard(num string, suit Suit) (Card, error) {
+	if _, present := validNums[num]; !present {
+		return Card(""), fmt.Errorf("invalid num %q", num)
+	}
+	if _, present := validSuits[suit]; !present {
+		return Card(""), fmt.Errorf("invalid suit %q", suit)
+	}
+	return Card(num + string(suit)), nil
 }
 
 type Deck interface {
@@ -72,20 +99,40 @@ type Deck interface {
 	Deal() [][]Card // 4 hands of 8 cards
 }
 
-func NewDeck() Deck {
+func NewDeck() (Deck, error) {
 	d := &deck{}
 	numset := []string{"8", "9", "T", "J", "Q", "K", "A"}
 	suitset := []Suit{Hearts, Diamonds, Spades, Clubs}
 	for j := 0; j < 4; j++ {
 		for k := 0; k < 7; k++ {
-			d.cards = append(d.cards, NewCard(numset[k], suitset[j]))
+			c, err := NewCard(numset[k], suitset[j])
+			if err != nil {
+				return nil, err
+			}
+			d.cards = append(d.cards, c)
 		}
 	}
-	d.cards = append(d.cards, NewCard("7", Clubs))
-	d.cards = append(d.cards, NewCard("7", Diamonds))
-	d.cards = append(d.cards, NewCard("3", Spades))
-	d.cards = append(d.cards, NewCard("5", Hearts))
-	return d
+	c, err := NewCard("7", Clubs)
+	if err != nil {
+		return nil, err
+	}
+	d.cards = append(d.cards, c)
+	c, err = NewCard("7", Diamonds)
+	if err != nil {
+		return nil, err
+	}
+	d.cards = append(d.cards, c)
+	c, err = NewCard("3", Spades)
+	if err != nil {
+		return nil, err
+	}
+	d.cards = append(d.cards, c)
+	c, err = NewCard("5", Hearts)
+	if err != nil {
+		return nil, err
+	}
+	d.cards = append(d.cards, c)
+	return d, nil
 }
 
 type deck struct {

@@ -82,10 +82,16 @@ func TestSetHand(t *testing.T) {
 		t.Fatalf("hand must start empty, got=%v", p.Hand())
 	}
 
-	hand := []deck.Card{
-		deck.NewCard("3", deck.Spades),
-		deck.NewCard("5", deck.Hearts),
+	c1, err := deck.NewCard("3", deck.Spades)
+	if err != nil {
+		t.Fatal(err)
 	}
+	c2, err := deck.NewCard("5", deck.Hearts)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	hand := []deck.Card{c1, c2}
 	p.SetHand(hand)
 
 	if diff := cmp.Diff(hand, p.Hand()); diff != "" {
