@@ -9,19 +9,34 @@ import (
 type Suit string
 
 const (
-	Hearts   Suit = "Hearts"
-	Diamonds Suit = "Diamonds"
-	Spades   Suit = "Spades"
-	Clubs    Suit = "Clubs"
+	Hearts   Suit = "H"
+	Diamonds Suit = "D"
+	Spades   Suit = "S"
+	Clubs    Suit = "C"
 )
 
-type Card struct {
-	Num  string
-	Suit Suit
+type Card string
+
+func (c Card) Num() string {
+	return string(c[0])
+}
+
+func (c Card) Suit() Suit {
+	switch string(c[1]) {
+	case "H":
+		return Hearts
+	case "D":
+		return Diamonds
+	case "S":
+		return Spades
+	case "C":
+		return Clubs
+	}
+	return ""
 }
 
 func (c Card) String() string {
-	n := c.Num
+	n := c.Num()
 	switch n {
 	case "T":
 		n = "10"
@@ -34,7 +49,22 @@ func (c Card) String() string {
 	case "A":
 		n = "Ace"
 	}
-	return fmt.Sprintf("%s of %s", n, c.Suit)
+	s := ""
+	switch c.Suit() {
+	case Hearts:
+		s = "Hearts"
+	case Diamonds:
+		s = "Diamonds"
+	case Spades:
+		s = "Spades"
+	case Clubs:
+		s = "Clubs"
+	}
+	return fmt.Sprintf("%s of %s", n, s)
+}
+
+func NewCard(num string, suit Suit) Card {
+	return Card(num + string(suit))
 }
 
 type Deck interface {
@@ -48,13 +78,13 @@ func NewDeck() Deck {
 	suitset := []Suit{Hearts, Diamonds, Spades, Clubs}
 	for j := 0; j < 4; j++ {
 		for k := 0; k < 7; k++ {
-			d.cards = append(d.cards, Card{Num: numset[k], Suit: suitset[j]})
+			d.cards = append(d.cards, NewCard(numset[k], suitset[j]))
 		}
 	}
-	d.cards = append(d.cards, Card{Num: "7", Suit: Clubs})
-	d.cards = append(d.cards, Card{Num: "7", Suit: Diamonds})
-	d.cards = append(d.cards, Card{Num: "3", Suit: Spades})
-	d.cards = append(d.cards, Card{Num: "5", Suit: Hearts})
+	d.cards = append(d.cards, NewCard("7", Clubs))
+	d.cards = append(d.cards, NewCard("7", Diamonds))
+	d.cards = append(d.cards, NewCard("3", Spades))
+	d.cards = append(d.cards, NewCard("5", Hearts))
 	return d
 }
 

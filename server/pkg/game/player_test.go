@@ -83,8 +83,8 @@ func TestSetHand(t *testing.T) {
 	}
 
 	hand := []deck.Card{
-		deck.Card{Num: "3", Suit: deck.Spades},
-		deck.Card{Num: "5", Suit: deck.Hearts},
+		deck.NewCard("3", deck.Spades),
+		deck.NewCard("5", deck.Hearts),
 	}
 	p.SetHand(hand)
 

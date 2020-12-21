@@ -16,21 +16,22 @@ func TestNewDeckHasCorrectCards(t *testing.T) {
 
 	for _, wantSuit := range []Suit{Hearts, Diamonds, Spades, Clubs} {
 		for _, wantNum := range []string{"8", "9", "T", "J", "Q", "K", "A"} {
-			if !hasCard(t, d, wantNum, wantSuit) {
-				t.Errorf("card %s of %s not found", wantNum, wantSuit)
+			want := NewCard(wantNum, wantSuit)
+			if !hasCard(t, d, want) {
+				t.Errorf("card %s not found", want)
 			}
 		}
 	}
 
 	// Check for special cards.
 	for _, c := range []Card{
-		{Num: "7", Suit: Clubs},
-		{Num: "7", Suit: Diamonds},
-		{Num: "3", Suit: Spades},
-		{Num: "5", Suit: Hearts},
+		NewCard("7", Clubs),
+		NewCard("7", Diamonds),
+		NewCard("3", Spades),
+		NewCard("5", Hearts),
 	} {
-		if wantNum, wantSuit := c.Num, c.Suit; !hasCard(t, d, wantNum, wantSuit) {
-			t.Errorf("card %s of %s not found", wantNum, wantSuit)
+		if !hasCard(t, d, c) {
+			t.Errorf("card %s not found", c)
 		}
 	}
 
@@ -89,10 +90,10 @@ func TestDeal(t *testing.T) {
 	}
 }
 
-func hasCard(t *testing.T, d *deck, wantNum string, wantSuit Suit) bool {
+func hasCard(t *testing.T, d *deck, want Card) bool {
 	t.Helper()
 	for _, c := range d.cards {
-		if c.Num == wantNum && c.Suit == wantSuit {
+		if c == want {
 			return true
 		}
 	}
