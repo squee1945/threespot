@@ -26,7 +26,12 @@ func NewPlayer(id, name string) (Player, error) {
 	if len(name) > maxPlayerName {
 		return nil, fmt.Errorf("name %q is too long", name)
 	}
+	// TODO: store in datastore
 	return &player{id: id, name: name}, nil
+}
+
+func GetPlayer(id string) (Player, error) {
+	return nil, nil // TODO: fetch from datastore
 }
 
 // Player is a card player.

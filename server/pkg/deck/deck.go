@@ -1,8 +1,10 @@
 package deck
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
+	"strings"
 	"time"
 )
 
@@ -35,6 +37,12 @@ var (
 		Spades:   true,
 		Clubs:    true,
 	}
+	suitFromString = map[string]Suit{
+		"H": Hearts,
+		"D": Diamonds,
+		"S": Spades,
+		"C": Clubs,
+	}
 )
 
 type Card string
@@ -44,17 +52,7 @@ func (c Card) Num() string {
 }
 
 func (c Card) Suit() Suit {
-	switch string(c[1]) {
-	case "H":
-		return Hearts
-	case "D":
-		return Diamonds
-	case "S":
-		return Spades
-	case "C":
-		return Clubs
-	}
-	return ""
+	return suitFromString[strings.ToUpper(string(c[1]))]
 }
 
 func (c Card) String() string {
@@ -83,6 +81,19 @@ func (c Card) String() string {
 		s = "Clubs"
 	}
 	return fmt.Sprintf("%s of %s", n, s)
+}
+
+func NewCardFromString(cardStr string) (Card, error) {
+	if len(cardStr) != 2 {
+		return "", errors.New("card string must be two characters")
+	}
+	num := string(cardStr[0])
+	suitStr := string(cardStr[1])
+	suit, ok := suitFromString[strings.ToUpper(suitStr)]
+	if !ok {
+		return "", fmt.Errorf("unknown suit %q", suitStr)
+	}
+	return NewCard(num, suit)
 }
 
 func NewCard(num string, suit Suit) (Card, error) {

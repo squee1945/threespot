@@ -12,8 +12,8 @@ const (
 )
 
 type Trick interface {
-	PlayCard(playerPos int, card deck.Card) error
 	IsDone() bool
+	PlayCard(playerPos int, card deck.Card) error
 	WinningPos() (int, error)
 }
 
