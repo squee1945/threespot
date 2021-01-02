@@ -2,10 +2,10 @@ package web
 
 import (
 	"context"
+	"html/template"
 	"net/http"
 
 	"github.com/squee1945/threespot/server/pkg/game"
-	"github.com/squee1945/threespot/server/pkg/web/pages"
 )
 
 func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
@@ -35,11 +35,35 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	args := pages.IndexArgs{
+	args := indexArgs{
 		PlayerID:   player.ID(),
 		PlayerName: player.Name(),
 	}
-	if err := pages.IndexPage.Execute(w, args); err != nil {
+	if err := indexPage.Execute(w, args); err != nil {
 		sendServerError(w, "rending index page: %v", err)
 	}
 }
+
+type indexArgs struct {
+	PlayerID   string
+	PlayerName string
+}
+
+var indexTemplateStr = `
+<html>
+<head><title>Kaiser</title></head>
+<body>
+<h1>Kaiser</h1>
+<p>Welcome back {{.PlayerName}} (ID: {{.PlayerID}})</p>
+<p>
+  <form action='/setname' method='post'>
+  Set your name: <input name='newname'>
+  <br>
+  <input type='submit'>
+  </form>
+</p>
+</body>
+</html>
+`
+
+var indexPage = template.Must(template.New("index").Parse(indexTemplateStr))
