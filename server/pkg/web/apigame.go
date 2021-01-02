@@ -26,7 +26,7 @@ type GameStateResponse struct {
 	// TODO: add players, score, current bid, current trick, trick count
 }
 
-func GameState(w http.ResponseWriter, r *http.Request) {
+func (s *Server) GameState(w http.ResponseWriter, r *http.Request) {
 	player := lookupPlayer(w, r)
 	if player == nil {
 		return

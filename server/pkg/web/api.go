@@ -1,9 +1,9 @@
 package web
 
 import (
+	"context"
 	"encoding/json"
 	"log"
-	"math/rand"
 	"net/http"
 
 	"github.com/squee1945/threespot/server/pkg/game"
@@ -13,15 +13,15 @@ type UserError struct {
 	Error string
 }
 
-func lookupPlayer(w http.ResponseWriter, r *http.Request) game.Player {
+func (s *Server) lookupPlayer(ctx context.Context, w http.ResponseWriter, r *http.Request) game.Player {
 	playerID, err := playerID(r)
 	if err != nil {
 		sendServerError(w, "fetching player ID: %v", err)
 		return nil
 	}
-	player, err := game.GetPlayer(playerID)
+	player, err := game.GetPlayer(ctx, s.playerStore, playerID)
 	if err != nil {
-		if err == game.NotFoundErr {
+		if err == game.ErrNotFound {
 			sendUserError(w, "Player not found.")
 			return nil
 		}
@@ -34,7 +34,7 @@ func lookupPlayer(w http.ResponseWriter, r *http.Request) game.Player {
 func lookupGame(w http.ResponseWriter, id string) game.Game {
 	g, err := game.GetGame(id)
 	if err != nil {
-		if err == game.NotFoundErr {
+		if err == game.ErrNotFound {
 			sendUserError(w, "Game not found.")
 			return nil
 		}
@@ -42,11 +42,6 @@ func lookupGame(w http.ResponseWriter, id string) game.Game {
 		return nil
 	}
 	return g
-}
-
-func playerID(r *http.Request) (string, error) {
-	// TODO: Fetch playerID from cookie.
-	return "", nil
 }
 
 func sendResponse(w http.ResponseWriter, doc interface{}) error {
@@ -83,14 +78,4 @@ func sendServerError(w http.ResponseWriter, fmt string, args ...interface{}) {
 	log.Printf(fmt+"(errorID:"+errorID+")", args...)
 	w.WriteHeader(500)
 	w.Write([]byte("ErrorID: " + errorID))
-}
-
-var letters = []rune("BCDFGHJKLMNPQRSTVWXZ123456789")
-
-func randString(n int) string {
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
-	}
-	return string(b)
 }

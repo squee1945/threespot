@@ -10,7 +10,7 @@ type NewGameResponse struct {
 	ID string
 }
 
-func NewGame(w http.ResponseWriter, r *http.Request) {
+func (s *Server) NewGame(w http.ResponseWriter, r *http.Request) {
 	player := lookupPlayer(w, r)
 	if player == nil {
 		return

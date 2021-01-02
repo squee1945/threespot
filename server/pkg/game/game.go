@@ -7,8 +7,8 @@ import (
 )
 
 var (
-	NotFoundErr        = errors.New("Not found")
-	InvalidPositionErr = errors.New("Invalid position")
+	ErrNotFound        = errors.New("Not found")
+	ErrInvalidPosition = errors.New("Invalid position")
 )
 
 type GameState string

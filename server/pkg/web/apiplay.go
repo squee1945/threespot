@@ -12,7 +12,7 @@ type PlayCardRequest struct {
 	Card string
 }
 
-func PlayCard(w http.ResponseWriter, r *http.Request) {
+func (s *Server) PlayCard(w http.ResponseWriter, r *http.Request) {
 	player := lookupPlayer(w, r)
 	if player == nil {
 		return

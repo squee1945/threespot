@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 
+	"cloud.google.com/go/datastore"
 	"github.com/squee1945/threespot/server/pkg/web"
 )
 
@@ -12,22 +13,28 @@ const (
 	defaultPort = "8080"
 )
 
-// http.Handle("/foo", fooHandler)
-
-// http.HandleFunc("/bar", func(w http.ResponseWriter, r *http.Request) {
-// 	fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
-// })
 func main() {
 	port, ok := os.LookupEnv("PORT")
 	if !ok {
 		port = defaultPort
 	}
 
-	http.Handle("/new", web.NewGame)
-	http.Handle("/join", web.JoinGame)
-	http.Handle("/bid", web.PlaceBid)
-	http.Handle("/play", web.PlayCard)
-	http.Handle("/game", web.GameState)
+	dsClient, err := datastore.NewClient(ctx, "my-project")
+	if err != nil {
+		log.Fatalf("Failed to create datastore client: %v", err)
+	}
+
+	server := web.Server{
+		playerStore: storage.NewDatastorePlayerStore(dsClient),
+	}
+
+	http.Handle("/", server.Index)
+	http.Handle("/setname", server.SetName)
+	http.Handle("/new", server.NewGame)
+	http.Handle("/join", server.JoinGame)
+	http.Handle("/bid", server.PlaceBid)
+	http.Handle("/play", server.PlayCard)
+	http.Handle("/game", server.GameState)
 
 	s := &http.Server{
 		Addr:    ":" + port,

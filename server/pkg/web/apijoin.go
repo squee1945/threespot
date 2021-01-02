@@ -20,7 +20,7 @@ type GamePlayer struct {
 	Name string
 }
 
-func JoinGame(w http.ResponseWriter, r *http.Request) {
+func (s *Server) JoinGame(w http.ResponseWriter, r *http.Request) {
 	player := lookupPlayer(w, r)
 	if player == nil {
 		return
@@ -39,7 +39,7 @@ func JoinGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := g.AddPlayer(player, req.Position); err != nil {
-		if err == game.InvalidPositionErr {
+		if err == game.ErrInvalidPosition {
 			sendUserError(w, "Invalid player position.")
 			return
 		}
