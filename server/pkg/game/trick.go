@@ -17,9 +17,8 @@ type Trick interface {
 	WinningPos() (int, error)
 }
 
-func NewTrick(leadPos int, trump deck.Suit) (Trick, error) {
-	// TODO: validate range
-	return &trick{leadPos: leadPos, trump: trump}, nil
+func NewTrick(leadPos int, trump deck.Suit, played []deck.Card) Trick {
+	return &trick{leadPos: leadPos, trump: trump, cards: played}, nil
 }
 
 type trick struct {
@@ -34,7 +33,7 @@ type trick struct {
 func (t *trick) PlayCard(playerPos int, card deck.Card) error {
 	ord := t.toOrd(playerPos)
 	if len(t.cards) != ord {
-		return fmt.Errorf("playing out of order")
+		return ErrIncorrectPlayOrder
 	}
 	t.cards = append(t.cards, card)
 	return nil

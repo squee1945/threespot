@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/squee1945/threespot/server/pkg/game"
+	"github.com/squee1945/threespot/server/pkg/util"
 )
 
 type NewGameResponse struct {
@@ -18,7 +19,8 @@ func (s *Server) NewGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	g, err := game.NewGame(player)
+	id := util.RandString(7)
+	g, err := game.NewGame(s.gameStore, id, player)
 	if err != nil {
 		sendServerError(w, "creating game: %v", err)
 		return

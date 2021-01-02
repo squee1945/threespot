@@ -29,39 +29,28 @@ func NewPlayer(ctx context.Context, store storage.PlayerStore, id, name string) 
 		return nil, fmt.Errorf("name %q is too long", name)
 	}
 
-	_, err := store.Create(ctx, id, name)
+	ps, err := store.Create(ctx, id, name)
 	if err != nil {
 		return nil, fmt.Errorf("creating player in storage: %v", err)
 	}
-
-	player := &player{
-		store: store,
-		id:    id,
-		name:  name,
-	}
-	return player, nil
+	return playerFromStorage(store, id, ps), nil
 }
 
 func GetPlayer(ctx context.Context, store storage.PlayerStore, id string) (Player, error) {
-	p, err := store.Get(ctx, id)
+	ps, err := store.Get(ctx, id)
 	if err != nil {
 		if err == storage.ErrNotFound {
 			return nil, ErrNotFound
 		}
 		return nil, fmt.Errorf("fetching player from storage: %v", err)
 	}
-	player := &player{
-		store: store,
-		id:    id,
-		name:  p.Name,
-	}
-	return player, nil
+	return playerFromStorage(store, id, ps), nil
 }
 
 // Player is a card player.
 type Player interface {
-	Name() string
 	ID() string
+	Name() string
 	SetHand([]deck.Card)
 	Hand() []deck.Card
 	SetName(context.Context, string) error
@@ -99,4 +88,12 @@ func (p *player) SetName(ctx context.Context, name string) error {
 		return fmt.Errorf("saving player in store: %v", err)
 	}
 	return nil
+}
+
+func playerFromStorage(store storage.PlayerStore, id string, ps storage.Player) Player {
+	return player{
+		store: store,
+		id:    id,
+		name:  ps.Name,
+	}
 }

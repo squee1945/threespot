@@ -13,6 +13,7 @@ type Player struct {
 type PlayerStore interface {
 	Create(ctx context.Context, id, name string) (Player, error)
 	Get(ctx context.Context, id string) (Player, error)
+	GetMulti(ctx context.Context, ids []string) ([]Player, error)
 	Set(ctx context.Context, id string, p Player) error
 }
 
@@ -82,6 +83,18 @@ func (s *datastorePlayerStore) Get(ctx context.Context, id string) (Player, erro
 	return p, nil
 }
 
+func (s *datastorePlayerStore) GetMulti(ctx context.Context, ids []string) ([]Player, error) {
+	var keys []*datastore.Key
+	for _, id := range ids {
+		keys = apppend(keys, playerKey(id))
+	}
+	players = make([]Player, len(ids))
+	if err := s.dsClient.GetMulti(ctx, keys, players); err != nil {
+		return nil, err
+	}
+	return players
+}
+
 func (s *datastorePlayerStore) Set(ctx context.Context, id string, p Player) error {
 	k := playerKey(id)
 	if _, err := s.dsClient.Put(ctx, k, &p); err != nil {
@@ -91,5 +104,5 @@ func (s *datastorePlayerStore) Set(ctx context.Context, id string, p Player) err
 }
 
 func playerKey(id string) *datastore.Key {
-	return datastore.NameKey("Player", id, nil)
+	return datastore.NameKey("KaiserPlayer", id, nil)
 }

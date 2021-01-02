@@ -7,3 +7,7 @@ type Hand interface {
 	PlayedCards() []deck.Card
 	HeldCards() []deck.Card
 }
+
+func NewHand(cards []Card) Hand {
+	return nil
+}
