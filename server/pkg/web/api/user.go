@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+// TODO: update this to be an API (JSON docs)
+
 func (s *Server) SetName(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	player := s.lookupPlayer(ctx, w, r)

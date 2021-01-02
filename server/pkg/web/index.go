@@ -10,58 +10,51 @@ import (
 
 func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
+
+	// Give each visitor a unique random cookie ("player ID").
 	playerID, err := playerID(r)
 	if err != nil {
-		if err == http.ErrNoCookie {
-			playerID = setPlayerID(w)
-		} else {
+		if err != http.ErrNoCookie {
 			sendServerError(w, "looking up player ID in cookie: %v", err)
 			return
 		}
+		playerID = setPlayerID(w)
 	}
 
-	player, err := game.GetPlayer(ctx, s.PlayerStore, playerID)
-	if err != nil {
-		if err == game.ErrNotFound {
-			var err error
-			player, err = game.NewPlayer(ctx, s.PlayerStore, playerID, playerID)
-			if err != nil {
-				sendServerError(w, "creating player: %v", err)
-				return
-			}
-		} else {
+	var args indexArgs
+	if player, err := game.GetPlayer(ctx, s.PlayerStore, playerID); err != nil {
+		if err != game.ErrNotFound {
 			sendServerError(w, "looking up player: %v", err)
 			return
 		}
+		args.Welcome = "Welcome to Online Kaiser! You must enter a name to play."
+	} else {
+		args.Welcome = "Welcome back " + player.Name()
+		args.Registered = true
 	}
 
-	args := indexArgs{
-		PlayerID:   player.ID(),
-		PlayerName: player.Name(),
-	}
 	if err := indexPage.Execute(w, args); err != nil {
 		sendServerError(w, "rending index page: %v", err)
 	}
 }
 
 type indexArgs struct {
-	PlayerID   string
-	PlayerName string
+	Welcome    string
+	Registered bool
 }
 
 var indexTemplateStr = `
 <html>
-<head><title>Kaiser</title></head>
+<head><title>Online Kaiser</title></head>
 <body>
 <h1>Kaiser</h1>
-<p>Welcome back {{.PlayerName}} (ID: {{.PlayerID}})</p>
-<p>
-  <form action='/setname' method='post'>
-  Set your name: <input name='newname'>
-  <br>
-  <input type='submit'>
-  </form>
-</p>
+<p>{{.Welcome}}</p>
+{{if .Registered }}
+	<p>TODO: Show form to start new game, or join existing game.</p>
+	<p>TODO: Show links to active games.</p>
+{{ else }}
+	<p>TODO: Show form to set user info.</p>
+{{ end }}
 </body>
 </html>
 `

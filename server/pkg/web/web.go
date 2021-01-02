@@ -1,11 +1,11 @@
 package web
 
 import (
-	"math/rand"
 	"net/http"
 	"time"
 
 	"github.com/squee1945/threespot/server/pkg/storage"
+	"github.com/squee1945/threespot/server/pkg/util"
 )
 
 var (
@@ -26,7 +26,7 @@ func playerID(r *http.Request) (string, error) {
 }
 
 func setPlayerID(w http.ResponseWriter) string {
-	pid := randString(8)
+	pid := util.RandString(8) // TODO: add a secret hash so that people can't mess with this (Kaiser cheater!)
 	cookie := http.Cookie{
 		Name:    playerCookie,
 		Value:   pid,
@@ -34,15 +34,4 @@ func setPlayerID(w http.ResponseWriter) string {
 	}
 	http.SetCookie(w, &cookie)
 	return pid
-}
-
-var letters = []rune("BCDFGHJKLMNPQRSTVWXZ123456789")
-
-func randString(n int) string {
-	rand.Seed(time.Now().UnixNano())
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
-	}
-	return string(b)
 }

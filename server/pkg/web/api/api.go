@@ -7,9 +7,10 @@ import (
 	"net/http"
 
 	"github.com/squee1945/threespot/server/pkg/game"
+	"github.com/squee1945/threespot/server/pkg/util"
 )
 
-type UserError struct {
+type errorResponse struct {
 	Error string
 }
 
@@ -44,16 +45,6 @@ func lookupGame(w http.ResponseWriter, id string) game.Game {
 	return g
 }
 
-func sendResponse(w http.ResponseWriter, doc interface{}) error {
-	b, err := json.Marshal(doc)
-	if err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(b)
-	return nil
-}
-
 func sendGameState(w http.ResponseWriter, id string, player game.Player) {
 	game := lookupGame(w, id)
 	if game == nil {
@@ -65,17 +56,43 @@ func sendGameState(w http.ResponseWriter, id string, player game.Player) {
 	}
 }
 
-func sendUserError(w http.ResponseWriter, e string) {
-	resp := UserError{Error: e}
-	log.Printf("User error: %q" + e)
-	if err := sendResponse(w, resp); err != nil {
+func genError(exposeMsg bool, fmt string, args ...interface{}) errorResponse {
+	errorID := "[errorID:" + util.RandString(10) + "]"
+	msg := fmt.Sprintf(fmt+" "+errorID, args...)
+	log.Printf(msg)
+	resp := errorResponse{Error: errorID}
+	if exposeMsg {
+		resp.Error = msg
+	}
+	return resp
+}
+
+func sendUserError(w http.ResponseWriter, fmt string, args ...interface{}) {
+	resp := genError(true, fmt, args)
+	if err := sendResponseStatus(w, resp, http.StatusBadRequest); err != nil {
 		sendServerError(w, "sending response: %v", err)
 	}
 }
 
 func sendServerError(w http.ResponseWriter, fmt string, args ...interface{}) {
-	errorID := randString(8)
-	log.Printf(fmt+" (errorID:"+errorID+")", args...)
-	w.WriteHeader(500)
-	w.Write([]byte("ErrorID: " + errorID))
+	resp := genError(false, fmt, args)
+	if err := sendResponseStatus(w, resp, http.StatusInternalServerError); err != nil {
+		log.Printf("Error response failed: %v", err)
+		w.WriteHeader(500)
+	}
+}
+
+func sendResponse(w http.ResponseWriter, doc interface{}) error {
+	return sendResponseStatus(w, doc, http.StatusOK)
+}
+
+func sendResponseStatus(w http.ResponseWriter, doc interface{}, int status) error {
+	b, err := json.Marshal(doc)
+	if err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	w.Write(b)
+	return nil
 }

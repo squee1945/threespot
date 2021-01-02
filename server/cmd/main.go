@@ -31,16 +31,16 @@ func main() {
 		PlayerStore: storage.NewDatastorePlayerStore(dsClient),
 	}
 
-	// Pages for humans,
+	// Pages for humans.
 	http.HandleFunc("/", server.Index)
-	//http.HandleFunc("/game", server.Game) // The main game page.
+	http.HandleFunc("/game", server.Game)
 
 	// Pages for machines.
 	http.HandleFunc("/api/user", server.UpdateUser)
 	http.HandleFunc("/api/new", server.NewGame)
 	http.HandleFunc("/api/join", server.JoinGame)
 	http.HandleFunc("/api/bid", server.PlaceBid)
-	http.HandleFunc("/api//play", server.PlayCard)
+	http.HandleFunc("/api/play", server.PlayCard)
 	http.HandleFunc("/api/state", server.GameState)
 
 	s := &http.Server{
