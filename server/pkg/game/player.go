@@ -1,6 +1,7 @@
 package game
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 
@@ -13,11 +14,11 @@ const (
 )
 
 var (
-	validPlayerID = regexp.MustCompile(`^[a-z0-9]{6,20}$`)
+	validPlayerID = regexp.MustCompile(`^[A-Z0-9]{6,20}$`)
 )
 
 // NewPlayer creates a new player.
-func NewPlayer(ctx context.Context, store storage.PlayerStorage, id, name string) (Player, error) {
+func NewPlayer(ctx context.Context, store storage.PlayerStore, id, name string) (Player, error) {
 	if id == "" || name == "" {
 		return nil, fmt.Errorf("id and name required")
 	}
@@ -28,30 +29,31 @@ func NewPlayer(ctx context.Context, store storage.PlayerStorage, id, name string
 		return nil, fmt.Errorf("name %q is too long", name)
 	}
 
-	p, err := store.Create(ctx, id, name)
+	_, err := store.Create(ctx, id, name)
 	if err != nil {
 		return nil, fmt.Errorf("creating player in storage: %v", err)
 	}
 
-	player = &player{
+	player := &player{
 		store: store,
-		id: id,
-		name: name,
+		id:    id,
+		name:  name,
 	}
 	return player, nil
 }
 
-func GetPlayer(ctx context.Context, store storage.PlayerStorage, id string) (Player, error) {
+func GetPlayer(ctx context.Context, store storage.PlayerStore, id string) (Player, error) {
 	p, err := store.Get(ctx, id)
 	if err != nil {
 		if err == storage.ErrNotFound {
-			return nil, game.ErrNotFound
+			return nil, ErrNotFound
 		}
 		return nil, fmt.Errorf("fetching player from storage: %v", err)
-	player = &player{
+	}
+	player := &player{
 		store: store,
-		id: id,
-		name: p.Name,
+		id:    id,
+		name:  p.Name,
 	}
 	return player, nil
 }
@@ -62,7 +64,7 @@ type Player interface {
 	ID() string
 	SetHand([]deck.Card)
 	Hand() []deck.Card
-	SetName(string) error
+	SetName(context.Context, string) error
 }
 
 type player struct {
@@ -93,7 +95,7 @@ func (p *player) SetName(ctx context.Context, name string) error {
 	ps := storage.Player{
 		Name: name,
 	}
-	if err := p.store.Set(ctx, ps); err != nil {
+	if err := p.store.Set(ctx, p.id, ps); err != nil {
 		return fmt.Errorf("saving player in store: %v", err)
 	}
 	return nil

@@ -4,6 +4,8 @@ import (
 	"math/rand"
 	"net/http"
 	"time"
+
+	"github.com/squee1945/threespot/server/pkg/storage"
 )
 
 var (
@@ -12,7 +14,7 @@ var (
 )
 
 type Server struct {
-	playerStore storage.PlayerStore
+	PlayerStore storage.PlayerStore
 }
 
 func playerID(r *http.Request) (string, error) {
@@ -37,6 +39,7 @@ func setPlayerID(w http.ResponseWriter) string {
 var letters = []rune("BCDFGHJKLMNPQRSTVWXZ123456789")
 
 func randString(n int) string {
+	rand.Seed(time.Now().UnixNano())
 	b := make([]rune, n)
 	for i := range b {
 		b[i] = letters[rand.Intn(len(letters))]

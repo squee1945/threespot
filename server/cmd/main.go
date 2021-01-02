@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
 
 	"cloud.google.com/go/datastore"
+	"github.com/squee1945/threespot/server/pkg/storage"
 	"github.com/squee1945/threespot/server/pkg/web"
 )
 
@@ -19,22 +21,27 @@ func main() {
 		port = defaultPort
 	}
 
-	dsClient, err := datastore.NewClient(ctx, "my-project")
+	ctx := context.Background()
+	dsClient, err := datastore.NewClient(ctx, datastore.DetectProjectID)
 	if err != nil {
 		log.Fatalf("Failed to create datastore client: %v", err)
 	}
 
-	server := web.Server{
-		playerStore: storage.NewDatastorePlayerStore(dsClient),
+	server := &web.Server{
+		PlayerStore: storage.NewDatastorePlayerStore(dsClient),
 	}
 
-	http.Handle("/", server.Index)
-	http.Handle("/setname", server.SetName)
-	http.Handle("/new", server.NewGame)
-	http.Handle("/join", server.JoinGame)
-	http.Handle("/bid", server.PlaceBid)
-	http.Handle("/play", server.PlayCard)
-	http.Handle("/game", server.GameState)
+	// Pages for humans,
+	http.HandleFunc("/", server.Index)
+	//http.HandleFunc("/game", server.Game) // The main game page.
+
+	// Pages for machines.
+	http.HandleFunc("/api/user", server.UpdateUser)
+	http.HandleFunc("/api/new", server.NewGame)
+	http.HandleFunc("/api/join", server.JoinGame)
+	http.HandleFunc("/api/bid", server.PlaceBid)
+	http.HandleFunc("/api//play", server.PlayCard)
+	http.HandleFunc("/api/state", server.GameState)
 
 	s := &http.Server{
 		Addr:    ":" + port,

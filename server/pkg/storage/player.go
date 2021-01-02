@@ -7,26 +7,26 @@ import (
 )
 
 type Player struct {
-	Name string
+	Name string `datastore:",noindex"`
 }
 
 type PlayerStore interface {
 	Create(ctx context.Context, id, name string) (Player, error)
 	Get(ctx context.Context, id string) (Player, error)
-	Set(ctx context.Context, p Player) error
+	Set(ctx context.Context, id string, p Player) error
 }
 
 type datastorePlayerStore struct {
-	dsClient datastore.Client
+	dsClient *datastore.Client
 }
 
-func NewDatastorePlayerStore(dsClient datastore.Client) PlayerStore {
-	return datastorePlayerStore{
+func NewDatastorePlayerStore(dsClient *datastore.Client) PlayerStore {
+	return &datastorePlayerStore{
 		dsClient: dsClient,
 	}
 }
 
-func (ds *datastorePlayerStore) Create(ctx context.Context, id, name string) (Player, error) {
+func (s *datastorePlayerStore) Create(ctx context.Context, id, name string) (Player, error) {
 	var (
 		p   Player
 		err error
@@ -36,7 +36,7 @@ func (ds *datastorePlayerStore) Create(ctx context.Context, id, name string) (Pl
 	// Lookup, set in transaction to ensure uniqueness
 	k := playerKey(id)
 	for i := 0; i < retries; i++ {
-		tx, err = client.NewTransaction(ctx)
+		tx, err = s.dsClient.NewTransaction(ctx)
 		if err != nil {
 			break
 		}
@@ -51,7 +51,7 @@ func (ds *datastorePlayerStore) Create(ctx context.Context, id, name string) (Pl
 			}
 		}
 		if found {
-			return nil, ErrNotUnique
+			return Player{}, ErrNotUnique
 		}
 
 		p.Name = name
@@ -65,23 +65,26 @@ func (ds *datastorePlayerStore) Create(ctx context.Context, id, name string) (Pl
 		}
 	}
 	if err != nil {
-		return nil, err
-	}
-	return p
-}
-
-func (ds *datastorePlayerStore) Get(ctx context.Context, id string) (Player, error) {
-	k := playerKey(id)
-	var p Player
-	if err := dsClient.Get(ctx, k, &p); err != nil {
-		return nil, err
+		return Player{}, err
 	}
 	return p, nil
 }
 
-func (ds *datastorePlayerStore) Set(ctx context.Context, p Player) error {
+func (s *datastorePlayerStore) Get(ctx context.Context, id string) (Player, error) {
 	k := playerKey(id)
-	if _, err := dsClient.Put(ctx, k, p); err != nil {
+	var p Player
+	if err := s.dsClient.Get(ctx, k, &p); err != nil {
+		if err == datastore.ErrNoSuchEntity {
+			return Player{}, ErrNotFound
+		}
+		return Player{}, err
+	}
+	return p, nil
+}
+
+func (s *datastorePlayerStore) Set(ctx context.Context, id string, p Player) error {
+	k := playerKey(id)
+	if _, err := s.dsClient.Put(ctx, k, &p); err != nil {
 		return err
 	}
 	return nil
