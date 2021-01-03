@@ -6,100 +6,68 @@ import (
 	"strings"
 )
 
-type Suit string
+type Card interface {
+	Num() string
+	Suit() Suit
+	String() string
+	Encoded() string
+}
 
-const (
-	Hearts   Suit = "H"
-	Diamonds Suit = "D"
-	Spades   Suit = "S"
-	Clubs    Suit = "C"
-	NoTrump  Suit = "N"
-)
+type card struct {
+	encoded string
+}
+
+var _ Card = (*card)(nil) // Ensure interface is implemented.
 
 var (
-	validNums = map[string]bool{
-		"7": true,
-		"8": true,
-		"9": true,
-		"T": true,
-		"J": true,
-		"Q": true,
-		"K": true,
-		"A": true,
-		"3": true,
-		"5": true,
-	}
-	validSuits = map[Suit]bool{
-		Hearts:   true,
-		Diamonds: true,
-		Spades:   true,
-		Clubs:    true,
-	}
-	suitFromString = map[string]Suit{
-		"H": Hearts,
-		"D": Diamonds,
-		"S": Spades,
-		"C": Clubs,
+	stringFromNum = map[string]string{
+		"3": "3",
+		"5": "5",
+		"7": "7",
+		"8": "8",
+		"9": "9",
+		"T": "10",
+		"J": "Jack",
+		"Q": "Queen",
+		"K": "King",
+		"A": "Ace",
 	}
 )
-
-type Card string
-
-func (c Card) Num() string {
-	return string(c[0])
-}
-
-func (c Card) Suit() Suit {
-	return suitFromString[strings.ToUpper(string(c[1]))]
-}
-
-func (c Card) String() string {
-	n := c.Num()
-	switch n {
-	case "T":
-		n = "10"
-	case "J":
-		n = "Jack"
-	case "Q":
-		n = "Queen"
-	case "K":
-		n = "King"
-	case "A":
-		n = "Ace"
-	}
-	s := ""
-	switch c.Suit() {
-	case Hearts:
-		s = "Hearts"
-	case Diamonds:
-		s = "Diamonds"
-	case Spades:
-		s = "Spades"
-	case Clubs:
-		s = "Clubs"
-	}
-	return fmt.Sprintf("%s of %s", n, s)
-}
 
 func NewCardFromEncoded(encoded string) (Card, error) {
 	if len(encoded) != 2 {
-		return "", errors.New("card string must be two characters")
+		return nil, errors.New("card string must be two characters")
 	}
-	num := string(encoded[0])
-	suitStr := string(encoded[1])
-	suit, ok := suitFromString[strings.ToUpper(suitStr)]
-	if !ok {
-		return "", fmt.Errorf("unknown suit %q", suitStr)
+	suit, err := NewSuitFromEncoded(string(encoded[1]))
+	if err != nil {
+		return nil, err
 	}
-	return NewCard(num, suit)
+	return NewCard(string(encoded[0]), suit)
 }
 
 func NewCard(num string, suit Suit) (Card, error) {
-	if _, present := validNums[num]; !present {
-		return Card(""), fmt.Errorf("invalid num %q", num)
+	if suit == NoTrump {
+		return nil, fmt.Errorf("card cannot be no trump suit")
 	}
-	if _, present := validSuits[suit]; !present {
-		return Card(""), fmt.Errorf("invalid suit %q", suit)
+	num = strings.ToUpper(num)
+	if _, present := stringFromNum[num]; !present {
+		return nil, fmt.Errorf("invalid num %q", num)
 	}
-	return Card(num + string(suit)), nil
+	return &card{encoded: num + suit.Encoded()}, nil
+}
+
+func (c *card) Num() string {
+	return string(c.encoded[0])
+}
+
+func (c *card) Suit() Suit {
+	return suitFromEncoded[string(c.encoded[1])]
+}
+
+func (c *card) String() string {
+	return fmt.Sprintf("%s of %s", stringFromNum[c.Num()], c.Suit())
+}
+
+func (c *card) Encoded() string {
+	return c.encoded
 }

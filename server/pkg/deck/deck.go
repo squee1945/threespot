@@ -10,6 +10,12 @@ type Deck interface {
 	Deal() [][]Card // 4 hands of 8 cards
 }
 
+type deck struct {
+	cards []Card
+}
+
+var _ Deck = (*deck)(nil) // Ensure interface is implemented.
+
 func NewDeck() (Deck, error) {
 	d := &deck{}
 	numset := []string{"8", "9", "T", "J", "Q", "K", "A"}
@@ -44,10 +50,6 @@ func NewDeck() (Deck, error) {
 	}
 	d.cards = append(d.cards, c)
 	return d, nil
-}
-
-type deck struct {
-	cards []Card
 }
 
 func (d *deck) Shuffle() {

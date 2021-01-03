@@ -69,7 +69,7 @@ func TestToOrd(t *testing.T) {
 		{3, 3, 0},
 	}
 	for _, tc := range testCases {
-		trickT, err := NewTrickFromEncoded(fmt.Sprintf("%d-%s", tc.leadPos, deck.NoTrump))
+		trickT, err := NewTrickFromEncoded(fmt.Sprintf("%d-%s", tc.leadPos, deck.NoTrump.Encoded()))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -105,7 +105,7 @@ func TestToPos(t *testing.T) {
 		{3, 3, 2},
 	}
 	for _, tc := range testCases {
-		trickT, err := NewTrickFromEncoded(fmt.Sprintf("%d-%s", tc.leadPos, deck.NoTrump))
+		trickT, err := NewTrickFromEncoded(fmt.Sprintf("%d-%s", tc.leadPos, deck.NoTrump.Encoded()))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -217,8 +217,15 @@ func TestIsHigher(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			trump := deck.Suit(tc.trump)
-			trickT, err := NewTrickFromEncoded(fmt.Sprintf("0-%s", trump))
+			trump, err := deck.NewSuitFromEncoded(tc.trump)
+			if err != nil {
+				t.Fatal(err)
+			}
+			leadSuit, err := deck.NewSuitFromEncoded(tc.lead)
+			if err != nil {
+				t.Fatal(err)
+			}
+			trickT, err := NewTrickFromEncoded(fmt.Sprintf("0-%s", trump.Encoded()))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -226,8 +233,8 @@ func TestIsHigher(t *testing.T) {
 
 			cardA := buildCard(t, tc.a)
 			cardB := buildCard(t, tc.b)
-			if got, want := tr.isHigher(deck.Suit(tc.lead), cardA, cardB), tc.want; got != want {
-				t.Errorf("isHigher(lead=%q, trump=%q, %q, %q)=%t, want=%t", deck.Suit(tc.lead), trump, tc.a, tc.b, got, want)
+			if got, want := tr.isHigher(leadSuit, cardA, cardB), tc.want; got != want {
+				t.Errorf("isHigher(lead=%q, trump=%q, %q, %q)=%t, want=%t", leadSuit, trump, tc.a, tc.b, got, want)
 			}
 		})
 
@@ -258,7 +265,10 @@ func buildCard(t *testing.T, s string) deck.Card {
 		t.Fatalf("expected two-character card, got %q", s)
 	}
 	num := s[0:1]
-	suit := deck.Suit(s[1:2])
+	suit, err := deck.NewSuitFromEncoded(s[1:2])
+	if err != nil {
+		t.Fatal(err)
+	}
 	c, err := deck.NewCard(num, suit)
 	if err != nil {
 		t.Fatal(err)

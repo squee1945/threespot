@@ -30,6 +30,8 @@ type hand struct {
 	cards []deck.Card
 }
 
+var _ Hand = (*hand)(nil) // Ensure interface is implemented.
+
 func NewHandFromEncoded(encoded string) (Hand, error) {
 	// "{card0}-{card1}-..."
 	if encoded == "" {
@@ -50,7 +52,7 @@ func NewHandFromEncoded(encoded string) (Hand, error) {
 func (h *hand) Encoded() string {
 	var cs []string
 	for _, card := range h.cards {
-		cs = append(cs, string(card))
+		cs = append(cs, card.Encoded())
 	}
 	return strings.Join(cs, "-")
 }

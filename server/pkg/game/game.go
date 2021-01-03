@@ -67,6 +67,8 @@ type game struct {
 	currentTally      []int  // The running tally for the current hand; 0-index is player 0/2 tally; 1-index is player 1/3 tally.
 }
 
+var _ Game = (*game)(nil) // Ensure interface is implemented.
+
 func NewGame(ctx context.Context, gameStore storage.GameStore, playerStore storage.PlayerStore, id string, organizer Player) (Game, error) {
 	gs, err := gameStore.Create(ctx, id, organizer.ID())
 	if err != nil {

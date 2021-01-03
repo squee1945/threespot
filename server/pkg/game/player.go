@@ -17,6 +17,24 @@ var (
 	validPlayerID = regexp.MustCompile(`^[A-Z0-9]{6,20}$`)
 )
 
+// Player is a card player.
+type Player interface {
+	ID() string
+	Name() string
+	// SetHand([]deck.Card)
+	// Hand() []deck.Card
+	SetName(context.Context, string) error
+}
+
+type player struct {
+	store storage.PlayerStore
+
+	id, name string
+	// hand     []deck.Card
+}
+
+var _ Player = (*player)(nil) // Ensure interface is implemented.
+
 // NewPlayer creates a new player.
 func NewPlayer(ctx context.Context, store storage.PlayerStore, id, name string) (Player, error) {
 	if id == "" || name == "" {
@@ -45,22 +63,6 @@ func GetPlayer(ctx context.Context, store storage.PlayerStore, id string) (Playe
 		return nil, fmt.Errorf("fetching player from storage: %v", err)
 	}
 	return playerFromStorage(store, id, ps)
-}
-
-// Player is a card player.
-type Player interface {
-	ID() string
-	Name() string
-	// SetHand([]deck.Card)
-	// Hand() []deck.Card
-	SetName(context.Context, string) error
-}
-
-type player struct {
-	store storage.PlayerStore
-
-	id, name string
-	// hand     []deck.Card
 }
 
 func (p *player) ID() string {

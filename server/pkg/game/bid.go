@@ -57,6 +57,8 @@ type bid struct {
 	encoded string
 }
 
+var _ Bid = (*bid)(nil) // Ensure interface is implemented.
+
 func (b *bid) Encoded() string {
 	return b.encoded
 }

@@ -64,6 +64,8 @@ type trick struct {
 	cards []deck.Card
 }
 
+var _ Trick = (*trick)(nil) // Ensure interface is implemented.
+
 func NewTrickFromEncoded(encoded string) (Trick, error) {
 	// "{leadPos}-{trump}-{card0}-{card1}-{card2}-{card3}"
 	parts := strings.Split(encoded, "-")
@@ -77,9 +79,9 @@ func NewTrickFromEncoded(encoded string) (Trick, error) {
 	if leadPos < 0 || leadPos > 3 {
 		return nil, fmt.Errorf("encoded string part[0] %q not in range", parts[0])
 	}
-	trump := deck.Suit(strings.ToUpper(parts[1]))
-	if _, present := validTrickSuits[trump]; !present {
-		return nil, fmt.Errorf("encoded string part[1] %q not suit", parts[1])
+	trump, err := deck.NewSuitFromEncoded(strings.ToUpper(parts[1]))
+	if err != nil {
+		return nil, fmt.Errorf("encoded string part[1] %q not suit: %v", parts[1], err)
 	}
 	var cards []deck.Card
 	for i := 2; i < len(parts); i++ {
@@ -123,7 +125,7 @@ func (t *trick) LeadPos() int {
 
 func (t *trick) LeadSuit() (deck.Suit, error) {
 	if len(t.cards) == 0 {
-		return "", errors.New("no cards have been played")
+		return nil, errors.New("no cards have been played")
 	}
 	return t.cards[0].Suit(), nil
 }
