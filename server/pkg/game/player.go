@@ -2,6 +2,7 @@ package game
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 
@@ -32,7 +33,7 @@ func NewPlayer(ctx context.Context, store storage.PlayerStore, id, name string) 
 	if err != nil {
 		return nil, fmt.Errorf("creating player in storage: %v", err)
 	}
-	return playerFromStorage(store, id, ps), nil
+	return playerFromStorage(store, id, ps)
 }
 
 func GetPlayer(ctx context.Context, store storage.PlayerStore, id string) (Player, error) {
@@ -43,7 +44,7 @@ func GetPlayer(ctx context.Context, store storage.PlayerStore, id string) (Playe
 		}
 		return nil, fmt.Errorf("fetching player from storage: %v", err)
 	}
-	return playerFromStorage(store, id, ps), nil
+	return playerFromStorage(store, id, ps)
 }
 
 // Player is a card player.
@@ -80,7 +81,7 @@ func (p *player) Name() string {
 
 func (p *player) SetName(ctx context.Context, name string) error {
 	p.name = name
-	ps := storage.Player{
+	ps := &storage.Player{
 		Name: name,
 	}
 	if err := p.store.Set(ctx, p.id, ps); err != nil {
@@ -89,10 +90,13 @@ func (p *player) SetName(ctx context.Context, name string) error {
 	return nil
 }
 
-func playerFromStorage(store storage.PlayerStore, id string, ps storage.Player) Player {
-	return player{
+func playerFromStorage(store storage.PlayerStore, id string, ps *storage.Player) (Player, error) {
+	if ps == nil {
+		return nil, errors.New("nil player")
+	}
+	return &player{
 		store: store,
 		id:    id,
 		name:  ps.Name,
-	}
+	}, nil
 }

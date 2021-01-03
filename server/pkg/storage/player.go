@@ -11,10 +11,10 @@ type Player struct {
 }
 
 type PlayerStore interface {
-	Create(ctx context.Context, id, name string) (Player, error)
-	Get(ctx context.Context, id string) (Player, error)
-	GetMulti(ctx context.Context, ids []string) ([]Player, error)
-	Set(ctx context.Context, id string, p Player) error
+	Create(ctx context.Context, id, name string) (*Player, error)
+	Get(ctx context.Context, id string) (*Player, error)
+	GetMulti(ctx context.Context, ids []string) ([]*Player, error)
+	Set(ctx context.Context, id string, p *Player) error
 }
 
 type datastorePlayerStore struct {
@@ -27,7 +27,7 @@ func NewDatastorePlayerStore(dsClient *datastore.Client) PlayerStore {
 	}
 }
 
-func (s *datastorePlayerStore) Create(ctx context.Context, id, name string) (Player, error) {
+func (s *datastorePlayerStore) Create(ctx context.Context, id, name string) (*Player, error) {
 	var (
 		p   Player
 		err error
@@ -52,7 +52,7 @@ func (s *datastorePlayerStore) Create(ctx context.Context, id, name string) (Pla
 			}
 		}
 		if found {
-			return Player{}, ErrNotUnique
+			return nil, ErrNotUnique
 		}
 
 		p.Name = name
@@ -66,38 +66,38 @@ func (s *datastorePlayerStore) Create(ctx context.Context, id, name string) (Pla
 		}
 	}
 	if err != nil {
-		return Player{}, err
+		return nil, err
 	}
-	return p, nil
+	return &p, nil
 }
 
-func (s *datastorePlayerStore) Get(ctx context.Context, id string) (Player, error) {
+func (s *datastorePlayerStore) Get(ctx context.Context, id string) (*Player, error) {
 	k := playerKey(id)
 	var p Player
 	if err := s.dsClient.Get(ctx, k, &p); err != nil {
 		if err == datastore.ErrNoSuchEntity {
-			return Player{}, ErrNotFound
+			return nil, ErrNotFound
 		}
-		return Player{}, err
+		return nil, err
 	}
-	return p, nil
+	return &p, nil
 }
 
-func (s *datastorePlayerStore) GetMulti(ctx context.Context, ids []string) ([]Player, error) {
+func (s *datastorePlayerStore) GetMulti(ctx context.Context, ids []string) ([]*Player, error) {
 	var keys []*datastore.Key
 	for _, id := range ids {
 		keys = append(keys, playerKey(id))
 	}
-	players := make([]Player, len(ids))
+	players := make([]*Player, len(ids))
 	if err := s.dsClient.GetMulti(ctx, keys, players); err != nil {
 		return nil, err
 	}
 	return players, nil
 }
 
-func (s *datastorePlayerStore) Set(ctx context.Context, id string, p Player) error {
+func (s *datastorePlayerStore) Set(ctx context.Context, id string, p *Player) error {
 	k := playerKey(id)
-	if _, err := s.dsClient.Put(ctx, k, &p); err != nil {
+	if _, err := s.dsClient.Put(ctx, k, p); err != nil {
 		return err
 	}
 	return nil

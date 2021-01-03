@@ -84,7 +84,7 @@ func (b *bid) IsLessThan(other Bid) bool {
 func NewBidFromEncoded(encoded string) (Bid, error) {
 	encoded = strings.ToUpper(encoded)
 	if _, present := validBids[encoded]; !present {
-		return Bid{}, fmt.Errorf("unknown bid %q", encoded)
+		return nil, fmt.Errorf("unknown bid %q", encoded)
 	}
 	return &bid{encoded: encoded}, nil
 }
@@ -99,7 +99,7 @@ func nextBids(currentBids []Bid, isDealer bool) []Bid {
 	}
 
 	var available []Bid
-	for k, v := range bidValues {
+	for k, v := range bidValue {
 		if (isDealer && v >= highBidValue) || (!isDealer && v > highBidValue) {
 			available = append(available, &bid{encoded: k})
 		}
@@ -107,9 +107,9 @@ func nextBids(currentBids []Bid, isDealer bool) []Bid {
 
 	// if not dealer, can always pass
 	// if dealer, can only pass if there is another bid
-	if !isDealer || (isDealer && currentHighBid != nil) {
+	if !isDealer || (isDealer && highBidValue > 1) {
 		available = append(available, passBid)
 	}
-	sort.SliceStable(available, func(i, j Bid) bool { return i.IsLessThan(j) })
+	sort.SliceStable(available, func(i, j int) bool { return available[i].IsLessThan(available[j]) })
 	return available
 }

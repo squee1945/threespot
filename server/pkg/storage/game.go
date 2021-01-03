@@ -27,10 +27,10 @@ type Game struct {
 }
 
 type GameStore interface {
-	Create(ctx context.Context, id, organizingPlayerID string) (Game, error)
-	Get(ctx context.Context, id string) (Game, error)
-	Set(ctx context.Context, id string, g Game) error
-	AddPlayer(ctx context.Context, id, playerID string, pos int) (Game, error)
+	Create(ctx context.Context, id, organizingPlayerID string) (*Game, error)
+	Get(ctx context.Context, id string) (*Game, error)
+	Set(ctx context.Context, id string, g *Game) error
+	AddPlayer(ctx context.Context, id, playerID string, pos int) (*Game, error)
 }
 
 type datastoreGameStore struct {
@@ -43,7 +43,7 @@ func NewDatastoreGameStore(dsClient *datastore.Client) GameStore {
 	}
 }
 
-func (s *datastoreGameStore) Create(ctx context.Context, id, organizingPlayerID string) (Game, error) {
+func (s *datastoreGameStore) Create(ctx context.Context, id, organizingPlayerID string) (*Game, error) {
 	var (
 		g   Game
 		err error
@@ -68,7 +68,7 @@ func (s *datastoreGameStore) Create(ctx context.Context, id, organizingPlayerID 
 			}
 		}
 		if found {
-			return Game{}, ErrNotUnique
+			return nil, ErrNotUnique
 		}
 
 		g.PlayerIDs = make([]string, 4)
@@ -84,33 +84,33 @@ func (s *datastoreGameStore) Create(ctx context.Context, id, organizingPlayerID 
 		}
 	}
 	if err != nil {
-		return Game{}, err
+		return nil, err
 	}
-	return g, nil
+	return &g, nil
 }
 
-func (s *datastoreGameStore) Get(ctx context.Context, id string) (Game, error) {
+func (s *datastoreGameStore) Get(ctx context.Context, id string) (*Game, error) {
 	k := gameKey(id)
 	var g Game
 	if err := s.dsClient.Get(ctx, k, &g); err != nil {
 		if err == datastore.ErrNoSuchEntity {
-			return Game{}, ErrNotFound
+			return nil, ErrNotFound
 		}
-		return Game{}, err
+		return nil, err
 	}
-	return g, nil
+	return &g, nil
 
 }
 
-func (s *datastoreGameStore) Set(ctx context.Context, id string, g Game) error {
+func (s *datastoreGameStore) Set(ctx context.Context, id string, g *Game) error {
 	k := gameKey(id)
-	if _, err := s.dsClient.Put(ctx, k, &g); err != nil {
+	if _, err := s.dsClient.Put(ctx, k, g); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s *datastoreGameStore) AddPlayer(ctx context.Context, id, playerID string, pos int) (Game, error) {
+func (s *datastoreGameStore) AddPlayer(ctx context.Context, id, playerID string, pos int) (*Game, error) {
 	var (
 		g   Game
 		err error
@@ -161,9 +161,9 @@ func (s *datastoreGameStore) AddPlayer(ctx context.Context, id, playerID string,
 		}
 	}
 	if err != nil {
-		return Game{}, err
+		return nil, err
 	}
-	return g, nil
+	return &g, nil
 }
 
 func gameKey(id string) *datastore.Key {

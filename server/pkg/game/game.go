@@ -37,14 +37,14 @@ type Game interface {
 	State() GameState
 	Players() []Player
 	PlacedBids() []Bid
-	AvailableBids() []Bid
+	AvailableBids(Player) []Bid
 	PosToBid() int
-	WinningBid() (string, int)
+	WinningBid() Bid
 	PlayerHand(player Player) Hand
 
-	AddPlayer(player Player, pos int) (Game, error)
-	PlaceBid(player Player, bid Bid) (Game, error)
-	PlayCard(player Player, card deck.Card) (Game, error)
+	AddPlayer(ctx context.Context, player Player, pos int) (Game, error)
+	PlaceBid(ctx context.Context, player Player, bid Bid) (Game, error)
+	PlayCard(ctx context.Context, player Player, card deck.Card) (Game, error)
 }
 
 type game struct {
@@ -55,9 +55,8 @@ type game struct {
 	players  []Player // Position 0/2 are a team, 1/3 are a team; organizer is position 0.
 	complete bool
 
-	scoreToWin   int     // Either 52 or 62.
-	score        []int   // 0-index is player 0/2 score; 1-index is player 1/3 score.
-	scoreHistory [][]int // A list of pairs like above.
+	scoreToWin int   // Either 52 or 62.
+	score      Score // The score of the game.
 
 	currentDealerPos  int    // The position of the current dealer.
 	currentBids       []Bid  // The bids for the current hand; empty string is 'pass'. The 0-index is the bid from the player clockwise from the currentDealerPos.
@@ -69,12 +68,13 @@ type game struct {
 }
 
 func NewGame(ctx context.Context, gameStore storage.GameStore, playerStore storage.PlayerStore, id string, organizer Player) (Game, error) {
-	if gs, err := gameStore.Create(ctx, id, organizer.ID()); err != nil {
-		return Game{}, err
+	gs, err := gameStore.Create(ctx, id, organizer.ID())
+	if err != nil {
+		return nil, err
 	}
 	g, err := gameFromDatastore(ctx, gameStore, playerStore, id, gs)
 	if err != nil {
-		return Game{}, err
+		return nil, err
 	}
 	return g, nil
 }
@@ -90,7 +90,7 @@ func GetGame(ctx context.Context, gameStore storage.GameStore, playerStore stora
 	}
 	g, err := gameFromDatastore(ctx, gameStore, playerStore, id, gs)
 	if err != nil {
-		return Game{}, err
+		return nil, err
 	}
 	return g, nil
 }
@@ -120,15 +120,15 @@ func (g *game) PlacedBids() []Bid {
 	return g.currentBids
 }
 
-func (g *game) AvailableBids(Player player) []Bid {
+func (g *game) AvailableBids(player Player) []Bid {
 	if len(g.currentBids) == 4 {
 		return nil
 	}
-	pos, err := playerPos(player)
+	pos, err := g.playerPos(player)
 	if err != nil {
 		return nil
 	}
-	return nextBids(g.currentBids, playerPos == g.currentDealerPos)
+	return nextBids(g.currentBids, pos == g.currentDealerPos)
 }
 
 func (g *game) PosToBid() int {
@@ -140,7 +140,7 @@ func (g *game) WinningBid() Bid {
 }
 
 func (g *game) PlayerHand(player Player) Hand {
-	pos, err := playerPos(player)
+	pos, err := g.playerPos(player)
 	if err != nil {
 		return nil
 	}
@@ -168,7 +168,7 @@ func (g *game) PlaceBid(ctx context.Context, player Player, bid Bid) (Game, erro
 	}
 
 	// Can the player bid at the moment?
-	pos, err := playerPos(player)
+	pos, err := g.playerPos(player)
 	if err != nil {
 		return nil, err
 	}
@@ -178,7 +178,7 @@ func (g *game) PlaceBid(ctx context.Context, player Player, bid Bid) (Game, erro
 
 	// Is bid in available bids?
 	found := false
-	for _, ab := range g.AvailableBids {
+	for _, ab := range g.AvailableBids(player) {
 		if ab == bid {
 			found = true
 			break
@@ -192,7 +192,7 @@ func (g *game) PlaceBid(ctx context.Context, player Player, bid Bid) (Game, erro
 	if err != nil {
 		return nil, fmt.Errorf("fetching game to update: %v", err)
 	}
-	gs.CurrentBids = append(gs.CurrentBids, string(Bid))
+	gs.CurrentBids = append(gs.CurrentBids, bid.Encoded())
 
 	if err = g.gameStore.Set(ctx, g.id, gs); err != nil {
 		return nil, fmt.Errorf("saving game: %v", err)
@@ -200,18 +200,22 @@ func (g *game) PlaceBid(ctx context.Context, player Player, bid Bid) (Game, erro
 	return gameFromDatastore(ctx, g.gameStore, g.playerStore, g.id, gs)
 }
 
-func (g *game) PlayCard(player Player, card deck.Card) (Game, error) {
+func (g *game) PlayCard(ctx context.Context, player Player, card deck.Card) (Game, error) {
 	// Are we in playing state?
 	if g.State() != PlayingState {
 		return nil, ErrNotPlaying
 	}
 
 	// Is it the player's turn?
-	pos, err := playerPos(player)
+	pos, err := g.playerPos(player)
 	if err != nil {
 		return nil, err
 	}
-	if g.trick.CurrentTurnPos() != pos {
+	currentTurnPos, err := g.currentTrick.CurrentTurnPos()
+	if err != nil {
+		return nil, err
+	}
+	if currentTurnPos != pos {
 		return nil, ErrIncorrectPlayOrder
 	}
 
@@ -223,7 +227,10 @@ func (g *game) PlayCard(player Player, card deck.Card) (Game, error) {
 	}
 
 	// Is the card a valid card to play (i.e., does it follow suit)?
-	leadSuit := g.currentTrick.LeadSuit()
+	leadSuit, err := g.currentTrick.LeadSuit()
+	if err != nil {
+		return nil, err
+	}
 	if g.currentTrick.NumPlayed() > 0 && card.Suit() != leadSuit {
 		if playerHand.ContainsSuit(leadSuit) {
 			return nil, ErrNotFollowingSuit
@@ -236,7 +243,7 @@ func (g *game) PlayCard(player Player, card deck.Card) (Game, error) {
 	}
 
 	// Remove the card from the player hand.
-	newHand, err := hand.RemoveCard(card)
+	newHand, err := playerHand.RemoveCard(card)
 	if err != nil {
 		return nil, err
 	}
@@ -244,7 +251,7 @@ func (g *game) PlayCard(player Player, card deck.Card) (Game, error) {
 
 	// Add the card to the current trick
 	if err := g.currentTrick.PlayCard(pos, card); err != nil {
-		return Game{}, err
+		return nil, err
 	}
 	gs.CurrentTrick = g.currentTrick.Encoded()
 
@@ -253,7 +260,7 @@ func (g *game) PlayCard(player Player, card deck.Card) (Game, error) {
 		// Who won the trick?
 		winningPos, err := g.currentTrick.WinningPos()
 		if err != nil {
-			return Game{}, err
+			return nil, err
 		}
 		// TODO: Adjust the tally.
 		// TODO: If all cards are played, update the score.
@@ -286,7 +293,10 @@ func (g *game) playerPos(player Player) (int, error) {
 	return -1, errors.New("unknown player")
 }
 
-func gameFromDatastore(ctx context.Context, gameStore storage.GameStore, playerStore storage.PlayerStore, id string, gs storage.Game) (Game, error) {
+func gameFromDatastore(ctx context.Context, gameStore storage.GameStore, playerStore storage.PlayerStore, id string, gs *storage.Game) (Game, error) {
+	if gs == nil {
+		return nil, errors.New("nil game")
+	}
 	// Multi-get the players
 	pss, err := playerStore.GetMulti(ctx, gs.PlayerIDs)
 	if err != nil {
@@ -297,12 +307,20 @@ func gameFromDatastore(ctx context.Context, gameStore storage.GameStore, playerS
 		if ps == nil {
 			continue
 		}
-		players[i] = playerFromStorage(playerStore, pss[i], ps)
+		player, err := playerFromStorage(playerStore, gs.PlayerIDs[i], ps)
+		if err != nil {
+			return nil, err
+		}
+		players[i] = player
 	}
 
 	var bids []Bid
-	for _, bidStr := range gs.currentBids {
-		bids = append(bids, NewBidFromEncoded(bs))
+	for _, encoded := range gs.CurrentBids {
+		bid, err := NewBidFromEncoded(encoded)
+		if err != nil {
+			return nil, err
+		}
+		bids = append(bids, bid)
 	}
 
 	var hands []Hand
@@ -311,31 +329,35 @@ func gameFromDatastore(ctx context.Context, gameStore storage.GameStore, playerS
 		if err != nil {
 			return nil, err
 		}
-	}
-	for pos, cardStrs := range gs.CurrentHands {
-		var cards []Card
-		for _, cardStr := range cardStrs {
-			cards = append(cards, deck.NewCardFromEncoded(cardStr))
-		}
-		hands = append(hands, NewHand(cards))
+		hands = append(hands, hand)
 	}
 
 	var winningBid Bid
 	var trick Trick
 	if gs.CurrentWinningBid != "" {
-		winningBid = NewBidFromEncoded(gs.CurrentWinningBid)
-		trick := NewTrickFromEncoded(gs.CurrentTrick)
+		winningBid, err = NewBidFromEncoded(gs.CurrentWinningBid)
+		if err != nil {
+			return nil, err
+		}
+		trick, err = NewTrickFromEncoded(gs.CurrentTrick)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	g := Game{
+	score, err := NewScoreFromEncoded(gs.Score)
+	if err != nil {
+		return nil, err
+	}
+
+	g := &game{
 		gameStore:         gameStore,
 		playerStore:       playerStore,
 		id:                id,
 		players:           players,
 		complete:          gs.Complete,
 		scoreToWin:        gs.ScoreToWin,
-		score:             gs.Score,
-		scoreHistory:      gs.ScoreHistory,
+		score:             score,
 		currentDealerPos:  gs.CurrentDealerPos,
 		currentBids:       bids,
 		currentWinningBid: winningBid,

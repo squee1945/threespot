@@ -1,6 +1,8 @@
 package game
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/squee1945/threespot/server/pkg/deck"
@@ -12,9 +14,9 @@ func TestWinningPos(t *testing.T) {
 		cards   []string
 		wantPos int
 	}{
-		{"", []string{"8H", "9H", "3S", "7C"}, 1},
-		{"", []string{"8H", "9S", "3S", "7C"}, 0},
-		{"", []string{"8H", "5H", "AH", "KH"}, 2},
+		{"N", []string{"8H", "9H", "3S", "7C"}, 1},
+		{"N", []string{"8H", "9S", "3S", "7C"}, 0},
+		{"N", []string{"8H", "5H", "AH", "KH"}, 2},
 		{"D", []string{"8H", "9H", "3S", "7C"}, 1},
 		{"D", []string{"8H", "9S", "3S", "7C"}, 0},
 		{"D", []string{"8H", "5H", "AH", "KH"}, 2},
@@ -22,7 +24,8 @@ func TestWinningPos(t *testing.T) {
 		{"H", []string{"3S", "AH", "7H", "KH"}, 1},
 	}
 	for _, tc := range testCases {
-		tr, err := NewTrick(0, deck.Suit(tc.trump))
+		encoded := fmt.Sprintf("0-%s-%s", tc.trump, strings.Join(tc.cards, "-"))
+		tr, err := NewTrickFromEncoded(encoded)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -66,7 +69,7 @@ func TestToOrd(t *testing.T) {
 		{3, 3, 0},
 	}
 	for _, tc := range testCases {
-		trickT, err := NewTrick(tc.leadPos, deck.NoTrump)
+		trickT, err := NewTrickFromEncoded(fmt.Sprintf("%d-%s", tc.leadPos, deck.NoTrump))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -102,7 +105,7 @@ func TestToPos(t *testing.T) {
 		{3, 3, 2},
 	}
 	for _, tc := range testCases {
-		trickT, err := NewTrick(tc.leadPos, deck.NoTrump)
+		trickT, err := NewTrickFromEncoded(fmt.Sprintf("%d-%s", tc.leadPos, deck.NoTrump))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -215,7 +218,7 @@ func TestIsHigher(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			trump := deck.Suit(tc.trump)
-			trickT, err := NewTrick(0, trump)
+			trickT, err := NewTrickFromEncoded(fmt.Sprintf("0-%s", trump))
 			if err != nil {
 				t.Fatal(err)
 			}

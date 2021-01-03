@@ -14,7 +14,7 @@ const (
 )
 
 var (
-	validTrickSuits = map[Suit]bool{
+	validTrickSuits = map[deck.Suit]bool{
 		deck.Hearts:   true,
 		deck.Diamonds: true,
 		deck.Spades:   true,
@@ -37,13 +37,13 @@ type Trick interface {
 	WinningPos() (int, error)
 
 	// Trump returns the trump suit for this trick.
-	Trump() Suit
+	Trump() deck.Suit
 
 	// LeadPos returns the position of the lead player.
 	LeadPos() int
 
 	// LeadSuit returns the suit that was lead. Returns error if no card has been played.
-	LeadSuit() (Suit, error)
+	LeadSuit() (deck.Suit, error)
 
 	// NumPlayed returns the number of cards played so far.
 	NumPlayed() int
@@ -66,7 +66,7 @@ type trick struct {
 
 func NewTrickFromEncoded(encoded string) (Trick, error) {
 	// "{leadPos}-{trump}-{card0}-{card1}-{card2}-{card3}"
-	parts = strings.Split(encoded, "-")
+	parts := strings.Split(encoded, "-")
 	if len(parts) < 2 {
 		return nil, fmt.Errorf("encoded string %q must have at least two parts", encoded)
 	}
@@ -77,15 +77,15 @@ func NewTrickFromEncoded(encoded string) (Trick, error) {
 	if leadPos < 0 || leadPos > 3 {
 		return nil, fmt.Errorf("encoded string part[0] %q not in range", parts[0])
 	}
-	trump := Suit(strings.ToUpper(parts[1]))
+	trump := deck.Suit(strings.ToUpper(parts[1]))
 	if _, present := validTrickSuits[trump]; !present {
 		return nil, fmt.Errorf("encoded string part[1] %q not suit", parts[1])
 	}
 	var cards []deck.Card
 	for i := 2; i < len(parts); i++ {
-		card, err := NewCardFromString(strings.ToUpper(parts[i]))
+		card, err := deck.NewCardFromEncoded(strings.ToUpper(parts[i]))
 		if err != nil {
-			return nil, fmt.Errorf("encoded string part[%d] %q not card: %v", i, part[i], err)
+			return nil, fmt.Errorf("encoded string part[%d] %q not card: %v", i, parts[i], err)
 		}
 		cards = append(cards, card)
 	}
@@ -117,26 +117,34 @@ func (t *trick) Trump() deck.Suit {
 	return t.trump
 }
 
-func (t *trick) LeadSuit() deck.Suit {
+func (t *trick) LeadPos() int {
+	return t.leadPos
+}
+
+func (t *trick) LeadSuit() (deck.Suit, error) {
 	if len(t.cards) == 0 {
 		return "", errors.New("no cards have been played")
 	}
-	return t.cards[0].Suit()
+	return t.cards[0].Suit(), nil
 }
 
 func (t *trick) NumPlayed() int {
 	return len(t.cards)
 }
 
-func (t *trick) CurrentTurnPos() int {
+func (t *trick) CurrentTurnPos() (int, error) {
 	if t.IsDone() {
-		return -1
+		return -1, fmt.Errorf("trick is complete")
 	}
-	return (t.leadPos + len(t.cards)) % 4
+	return (t.leadPos + len(t.cards)) % 4, nil
 }
 
 func (t *trick) IsDone() bool {
 	return len(t.cards) == 4
+}
+
+func (t *trick) Cards() []deck.Card {
+	return t.cards
 }
 
 func (t *trick) WinningPos() (int, error) {
