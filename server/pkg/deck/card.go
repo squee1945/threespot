@@ -13,7 +13,7 @@ const (
 	Diamonds Suit = "D"
 	Spades   Suit = "S"
 	Clubs    Suit = "C"
-	NoTrump  Suit = ""
+	NoTrump  Suit = "N"
 )
 
 var (
@@ -81,12 +81,12 @@ func (c Card) String() string {
 	return fmt.Sprintf("%s of %s", n, s)
 }
 
-func NewCardFromString(cardStr string) (Card, error) {
-	if len(cardStr) != 2 {
+func NewCardFromEncoded(encoded string) (Card, error) {
+	if len(encoded) != 2 {
 		return "", errors.New("card string must be two characters")
 	}
-	num := string(cardStr[0])
-	suitStr := string(cardStr[1])
+	num := string(encoded[0])
+	suitStr := string(encoded[1])
 	suit, ok := suitFromString[strings.ToUpper(suitStr)]
 	if !ok {
 		return "", fmt.Errorf("unknown suit %q", suitStr)

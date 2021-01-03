@@ -3,9 +3,6 @@ package game
 import (
 	"strings"
 	"testing"
-
-	"github.com/google/go-cmp/cmp"
-	"github.com/squee1945/threespot/server/pkg/deck"
 )
 
 func TestNewPlayer(t *testing.T) {
@@ -72,29 +69,29 @@ func TestNewPlayer(t *testing.T) {
 	}
 }
 
-func TestSetHand(t *testing.T) {
-	p, err := NewPlayer("abc123", "some-name")
-	if err != nil {
-		t.Fatal(err)
-	}
+// func TestSetHand(t *testing.T) {
+// 	p, err := NewPlayer("abc123", "some-name")
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
 
-	if len(p.Hand()) > 0 {
-		t.Fatalf("hand must start empty, got=%v", p.Hand())
-	}
+// 	if len(p.Hand()) > 0 {
+// 		t.Fatalf("hand must start empty, got=%v", p.Hand())
+// 	}
 
-	c1, err := deck.NewCard("3", deck.Spades)
-	if err != nil {
-		t.Fatal(err)
-	}
-	c2, err := deck.NewCard("5", deck.Hearts)
-	if err != nil {
-		t.Fatal(err)
-	}
+// 	c1, err := deck.NewCard("3", deck.Spades)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	c2, err := deck.NewCard("5", deck.Hearts)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
 
-	hand := []deck.Card{c1, c2}
-	p.SetHand(hand)
+// 	hand := []deck.Card{c1, c2}
+// 	p.SetHand(hand)
 
-	if diff := cmp.Diff(hand, p.Hand()); diff != "" {
-		t.Errorf("hand mismatch (-want +got):\n%s", diff)
-	}
-}
+// 	if diff := cmp.Diff(hand, p.Hand()); diff != "" {
+// 		t.Errorf("hand mismatch (-want +got):\n%s", diff)
+// 	}
+// }

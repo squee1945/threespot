@@ -86,13 +86,13 @@ func (s *datastorePlayerStore) Get(ctx context.Context, id string) (Player, erro
 func (s *datastorePlayerStore) GetMulti(ctx context.Context, ids []string) ([]Player, error) {
 	var keys []*datastore.Key
 	for _, id := range ids {
-		keys = apppend(keys, playerKey(id))
+		keys = append(keys, playerKey(id))
 	}
-	players = make([]Player, len(ids))
+	players := make([]Player, len(ids))
 	if err := s.dsClient.GetMulti(ctx, keys, players); err != nil {
 		return nil, err
 	}
-	return players
+	return players, nil
 }
 
 func (s *datastorePlayerStore) Set(ctx context.Context, id string, p Player) error {

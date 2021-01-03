@@ -19,6 +19,8 @@ var (
 	ErrInvalidBid           = errors.New("Invalid bid")
 	ErrNotBidding           = errors.New("Not currently bidding")
 	ErrNotPlaying           = errors.New("Not currently playing cards")
+	ErrMissingCard          = errors.New("Player does not have this card")
+	ErrNotFollowingSuit     = errors.New("Must follow lead suit")
 )
 
 type GameState string
@@ -57,14 +59,13 @@ type game struct {
 	score        []int   // 0-index is player 0/2 score; 1-index is player 1/3 score.
 	scoreHistory [][]int // A list of pairs like above.
 
-	currentDealerPos    int    // The position of the current dealer.
-	currentBids         []Bid  // The bids for the current hand; empty string is 'pass'. The 0-index is the bid from the player clockwise from the currentDealerPos.
-	currentWinningBid   Bid    // The winning bid for the current hand.
-	currentWinningPos   int    // The position of the winning bidder (who will play first).
-	currentHands        []Hand // Cards held by each player, parallel with the PlayerIDs above.
-	currentTrickLeadPos int    // The position of the player leading this trick.
-	currentTrick        Trick  // Cards played for current trick; 0-index is the CurrentTrickLeadPos.
-	currentTally        []int  // The running tally for the current hand; 0-index is player 0/2 tally; 1-index is player 1/3 tally.
+	currentDealerPos  int    // The position of the current dealer.
+	currentBids       []Bid  // The bids for the current hand; empty string is 'pass'. The 0-index is the bid from the player clockwise from the currentDealerPos.
+	currentWinningBid Bid    // The winning bid for the current hand.
+	currentWinningPos int    // The position of the winning bidder (who will play first).
+	currentHands      []Hand // Cards held by each player, parallel with the PlayerIDs above.
+	currentTrick      Trick  // Cards played for current trick; 0-index is the lead player (i.e., the order the cards were played).
+	currentTally      []int  // The running tally for the current hand; 0-index is player 0/2 tally; 1-index is player 1/3 tally.
 }
 
 func NewGame(ctx context.Context, gameStore storage.GameStore, playerStore storage.PlayerStore, id string, organizer Player) (Game, error) {
@@ -187,8 +188,6 @@ func (g *game) PlaceBid(ctx context.Context, player Player, bid Bid) (Game, erro
 		return nil, ErrInvalidBid
 	}
 
-	// TODO: special case dealer forced to bid.
-
 	gs, err := g.gameStore.Get(ctx, g.id)
 	if err != nil {
 		return nil, fmt.Errorf("fetching game to update: %v", err)
@@ -202,7 +201,7 @@ func (g *game) PlaceBid(ctx context.Context, player Player, bid Bid) (Game, erro
 }
 
 func (g *game) PlayCard(player Player, card deck.Card) (Game, error) {
-	// Are we in bidding state?
+	// Are we in playing state?
 	if g.State() != PlayingState {
 		return nil, ErrNotPlaying
 	}
@@ -212,31 +211,42 @@ func (g *game) PlayCard(player Player, card deck.Card) (Game, error) {
 	if err != nil {
 		return nil, err
 	}
-	// TODO
+	if g.trick.CurrentTurnPos() != pos {
+		return nil, ErrIncorrectPlayOrder
+	}
 
-	// TODO: Does the player have the card to play?
+	playerHand := g.currentHands[pos]
 
-	// TODO: Is the card a valid card to play (i.e., does it follow suit)?
+	// Does the player have the card to play?
+	if !playerHand.Contains(card) {
+		return nil, ErrMissingCard
+	}
+
+	// Is the card a valid card to play (i.e., does it follow suit)?
+	leadSuit := g.currentTrick.LeadSuit()
+	if g.currentTrick.NumPlayed() > 0 && card.Suit() != leadSuit {
+		if playerHand.ContainsSuit(leadSuit) {
+			return nil, ErrNotFollowingSuit
+		}
+	}
 
 	gs, err := g.gameStore.Get(ctx, g.id)
 	if err != nil {
 		return nil, fmt.Errorf("fetching game to update: %v", err)
 	}
+
 	// Remove the card from the player hand.
-	var newHand []string
-	for _, cardStr := range gs.CurrentHands[pos] {
-		if cardStr == string(card) {
-			continue
-		}
-		newHand = append(newHand, cardStr)
+	newHand, err := hand.RemoveCard(card)
+	if err != nil {
+		return nil, err
 	}
-	gs.CurrentHands[pos] = newHand
+	gs.CurrentHands[pos] = newHand.Encoded()
 
 	// Add the card to the current trick
 	if err := g.currentTrick.PlayCard(pos, card); err != nil {
 		return Game{}, err
 	}
-	gs.CurrentTrick = append(gs.CurrentTrick, string(card))
+	gs.CurrentTrick = g.currentTrick.Encoded()
 
 	// TODO: if the last card, compute the results
 	if g.currentTrick.IsDone() {
@@ -292,14 +302,20 @@ func gameFromDatastore(ctx context.Context, gameStore storage.GameStore, playerS
 
 	var bids []Bid
 	for _, bidStr := range gs.currentBids {
-		bids = append(bids, NewBidFromString(bs))
+		bids = append(bids, NewBidFromEncoded(bs))
 	}
 
 	var hands []Hand
+	for pos, encoded := range gs.CurrentHands {
+		hand, err := NewHandFromEncoded(encoded)
+		if err != nil {
+			return nil, err
+		}
+	}
 	for pos, cardStrs := range gs.CurrentHands {
 		var cards []Card
 		for _, cardStr := range cardStrs {
-			cards = append(cards, deck.NewCardFromString(cardStr))
+			cards = append(cards, deck.NewCardFromEncoded(cardStr))
 		}
 		hands = append(hands, NewHand(cards))
 	}
@@ -307,31 +323,26 @@ func gameFromDatastore(ctx context.Context, gameStore storage.GameStore, playerS
 	var winningBid Bid
 	var trick Trick
 	if gs.CurrentWinningBid != "" {
-		winningBid = NewBidFromString(gs.CurrentWinningBid)
-		var cards []Card
-		for _, cardStr := range gs.CurrentTrick {
-			cards = append(cards, deck.NewCardFromString(cardStr))
-		}
-		trick := NewTrick(gs.CurrentTrickLeadPos, winningBid.Suit(), cards)
+		winningBid = NewBidFromEncoded(gs.CurrentWinningBid)
+		trick := NewTrickFromEncoded(gs.CurrentTrick)
 	}
 
 	g := Game{
-		gameStore:           gameStore,
-		playerStore:         playerStore,
-		id:                  id,
-		players:             players,
-		complete:            gs.Complete,
-		scoreToWin:          gs.ScoreToWin,
-		score:               gs.Score,
-		scoreHistory:        gs.ScoreHistory,
-		currentDealerPos:    gs.CurrentDealerPos,
-		currentBids:         bids,
-		currentWinningBid:   winningBid,
-		currentWinningPos:   gs.CurrentWinningPos,
-		currentHands:        hands,
-		currentTrickLeadPos: gs.CurrentTrickLeadPos,
-		currentTrick:        trick,
-		currentTally:        gs.CurrentTally,
+		gameStore:         gameStore,
+		playerStore:       playerStore,
+		id:                id,
+		players:           players,
+		complete:          gs.Complete,
+		scoreToWin:        gs.ScoreToWin,
+		score:             gs.Score,
+		scoreHistory:      gs.ScoreHistory,
+		currentDealerPos:  gs.CurrentDealerPos,
+		currentBids:       bids,
+		currentWinningBid: winningBid,
+		currentWinningPos: gs.CurrentWinningPos,
+		currentHands:      hands,
+		currentTrick:      trick,
+		currentTally:      gs.CurrentTally,
 	}
 	return g, nil
 }

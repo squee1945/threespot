@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/squee1945/threespot/server/pkg/deck"
 	"github.com/squee1945/threespot/server/pkg/storage"
 )
 
@@ -51,8 +50,8 @@ func GetPlayer(ctx context.Context, store storage.PlayerStore, id string) (Playe
 type Player interface {
 	ID() string
 	Name() string
-	SetHand([]deck.Card)
-	Hand() []deck.Card
+	// SetHand([]deck.Card)
+	// Hand() []deck.Card
 	SetName(context.Context, string) error
 }
 
@@ -60,7 +59,7 @@ type player struct {
 	store storage.PlayerStore
 
 	id, name string
-	hand     []deck.Card
+	// hand     []deck.Card
 }
 
 func (p *player) ID() string {
@@ -71,13 +70,13 @@ func (p *player) Name() string {
 	return p.name
 }
 
-func (p *player) SetHand(hand []deck.Card) {
-	p.hand = hand
-}
+// func (p *player) SetHand(hand []deck.Card) {
+// 	p.hand = hand
+// }
 
-func (p *player) Hand() []deck.Card {
-	return p.hand
-}
+// func (p *player) Hand() []deck.Card {
+// 	return p.hand
+// }
 
 func (p *player) SetName(ctx context.Context, name string) error {
 	p.name = name
