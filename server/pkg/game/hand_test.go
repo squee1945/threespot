@@ -11,28 +11,29 @@ func TestNewHandFromEncoded(t *testing.T) {
 	testCases := []struct {
 		name    string
 		encoded string
-		want    hand
+		want    *hand
 		wantErr bool
 	}{
 		{
 			name: "empty string",
+			want: &hand{},
 		},
 		{
 			name:    "single card",
 			encoded: "3S",
-			want:    hand{cards: []deck.Card{card(t, "3", deck.Spades)}},
+			want:    &hand{cards: []deck.Card{card(t, "3", deck.Spades)}},
 		},
 		{
 			name:    "multiple cards",
 			encoded: "3S-5H-TC",
-			want: hand{
+			want: &hand{
 				cards: []deck.Card{card(t, "3", deck.Spades), card(t, "5", deck.Hearts), card(t, "T", deck.Clubs)},
 			},
 		},
 		{
 			name:    "lowercase cards",
 			encoded: "ts",
-			want:    hand{cards: []deck.Card{card(t, "T", deck.Spades)}},
+			want:    &hand{cards: []deck.Card{card(t, "T", deck.Spades)}},
 		},
 		{
 			name:    "invalid cards",
@@ -51,7 +52,10 @@ func TestNewHandFromEncoded(t *testing.T) {
 			if !tc.wantErr && err != nil {
 				t.Fatalf("unepxected error: %v", err)
 			}
-			if diff := cmp.Diff(tc.want, got); diff != "" {
+			if tc.wantErr {
+				return
+			}
+			if diff := cmp.Diff(tc.want, got, cmp.Comparer(func(h1, h2 Hand) bool { return h1.Encoded() == h2.Encoded() })); diff != "" {
 				t.Errorf("NewHandFromEncoded() mismatch (-want +got):\n%s", diff)
 			}
 		})

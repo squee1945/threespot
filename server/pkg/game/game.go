@@ -258,10 +258,10 @@ func (g *game) PlayCard(ctx context.Context, player Player, card deck.Card) (Gam
 	// TODO: if the last card, compute the results
 	if g.currentTrick.IsDone() {
 		// Who won the trick?
-		winningPos, err := g.currentTrick.WinningPos()
-		if err != nil {
-			return nil, err
-		}
+		// winningPos, err := g.currentTrick.WinningPos()
+		// if err != nil {
+		// 	return nil, err
+		// }
 		// TODO: Adjust the tally.
 		// TODO: If all cards are played, update the score.
 		// TODO: If the score is a winning (note: bid out, etc.), complete the game.
@@ -324,7 +324,7 @@ func gameFromDatastore(ctx context.Context, gameStore storage.GameStore, playerS
 	}
 
 	var hands []Hand
-	for pos, encoded := range gs.CurrentHands {
+	for _, encoded := range gs.CurrentHands {
 		hand, err := NewHandFromEncoded(encoded)
 		if err != nil {
 			return nil, err

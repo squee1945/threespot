@@ -32,6 +32,9 @@ type hand struct {
 
 func NewHandFromEncoded(encoded string) (Hand, error) {
 	// "{card0}-{card1}-..."
+	if encoded == "" {
+		return &hand{}, nil
+	}
 	parts := strings.Split(strings.ToUpper(encoded), "-")
 	var cards []deck.Card
 	for i, p := range parts {

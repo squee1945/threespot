@@ -128,7 +128,7 @@ func TestIsHigher(t *testing.T) {
 		{
 			name:  "no trump, follow suit higher",
 			lead:  "H",
-			trump: "",
+			trump: "N",
 			a:     "7H",
 			b:     "8H",
 			want:  true,
@@ -136,7 +136,7 @@ func TestIsHigher(t *testing.T) {
 		{
 			name:  "no trump, follow suit lower",
 			lead:  "H",
-			trump: "",
+			trump: "N",
 			a:     "8H",
 			b:     "7H",
 			want:  false,
@@ -144,7 +144,7 @@ func TestIsHigher(t *testing.T) {
 		{
 			name:  "no trump, suited beats non-suited",
 			lead:  "H",
-			trump: "",
+			trump: "N",
 			a:     "8S",
 			b:     "7H",
 			want:  true,
@@ -152,7 +152,7 @@ func TestIsHigher(t *testing.T) {
 		{
 			name:  "no trump, non-suited does not beats suited",
 			lead:  "H",
-			trump: "",
+			trump: "N",
 			a:     "7H",
 			b:     "8S",
 			want:  false,

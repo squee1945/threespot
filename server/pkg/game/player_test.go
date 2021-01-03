@@ -1,8 +1,11 @@
 package game
 
 import (
+	"context"
 	"strings"
 	"testing"
+
+	"github.com/squee1945/threespot/server/pkg/storage"
 )
 
 func TestNewPlayer(t *testing.T) {
@@ -20,25 +23,25 @@ func TestNewPlayer(t *testing.T) {
 		},
 		{
 			name:       "name required",
-			playerID:   "abc123",
+			playerID:   "ABC123",
 			playerName: "",
 			wantErr:    true,
 		},
 		{
 			name:       "id must be valid",
-			playerID:   "a 3",
+			playerID:   "A 3",
 			playerName: "",
 			wantErr:    true,
 		},
 		{
-			name:       "name must bevalid",
-			playerID:   "abc123",
+			name:       "name must be valid",
+			playerID:   "ABC123",
 			playerName: strings.Repeat("a", 101),
 			wantErr:    true,
 		},
 		{
 			name:       "valid",
-			playerID:   "abc123",
+			playerID:   "ABC123",
 			playerName: "This is valid",
 			wantErr:    false,
 		},
@@ -46,7 +49,8 @@ func TestNewPlayer(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			p, err := NewPlayer(tc.playerID, tc.playerName)
+			ctx := context.Background()
+			p, err := NewPlayer(ctx, storage.NewFakePlayerStore(nil), tc.playerID, tc.playerName)
 
 			if tc.wantErr && err == nil {
 				t.Fatal("wanted error, got err=nil")

@@ -37,6 +37,8 @@ type datastoreGameStore struct {
 	dsClient *datastore.Client
 }
 
+var _ GameStore = (*datastoreGameStore)(nil) // Ensure interface is implemented.
+
 func NewDatastoreGameStore(dsClient *datastore.Client) GameStore {
 	return &datastoreGameStore{
 		dsClient: dsClient,
