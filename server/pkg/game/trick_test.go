@@ -5,11 +5,13 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/squee1945/threespot/server/pkg/deck"
 )
 
 var (
-	compareCards = cmp.Comparer(func(c1, c2 deck.Card) bool { return c1.Encoded() == c2.Encoded() })
+	compareCards    = cmp.Comparer(func(c1, c2 deck.Card) bool { return c1.Encoded() == c2.Encoded() })
+	ignoreCardOrder = cmpopts.SortSlices(func(c1, c2 deck.Card) bool { return c1.Encoded() < c2.Encoded() })
 )
 
 func TestNewTrick(t *testing.T) {

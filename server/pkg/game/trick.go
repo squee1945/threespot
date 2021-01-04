@@ -47,12 +47,12 @@ const (
 )
 
 var (
-	validTrickSuits = map[deck.Suit]bool{
-		deck.Hearts:   true,
-		deck.Diamonds: true,
-		deck.Spades:   true,
-		deck.Clubs:    true,
-		deck.NoTrump:  true,
+	validTrickSuits = map[string]bool{
+		deck.Hearts.Encoded():   true,
+		deck.Diamonds.Encoded(): true,
+		deck.Spades.Encoded():   true,
+		deck.Clubs.Encoded():    true,
+		deck.NoTrump.Encoded():  true,
 	}
 )
 

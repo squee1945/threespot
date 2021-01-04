@@ -234,7 +234,7 @@ func (g *game) PlayCard(ctx context.Context, player Player, card deck.Card) (Gam
 		return nil, err
 	}
 	if g.currentTrick.NumPlayed() > 0 && card.Suit() != leadSuit {
-		if playerHand.ContainsSuit(leadSuit) {
+		if playerHand.ContainsSuit(leadSuit, card) {
 			return nil, ErrNotFollowingSuit
 		}
 	}
