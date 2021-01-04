@@ -6,6 +6,15 @@ import (
 	"strings"
 )
 
+type Bid interface {
+	Human() string
+	Encoded() string
+	//IsGreaterThan(other Bid) bool
+	//IsGreaterThanOrEqualTo(other Bid) bool
+	//IsEqualTo(other Bid) bool
+	IsLessThan(other Bid) bool
+}
+
 var (
 	pass             = "P"
 	passBid          = &bid{encoded: pass}
@@ -44,15 +53,6 @@ var (
 	humanValues = map[string]string{}
 )
 
-type Bid interface {
-	Human() string
-	Encoded() string
-	IsGreaterThan(other Bid) bool
-	IsGreaterThanOrEqualTo(other Bid) bool
-	IsEqualTo(other Bid) bool
-	IsLessThan(other Bid) bool
-}
-
 type bid struct {
 	encoded string
 }
@@ -67,17 +67,17 @@ func (b *bid) Human() string {
 	return humanFromEncoded[b.encoded]
 }
 
-func (b *bid) IsGreaterThan(other Bid) bool {
-	return bidValue[b.encoded] > bidValue[other.Encoded()]
-}
+// func (b *bid) IsGreaterThan(other Bid) bool {
+// 	return bidValue[b.encoded] > bidValue[other.Encoded()]
+// }
 
-func (b *bid) IsGreaterThanOrEqualTo(other Bid) bool {
-	return bidValue[b.encoded] >= bidValue[other.Encoded()]
-}
+// func (b *bid) IsGreaterThanOrEqualTo(other Bid) bool {
+// 	return bidValue[b.encoded] >= bidValue[other.Encoded()]
+// }
 
-func (b *bid) IsEqualTo(other Bid) bool {
-	return bidValue[b.encoded] == bidValue[other.Encoded()]
-}
+// func (b *bid) IsEqualTo(other Bid) bool {
+// 	return bidValue[b.encoded] == bidValue[other.Encoded()]
+// }
 
 func (b *bid) IsLessThan(other Bid) bool {
 	return bidValue[b.encoded] < bidValue[other.Encoded()]

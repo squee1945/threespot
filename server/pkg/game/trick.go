@@ -9,20 +9,6 @@ import (
 	"github.com/squee1945/threespot/server/pkg/deck"
 )
 
-const (
-	orderedCards = "35789TJQKA"
-)
-
-var (
-	validTrickSuits = map[deck.Suit]bool{
-		deck.Hearts:   true,
-		deck.Diamonds: true,
-		deck.Spades:   true,
-		deck.Clubs:    true,
-		deck.NoTrump:  true,
-	}
-)
-
 // Trick is an in-progress trick of up to 4 cards, one card from each player.
 type Trick interface {
 	// IsDone returns true if the trick is complete (4 cards played).
@@ -55,6 +41,20 @@ type Trick interface {
 	// Encoded returns the entire trick encoded into a single string.
 	Encoded() string
 }
+
+const (
+	orderedCards = "35789TJQKA"
+)
+
+var (
+	validTrickSuits = map[deck.Suit]bool{
+		deck.Hearts:   true,
+		deck.Diamonds: true,
+		deck.Spades:   true,
+		deck.Clubs:    true,
+		deck.NoTrump:  true,
+	}
+)
 
 type trick struct {
 	// trump is the trump for the hand this trick belongs to.
@@ -106,6 +106,7 @@ func NewTrickFromEncoded(encoded string) (Trick, error) {
 	return t, nil
 }
 
+// NewTrick creates a new trick with no cards played.
 func NewTrick(trump deck.Suit, leadPos int) (Trick, error) {
 	if leadPos < 0 || leadPos > 3 {
 		return nil, fmt.Errorf("leadPos %d not in range [0,3]", leadPos)

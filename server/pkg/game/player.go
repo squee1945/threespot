@@ -9,14 +9,6 @@ import (
 	"github.com/squee1945/threespot/server/pkg/storage"
 )
 
-const (
-	maxPlayerName = 100
-)
-
-var (
-	validPlayerID = regexp.MustCompile(`^[A-Z0-9]{6,20}$`)
-)
-
 // Player is a card player.
 type Player interface {
 	ID() string
@@ -25,6 +17,14 @@ type Player interface {
 	// Hand() []deck.Card
 	SetName(context.Context, string) error
 }
+
+const (
+	maxPlayerName = 100
+)
+
+var (
+	validPlayerID = regexp.MustCompile(`^[A-Z0-9]{6,20}$`)
+)
 
 type player struct {
 	store storage.PlayerStore

@@ -8,15 +8,6 @@ import (
 	"github.com/squee1945/threespot/server/pkg/deck"
 )
 
-var (
-	suitValues = map[deck.Suit]int{
-		deck.Hearts:   4,
-		deck.Spades:   3,
-		deck.Diamonds: 2,
-		deck.Clubs:    1,
-	}
-)
-
 type Hand interface {
 	Cards() []deck.Card
 	Contains(card deck.Card) bool
@@ -25,6 +16,15 @@ type Hand interface {
 	IsEmpty() bool
 	Encoded() string
 }
+
+var (
+	suitValues = map[deck.Suit]int{
+		deck.Hearts:   4,
+		deck.Spades:   3,
+		deck.Diamonds: 2,
+		deck.Clubs:    1,
+	}
+)
 
 type hand struct {
 	cards []deck.Card

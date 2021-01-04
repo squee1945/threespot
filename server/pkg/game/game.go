@@ -9,6 +9,21 @@ import (
 	"github.com/squee1945/threespot/server/pkg/storage"
 )
 
+type Game interface {
+	ID() string
+	State() GameState
+	Players() []Player
+	PlacedBids() []Bid
+	AvailableBids(Player) []Bid
+	PosToBid() int
+	WinningBid() Bid
+	PlayerHand(player Player) Hand
+
+	AddPlayer(ctx context.Context, player Player, pos int) (Game, error)
+	PlaceBid(ctx context.Context, player Player, bid Bid) (Game, error)
+	PlayCard(ctx context.Context, player Player, card deck.Card) (Game, error)
+}
+
 var (
 	ErrNotFound             = errors.New("Not found")
 	ErrInvalidPosition      = errors.New("Invalid position")
@@ -31,21 +46,6 @@ var (
 	PlayingState  GameState = "PLAYING"
 	CompleteState GameState = "COMPLETE"
 )
-
-type Game interface {
-	ID() string
-	State() GameState
-	Players() []Player
-	PlacedBids() []Bid
-	AvailableBids(Player) []Bid
-	PosToBid() int
-	WinningBid() Bid
-	PlayerHand(player Player) Hand
-
-	AddPlayer(ctx context.Context, player Player, pos int) (Game, error)
-	PlaceBid(ctx context.Context, player Player, bid Bid) (Game, error)
-	PlayCard(ctx context.Context, player Player, card deck.Card) (Game, error)
-}
 
 type game struct {
 	gameStore   storage.GameStore
