@@ -12,8 +12,7 @@ type Game struct {
 	Created   time.Time
 	Complete  bool
 
-	ScoreToWin int    `datastore:",noindex"` // Either 52 or 62.
-	Score      string `datastore:",noindex"`
+	Score string `datastore:",noindex"`
 	// Score        []int   `datastore:",noindex"` // 0-index is player 0/2 score; 1-index is player 1/3 score.
 	// ScoreHistory [][]int `datastore:",noindex"` // A list of pairs like above.
 

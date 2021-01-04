@@ -55,8 +55,7 @@ type game struct {
 	players  []Player // Position 0/2 are a team, 1/3 are a team; organizer is position 0.
 	complete bool
 
-	scoreToWin int   // Either 52 or 62.
-	score      Score // The score of the game.
+	score Score // The score of the game.
 
 	currentDealerPos  int    // The position of the current dealer.
 	currentBids       []Bid  // The bids for the current hand. The 0-index is the bid from the player clockwise from the currentDealerPos.
@@ -362,7 +361,6 @@ func gameFromDatastore(ctx context.Context, gameStore storage.GameStore, playerS
 		id:                id,
 		players:           players,
 		complete:          gs.Complete,
-		scoreToWin:        gs.ScoreToWin,
 		score:             score,
 		currentDealerPos:  gs.CurrentDealerPos,
 		currentBids:       bids,
