@@ -11,10 +11,11 @@ import (
 
 // Player is a card player.
 type Player interface {
+	// ID is the unique ID of this player.
 	ID() string
+	// Name is the human-readable name of the player. It can be changed so it should not be used for any references.
 	Name() string
-	// SetHand([]deck.Card)
-	// Hand() []deck.Card
+	// SetName updates the name of the player.
 	SetName(context.Context, string) error
 }
 
@@ -27,15 +28,13 @@ var (
 )
 
 type player struct {
-	store storage.PlayerStore
-
+	store    storage.PlayerStore
 	id, name string
-	// hand     []deck.Card
 }
 
 var _ Player = (*player)(nil) // Ensure interface is implemented.
 
-// NewPlayer creates a new player.
+// NewPlayer creates a new player, storing it in the PlayerStore.
 func NewPlayer(ctx context.Context, store storage.PlayerStore, id, name string) (Player, error) {
 	if id == "" || name == "" {
 		return nil, fmt.Errorf("id and name required")
@@ -54,6 +53,7 @@ func NewPlayer(ctx context.Context, store storage.PlayerStore, id, name string) 
 	return playerFromStorage(store, id, ps)
 }
 
+// GetPlayer fetches the player from the PlayerStore, returning ErrNotFound if not found.
 func GetPlayer(ctx context.Context, store storage.PlayerStore, id string) (Player, error) {
 	ps, err := store.Get(ctx, id)
 	if err != nil {
@@ -72,14 +72,6 @@ func (p *player) ID() string {
 func (p *player) Name() string {
 	return p.name
 }
-
-// func (p *player) SetHand(hand []deck.Card) {
-// 	p.hand = hand
-// }
-
-// func (p *player) Hand() []deck.Card {
-// 	return p.hand
-// }
 
 func (p *player) SetName(ctx context.Context, name string) error {
 	p.name = name

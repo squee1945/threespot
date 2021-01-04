@@ -50,7 +50,8 @@ func TestNewPlayer(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := context.Background()
-			p, err := NewPlayer(ctx, storage.NewFakePlayerStore(nil), tc.playerID, tc.playerName)
+			store := storage.NewFakePlayerStore()
+			p, err := NewPlayer(ctx, store, tc.playerID, tc.playerName)
 
 			if tc.wantErr && err == nil {
 				t.Fatal("wanted error, got err=nil")
@@ -69,33 +70,71 @@ func TestNewPlayer(t *testing.T) {
 			if got, want := p.Name(), tc.playerName; got != want {
 				t.Errorf("incorrect name, got=%q, want=%q", got, want)
 			}
+
+			// Get the player to make sure they were stored.
+			lookup, err := GetPlayer(ctx, store, tc.playerID)
+			if err != nil {
+				t.Fatal()
+			}
+			if got, want := lookup.ID(), tc.playerID; got != want {
+				t.Errorf("incorrect lookup ID, got=%q, want=%q", got, want)
+			}
+
+			if got, want := lookup.Name(), tc.playerName; got != want {
+				t.Errorf("incorrect lookup name, got=%q, want=%q", got, want)
+			}
 		})
 	}
 }
 
-// func TestSetHand(t *testing.T) {
-// 	p, err := NewPlayer("abc123", "some-name")
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
+func TestGetPlayer(t *testing.T) {
+	id := "ABC123"
+	name := "ABCABC"
+	ctx := context.Background()
+	store := storage.NewFakePlayerStore()
+	_, err := NewPlayer(ctx, store, id, name)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-// 	if len(p.Hand()) > 0 {
-// 		t.Fatalf("hand must start empty, got=%v", p.Hand())
-// 	}
+	lookup, err := GetPlayer(ctx, store, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := lookup.ID(), id; got != want {
+		t.Errorf("incorrect lookup ID, got=%q, want=%q", got, want)
+	}
 
-// 	c1, err := deck.NewCard("3", deck.Spades)
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-// 	c2, err := deck.NewCard("5", deck.Hearts)
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
+	if got, want := lookup.Name(), name; got != want {
+		t.Errorf("incorrect lookup name, got=%q, want=%q", got, want)
+	}
 
-// 	hand := []deck.Card{c1, c2}
-// 	p.SetHand(hand)
+	_, err = GetPlayer(ctx, store, "UNKNOWN")
+	if err == nil {
+		t.Fatal("missing expected error")
+	}
+	if err != ErrNotFound {
+		t.Fatalf("missing ErrNotFound, got=%v", err)
+	}
+}
 
-// 	if diff := cmp.Diff(hand, p.Hand()); diff != "" {
-// 		t.Errorf("hand mismatch (-want +got):\n%s", diff)
-// 	}
-// }
+func TestPlayerSetName(t *testing.T) {
+	id := "ABC123"
+	name := "ABCABC"
+	ctx := context.Background()
+	store := storage.NewFakePlayerStore()
+	player, err := NewPlayer(ctx, store, id, name)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	player.SetName(ctx, "NEW NAME")
+
+	lookup, err := GetPlayer(ctx, store, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := lookup.Name(), "NEW NAME"; got != want {
+		t.Errorf("incorrect lookup name, got=%q, want=%q", got, want)
+	}
+}
