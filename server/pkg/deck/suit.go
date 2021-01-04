@@ -5,9 +5,13 @@ import (
 	"strings"
 )
 
+// Suit is a suit for a deck of cards. For convenience in game code, "No Trump" is also possible.
 type Suit interface {
+	// Encoded returns the encoded form of the Suit.
 	Encoded() string
+	// Human returns a human-readable form of the Suit.
 	Human() string
+	// IsSameAs returns true if the suits are the same.
 	IsSameAs(Suit) bool
 }
 
@@ -18,11 +22,16 @@ type suit struct {
 var _ Suit = (*suit)(nil) // Ensure interface is implemented.
 
 var (
-	Hearts   Suit = &suit{encoded: "H"}
+	// Hearts suit.
+	Hearts Suit = &suit{encoded: "H"}
+	// Diamonds suit.
 	Diamonds Suit = &suit{encoded: "D"}
-	Spades   Suit = &suit{encoded: "S"}
-	Clubs    Suit = &suit{encoded: "C"}
-	NoTrump  Suit = &suit{encoded: "N"}
+	// Spades suit.
+	Spades Suit = &suit{encoded: "S"}
+	// Clubs suit.
+	Clubs Suit = &suit{encoded: "C"}
+	// NoTrump suit; not suitable for cards, but useful in bidding and trick-tracking.
+	NoTrump Suit = &suit{encoded: "N"}
 
 	suitFromEncoded = map[string]Suit{
 		"H": Hearts,
@@ -41,6 +50,7 @@ var (
 	}
 )
 
+// NewSuitFromEncoded builds a suit from the Encoded() form.
 func NewSuitFromEncoded(encoded string) (Suit, error) {
 	s, present := suitFromEncoded[strings.ToUpper(encoded)]
 	if !present {

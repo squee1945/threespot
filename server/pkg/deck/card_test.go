@@ -126,7 +126,7 @@ func TestNewCard(t *testing.T) {
 	}
 }
 
-func TestIsSameAs(t *testing.T) {
+func TestCardIsSameAs(t *testing.T) {
 	card1 := buildCard(t, "5H")
 	card2 := buildCard(t, "3S")
 	card3 := buildCard(t, "5H") // Create another so we aren't using the same struct.
@@ -135,11 +135,11 @@ func TestIsSameAs(t *testing.T) {
 		t.Errorf("cards %s and %s must be different", card1.Encoded(), card2.Encoded())
 	}
 	if card1.IsSameAs(card3) != true {
-		t.Errorf("cards %s and %s must be different", card1.Encoded(), card3.Encoded())
+		t.Errorf("cards %s and %s must be same", card1.Encoded(), card3.Encoded())
 	}
 }
 
-func TestNum(t *testing.T) {
+func TestCardNum(t *testing.T) {
 	for _, num := range []string{"8", "9", "T", "J", "Q", "K", "A"} {
 		card := buildCard(t, num+"D")
 
@@ -149,7 +149,7 @@ func TestNum(t *testing.T) {
 	}
 }
 
-func TestSuit(t *testing.T) {
+func TestCardSuit(t *testing.T) {
 	for _, suit := range []string{"C", "D", "H", "S"} {
 		card := buildCard(t, "8"+suit)
 
@@ -166,13 +166,4 @@ func buildCard(t *testing.T, encodedCard string) Card {
 		t.Fatal(err)
 	}
 	return c
-}
-
-func buildSuit(t *testing.T, encodedSuit string) Suit {
-	t.Helper()
-	suit, err := NewSuitFromEncoded(encodedSuit)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return suit
 }

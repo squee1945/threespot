@@ -5,9 +5,12 @@ import (
 	"time"
 )
 
+// Deck is a deck of Kaiser cards.
 type Deck interface {
+	// Shuffle shuffles the cards.
 	Shuffle()
-	Deal() [][]Card // 4 hands of 8 cards
+	// Deal returns 4 hands of 8 cards (without shuffling).
+	Deal() [][]Card
 }
 
 type deck struct {
@@ -16,6 +19,7 @@ type deck struct {
 
 var _ Deck = (*deck)(nil) // Ensure interface is implemented.
 
+// NewDeck returns a full deck of Kaiser cards.
 func NewDeck() (Deck, error) {
 	d := &deck{}
 	numset := []string{"8", "9", "T", "J", "Q", "K", "A"}

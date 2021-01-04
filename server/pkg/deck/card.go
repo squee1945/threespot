@@ -6,11 +6,17 @@ import (
 	"strings"
 )
 
+// Card is a single card from a deck of Kaiser cards.
 type Card interface {
+	// Num returns the number of the card (including "T" (Ten), J" (Jack), "Q" (Queen), "K" (King), "A" (Ace)).
 	Num() string
+	// Suit returns the suit of the card.
 	Suit() Suit
+	// Human returns a human-readable form of the card.
 	Human() string
+	// Encoded returns an encoded form of the card.
 	Encoded() string
+	// IsSameAs returns true if the cards are the same.
 	IsSameAs(Card) bool
 }
 
@@ -35,6 +41,7 @@ var (
 	}
 )
 
+// NewCardFromEncoded builds a card from the Encoded() form.
 func NewCardFromEncoded(encoded string) (Card, error) {
 	if len(encoded) != 2 {
 		return nil, errors.New("card string must be two characters")
@@ -46,6 +53,7 @@ func NewCardFromEncoded(encoded string) (Card, error) {
 	return NewCard(string(encoded[0]), suit)
 }
 
+// NewCard builds a card.
 func NewCard(num string, suit Suit) (Card, error) {
 	if suit == NoTrump {
 		return nil, fmt.Errorf("card cannot be no trump suit")

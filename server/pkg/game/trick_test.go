@@ -132,7 +132,7 @@ func TestNewTrickFromEncoded(t *testing.T) {
 	}
 }
 
-func TestIsDone(t *testing.T) {
+func TestTrickIsDone(t *testing.T) {
 	testCases := []struct {
 		cards []string
 		want  bool
@@ -166,7 +166,7 @@ func TestIsDone(t *testing.T) {
 	}
 }
 
-func TestPlayCard(t *testing.T) {
+func TestTrickPlayCard(t *testing.T) {
 	toPlay := "5H"
 	testCases := []struct {
 		name    string
@@ -218,7 +218,7 @@ func TestPlayCard(t *testing.T) {
 	}
 }
 
-func TestCurrentTurnPosition(t *testing.T) {
+func TestTrickCurrentTurnPosition(t *testing.T) {
 	testCases := []struct {
 		leadPos   int
 		playCards int
@@ -271,7 +271,7 @@ func TestCurrentTurnPosition(t *testing.T) {
 	}
 }
 
-func TestWinningPos(t *testing.T) {
+func TestTrickWinningPos(t *testing.T) {
 	testCases := []struct {
 		trump   string
 		cards   []string
@@ -300,7 +300,7 @@ func TestWinningPos(t *testing.T) {
 	}
 }
 
-func TestTrump(t *testing.T) {
+func TestTrickTrump(t *testing.T) {
 	for _, want := range []string{"H", "S", "D", "C", "N"} {
 		trick := buildTrick(t, want, 0)
 		if got, want := trick.Trump().Encoded(), want; got != want {
@@ -309,7 +309,7 @@ func TestTrump(t *testing.T) {
 	}
 }
 
-func TestLeadPos(t *testing.T) {
+func TestTrickLeadPos(t *testing.T) {
 	for _, want := range []int{0, 1, 2, 3} {
 		trick := buildTrick(t, "N", want)
 		if got, want := trick.LeadPos(), want; got != want {
@@ -318,7 +318,7 @@ func TestLeadPos(t *testing.T) {
 	}
 }
 
-func TestLeadSuit(t *testing.T) {
+func TestTrickLeadSuit(t *testing.T) {
 	testCases := []struct {
 		name    string
 		played  []string
@@ -364,7 +364,7 @@ func TestLeadSuit(t *testing.T) {
 	}
 }
 
-func TestNumPlayed(t *testing.T) {
+func TestTrickNumPlayed(t *testing.T) {
 	for i := 0; i < 4; i++ {
 		t.Run(fmt.Sprintf("cards played %d", i), func(t *testing.T) {
 			potentials := []string{"7H", "8H", "9H", "TH"}
@@ -377,7 +377,7 @@ func TestNumPlayed(t *testing.T) {
 	}
 }
 
-func TestCards(t *testing.T) {
+func TestTrickCards(t *testing.T) {
 	for i := 0; i < 4; i++ {
 		t.Run(fmt.Sprintf("cards played %d", i), func(t *testing.T) {
 			potentials := []string{"7H", "8H", "9H", "TH"}
