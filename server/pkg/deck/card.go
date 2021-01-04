@@ -27,6 +27,12 @@ type card struct {
 var _ Card = (*card)(nil) // Ensure interface is implemented.
 
 var (
+	// ThreeOfSpades is the three of spades.
+	ThreeOfSpades = &card{"3S"}
+
+	// FiveOfHearts is the five of hearts.
+	FiveOfHearts = &card{"5H"}
+
 	humanFromNum = map[string]string{
 		"3": "3",
 		"5": "5",

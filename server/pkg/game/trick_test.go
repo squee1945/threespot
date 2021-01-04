@@ -51,46 +51,46 @@ func TestNewTrickFromEncoded(t *testing.T) {
 		},
 		{
 			name:    "missing minimum elements",
-			encoded: "1-",
+			encoded: "1|",
 			wantErr: true,
 		},
 		{
 			name:    "bad trump",
-			encoded: "1-?",
+			encoded: "1|?",
 			wantErr: true,
 		},
 		{
 			name:    "bad card",
-			encoded: "0-N-??",
+			encoded: "0|N|??",
 			wantErr: true,
 		},
 		{
 			name:    "too many cards",
-			encoded: "0-N-7D-8D-9D-TD-JD",
+			encoded: "0|N|7D|8|9D|TD|JD",
 			wantErr: true,
 		},
 		{
 			name:    "duplicate cards",
-			encoded: "0-N-7D-7D",
+			encoded: "0|N|7D|7D",
 			wantErr: true,
 		},
 		{
 			name:        "valid with no cards",
-			encoded:     "3-D",
+			encoded:     "3|D",
 			wantTrump:   "D",
 			wantLeadPos: 3,
 			wantCards:   []string{},
 		},
 		{
 			name:        "valid with one card",
-			encoded:     "2-H-5H",
+			encoded:     "2|H|5H",
 			wantTrump:   "H",
 			wantLeadPos: 2,
 			wantCards:   []string{"5H"},
 		},
 		{
 			name:        "valid with max cards",
-			encoded:     "1-C-5H-8D-9C-TS",
+			encoded:     "1|C|5H|8D|9C|TS",
 			wantTrump:   "C",
 			wantLeadPos: 1,
 			wantCards:   []string{"5H", "8D", "9C", "TS"},
@@ -287,6 +287,7 @@ func TestTrickWinningPos(t *testing.T) {
 		{"D", []string{"8H", "5H", "AH", "KH"}, 2},
 		{"H", []string{"7H", "3S", "8H", "AH"}, 3},
 		{"H", []string{"3S", "AH", "7H", "KH"}, 1},
+		{"N", []string{"8H", "3S", "7D", "7C"}, 0},
 	}
 	for _, tc := range testCases {
 		trick := buildTrick(t, tc.trump, 0, tc.cards...)
@@ -397,6 +398,74 @@ func TestTrickCards(t *testing.T) {
 			}
 			if diff := cmp.Diff(want, got, compareCards); diff != "" {
 				t.Errorf("trick.Cards() mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestTrickContainsThreeOfSpades(t *testing.T) {
+	testCases := []struct {
+		name  string
+		cards []string
+		want  bool
+	}{
+		{
+			name:  "has 3 and 5",
+			cards: []string{"9C", "5H", "3S", "8S"},
+			want:  true,
+		},
+		{
+			name:  "has 3",
+			cards: []string{"9C", "3S", "8S", "TH"},
+			want:  true,
+		},
+		{
+			name:  "has no 3",
+			cards: []string{"9C", "5H", "8S", "TH"},
+			want:  false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			trick := buildTrick(t, "N", 0, tc.cards...)
+
+			if got, want := trick.ContainsThreeOfSpades(), tc.want; got != want {
+				t.Errorf("trick.ContainsThreeOfSpades()=%t want=%t", got, want)
+			}
+		})
+	}
+}
+
+func TestTrickContainsFiveOfHearts(t *testing.T) {
+	testCases := []struct {
+		name  string
+		cards []string
+		want  bool
+	}{
+		{
+			name:  "has 3 and 5",
+			cards: []string{"9C", "5H", "3S", "8S"},
+			want:  true,
+		},
+		{
+			name:  "has 5",
+			cards: []string{"9C", "5H", "8S", "TH"},
+			want:  true,
+		},
+		{
+			name:  "has no 5",
+			cards: []string{"9C", "3S", "8S", "TH"},
+			want:  false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			trick := buildTrick(t, "N", 0, tc.cards...)
+
+			if got, want := trick.ContainsFiveOfHearts(), tc.want; got != want {
+				t.Errorf("trick.ContainsFiveOfHearts()=%t want=%t", got, want)
 			}
 		})
 	}

@@ -33,26 +33,15 @@ func NewDeck() (Deck, error) {
 			d.cards = append(d.cards, c)
 		}
 	}
-	c, err := NewCard("7", Clubs)
+	sevenOfClubs, err := NewCard("7", Clubs)
 	if err != nil {
 		return nil, err
 	}
-	d.cards = append(d.cards, c)
-	c, err = NewCard("7", Diamonds)
+	sevenOfDiamonds, err := NewCard("7", Diamonds)
 	if err != nil {
 		return nil, err
 	}
-	d.cards = append(d.cards, c)
-	c, err = NewCard("3", Spades)
-	if err != nil {
-		return nil, err
-	}
-	d.cards = append(d.cards, c)
-	c, err = NewCard("5", Hearts)
-	if err != nil {
-		return nil, err
-	}
-	d.cards = append(d.cards, c)
+	d.cards = append(d.cards, ThreeOfSpades, FiveOfHearts, sevenOfClubs, sevenOfDiamonds)
 	return d, nil
 }
 

@@ -42,11 +42,11 @@ var _ Hand = (*hand)(nil) // Ensure interface is implemented.
 
 // NewHandFromEncoded builds a hand from the Encoded() form.
 func NewHandFromEncoded(encoded string) (Hand, error) {
-	// "{card0}-{card1}-..."
+	// "{card0}|{card1}|..."
 	if encoded == "" {
 		return &hand{}, nil
 	}
-	parts := strings.Split(strings.ToUpper(encoded), "-")
+	parts := strings.Split(strings.ToUpper(encoded), "|")
 	var cards []deck.Card
 	for i, p := range parts {
 		card, err := deck.NewCardFromEncoded(p)
@@ -75,7 +75,7 @@ func (h *hand) Encoded() string {
 	for _, card := range h.cards {
 		cs = append(cs, card.Encoded())
 	}
-	return strings.Join(cs, "-")
+	return strings.Join(cs, "|")
 }
 
 func (h *hand) Contains(card deck.Card) bool {

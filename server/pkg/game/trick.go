@@ -40,6 +40,12 @@ type Trick interface {
 
 	// Encoded returns the entire trick encoded into a single string.
 	Encoded() string
+
+	// ContainsThreeOfSpades returns true if the 3 of Spades is in the trick.
+	ContainsThreeOfSpades() bool
+
+	// ContainsFiveOfHearts returns true if the 5 of Hearts is in the trick.
+	ContainsFiveOfHearts() bool
 }
 
 const (
@@ -69,8 +75,8 @@ var _ Trick = (*trick)(nil) // Ensure interface is implemented.
 
 // NewTrickFromEncoded returns a trick from the Encoded() form.
 func NewTrickFromEncoded(encoded string) (Trick, error) {
-	// "{leadPos}-{trump}-{card0}-{card1}-{card2}-{card3}"
-	parts := strings.Split(encoded, "-")
+	// "{leadPos}|{trump}|{card0}|{card1}|{card2}|{card3}"
+	parts := strings.Split(encoded, "|")
 	if len(parts) < 2 {
 		return nil, fmt.Errorf("encoded string %q must have at least two parts", encoded)
 	}
@@ -118,9 +124,9 @@ func NewTrick(trump deck.Suit, leadPos int) (Trick, error) {
 }
 
 func (t *trick) Encoded() string {
-	s := fmt.Sprintf("%d-%s", t.leadPos, t.trump.Encoded())
+	s := fmt.Sprintf("%d|%s", t.leadPos, t.trump.Encoded())
 	for _, c := range t.cards {
-		s += fmt.Sprintf("-%s", c.Encoded())
+		s += fmt.Sprintf("|%s", c.Encoded())
 	}
 	return s
 }
@@ -184,6 +190,23 @@ func (t *trick) WinningPos() (int, error) {
 		}
 	}
 	return t.toPos(highOrd), nil
+}
+
+func (t *trick) contains(card deck.Card) bool {
+	for _, c := range t.cards {
+		if c.Encoded() == card.Encoded() {
+			return true
+		}
+	}
+	return false
+}
+
+func (t *trick) ContainsThreeOfSpades() bool {
+	return t.contains(deck.ThreeOfSpades)
+}
+
+func (t *trick) ContainsFiveOfHearts() bool {
+	return t.contains(deck.FiveOfHearts)
 }
 
 // toOrd returns the player order for this trick (0..3), computed from the leadPos.

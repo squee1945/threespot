@@ -26,7 +26,7 @@ func TestNewHandFromEncoded(t *testing.T) {
 		},
 		{
 			name:    "multiple cards",
-			encoded: "3S-5H-TC",
+			encoded: "3S|5H|TC",
 			want: &hand{
 				cards: []deck.Card{buildCard(t, "3S"), buildCard(t, "5H"), buildCard(t, "TC")},
 			},

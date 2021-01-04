@@ -3,12 +3,17 @@ package game
 import (
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 )
 
 type Bid interface {
 	Human() string
 	Encoded() string
+	// Pos is the player position of this bid.
+	Pos() int
+	// Valid is the value of this bid.
+	Value() string
 	//IsGreaterThan(other Bid) bool
 	//IsGreaterThanOrEqualTo(other Bid) bool
 	//IsEqualTo(other Bid) bool
@@ -17,7 +22,6 @@ type Bid interface {
 
 var (
 	pass             = "P"
-	passBid          = &bid{encoded: pass}
 	humanFromEncoded = map[string]string{
 		pass: "Pass",
 		"7":  "7",
@@ -54,17 +58,26 @@ var (
 )
 
 type bid struct {
-	encoded string
+	value string
+	pos   int
 }
 
 var _ Bid = (*bid)(nil) // Ensure interface is implemented.
 
 func (b *bid) Encoded() string {
-	return b.encoded
+	return fmt.Sprintf("%d|%s", b.pos, b.value)
 }
 
 func (b *bid) Human() string {
-	return humanFromEncoded[b.encoded]
+	return humanFromEncoded[b.value]
+}
+
+func (b *bid) Pos() int {
+	return b.pos
+}
+
+func (b *bid) Value() string {
+	return b.value
 }
 
 // func (b *bid) IsGreaterThan(other Bid) bool {
@@ -80,38 +93,46 @@ func (b *bid) Human() string {
 // }
 
 func (b *bid) IsLessThan(other Bid) bool {
-	return bidValue[b.encoded] < bidValue[other.Encoded()]
+	return bidValue[b.Value()] < bidValue[other.Value()]
 }
 
 func NewBidFromEncoded(encoded string) (Bid, error) {
-	encoded = strings.ToUpper(encoded)
-	if _, present := humanFromEncoded[encoded]; !present {
-		return nil, fmt.Errorf("unknown bid %q", encoded)
+	parts := strings.Split(strings.ToUpper(encoded), "|")
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("encoding %q did not contain two parts", encoded)
 	}
-	return &bid{encoded: encoded}, nil
+	pos, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return nil, fmt.Errorf("encoding part[0] %q was not an int: %v", parts[0], err)
+	}
+	value := parts[1]
+	if _, present := humanFromEncoded[value]; !present {
+		return nil, fmt.Errorf("unknown bid %q", value)
+	}
+	return &bid{pos: pos, value: value}, nil
 }
 
-func nextBids(currentBids []Bid, isDealer bool) []Bid {
+func nextBidValues(currentBids []Bid, isDealer bool) []string {
 	highBidValue := 1 // skips "pass", will do it below
 	for _, b := range currentBids {
-		bv := bidValue[b.Encoded()]
+		bv := bidValue[b.Value()]
 		if bv > highBidValue {
 			highBidValue = bv
 		}
 	}
 
-	var available []Bid
+	var available []string
 	for k, v := range bidValue {
 		if (isDealer && v >= highBidValue) || (!isDealer && v > highBidValue) {
-			available = append(available, &bid{encoded: k})
+			available = append(available, k)
 		}
 	}
 
 	// if not dealer, can always pass
 	// if dealer, can only pass if there is another bid
 	if !isDealer || (isDealer && highBidValue > 1) {
-		available = append(available, passBid)
+		available = append(available, pass)
 	}
-	sort.SliceStable(available, func(i, j int) bool { return available[i].IsLessThan(available[j]) })
+	sort.SliceStable(available, func(i, j int) bool { return bidValue[available[i]] < bidValue[available[j]] })
 	return available
 }
