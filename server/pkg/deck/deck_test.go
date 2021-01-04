@@ -73,7 +73,7 @@ func TestShuffle(t *testing.T) {
 		original[i] = d.cards[i]
 	}
 	d.Shuffle()
-	if diff := cmp.Diff(original, d.cards); diff == "" {
+	if diff := cmp.Diff(original, d.cards, cmp.Comparer(func(c1, c2 Card) bool { return c1.Encoded() == c2.Encoded() })); diff == "" {
 		t.Errorf("hand matches")
 	}
 	// Verify all cards are unique.
@@ -113,58 +113,10 @@ func TestDeal(t *testing.T) {
 	}
 }
 
-func TestNewCard(t *testing.T) {
-	testCases := []struct {
-		name    string
-		num     string
-		suit    Suit
-		wantErr bool
-	}{
-		{
-			name:    "valid",
-			num:     "7",
-			suit:    Diamonds,
-			wantErr: false,
-		},
-		{
-			name:    "invalid num",
-			num:     "-3",
-			suit:    Diamonds,
-			wantErr: true,
-		},
-		{
-			name:    "invalid suit",
-			num:     "7",
-			suit:    Suit("B"),
-			wantErr: true,
-		},
-	}
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			c, err := NewCard(tc.num, tc.suit)
-			if tc.wantErr && err == nil {
-				t.Fatal("wanted error, got err=nil")
-			}
-			if !tc.wantErr && err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if tc.wantErr {
-				return
-			}
-			if got, want := c.Num(), tc.num; got != want {
-				t.Errorf("incorrect num got=%q, want=%q", got, want)
-			}
-			if got, want := c.Suit(), tc.suit; got != want {
-				t.Errorf("incorrect suit got=%q, want=%q", got, want)
-			}
-		})
-	}
-}
-
 func hasCard(t *testing.T, d *deck, want Card) bool {
 	t.Helper()
 	for _, c := range d.cards {
-		if c == want {
+		if c.IsSameAs(want) {
 			return true
 		}
 	}

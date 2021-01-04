@@ -7,9 +7,9 @@ import (
 )
 
 var (
-	pass      = "P"
-	passBid   = &bid{encoded: pass}
-	validBids = map[string]string{
+	pass             = "P"
+	passBid          = &bid{encoded: pass}
+	humanFromEncoded = map[string]string{
 		pass: "Pass",
 		"7":  "7",
 		"7N": "7 No Trump",
@@ -45,7 +45,7 @@ var (
 )
 
 type Bid interface {
-	String() string
+	Human() string
 	Encoded() string
 	IsGreaterThan(other Bid) bool
 	IsGreaterThanOrEqualTo(other Bid) bool
@@ -63,8 +63,8 @@ func (b *bid) Encoded() string {
 	return b.encoded
 }
 
-func (b *bid) String() string {
-	return validBids[b.encoded]
+func (b *bid) Human() string {
+	return humanFromEncoded[b.encoded]
 }
 
 func (b *bid) IsGreaterThan(other Bid) bool {
@@ -85,7 +85,7 @@ func (b *bid) IsLessThan(other Bid) bool {
 
 func NewBidFromEncoded(encoded string) (Bid, error) {
 	encoded = strings.ToUpper(encoded)
-	if _, present := validBids[encoded]; !present {
+	if _, present := humanFromEncoded[encoded]; !present {
 		return nil, fmt.Errorf("unknown bid %q", encoded)
 	}
 	return &bid{encoded: encoded}, nil

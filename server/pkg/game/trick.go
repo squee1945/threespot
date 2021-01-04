@@ -23,6 +23,7 @@ var (
 	}
 )
 
+// Trick is an in-progress trick of up to 4 cards, one card from each player.
 type Trick interface {
 	// IsDone returns true if the trick is complete (4 cards played).
 	IsDone() bool
@@ -66,6 +67,7 @@ type trick struct {
 
 var _ Trick = (*trick)(nil) // Ensure interface is implemented.
 
+// NewTrickFromEncoded returns a trick from the Encoded() form.
 func NewTrickFromEncoded(encoded string) (Trick, error) {
 	// "{leadPos}-{trump}-{card0}-{card1}-{card2}-{card3}"
 	parts := strings.Split(encoded, "-")
@@ -76,32 +78,48 @@ func NewTrickFromEncoded(encoded string) (Trick, error) {
 	if err != nil {
 		return nil, fmt.Errorf("encoded string part[0] %q not int: %v", parts[0], err)
 	}
-	if leadPos < 0 || leadPos > 3 {
-		return nil, fmt.Errorf("encoded string part[0] %q not in range", parts[0])
-	}
 	trump, err := deck.NewSuitFromEncoded(strings.ToUpper(parts[1]))
 	if err != nil {
 		return nil, fmt.Errorf("encoded string part[1] %q not suit: %v", parts[1], err)
 	}
-	var cards []deck.Card
+	tt, err := NewTrick(trump, leadPos)
+	if err != nil {
+		return nil, err
+	}
+	t := tt.(*trick)
+	added := make(map[string]bool, 4)
 	for i := 2; i < len(parts); i++ {
-		card, err := deck.NewCardFromEncoded(strings.ToUpper(parts[i]))
-		if err != nil {
-			return nil, fmt.Errorf("encoded string part[%d] %q not card: %v", i, parts[i], err)
+		encodedCard := strings.ToUpper(parts[i])
+		if _, present := added[encodedCard]; present {
+			return nil, fmt.Errorf("duplicate card in %q", encoded)
 		}
-		cards = append(cards, card)
+		added[encodedCard] = true
+		card, err := deck.NewCardFromEncoded(encodedCard)
+		if err != nil {
+			return nil, fmt.Errorf("encoded string part[%d] %q not card: %v", i, encodedCard, err)
+		}
+		t.cards = append(t.cards, card)
+	}
+	if len(t.cards) > 4 {
+		return nil, fmt.Errorf("too many cards in %q", encoded)
+	}
+	return t, nil
+}
+
+func NewTrick(trump deck.Suit, leadPos int) (Trick, error) {
+	if leadPos < 0 || leadPos > 3 {
+		return nil, fmt.Errorf("leadPos %d not in range [0,3]", leadPos)
 	}
 	return &trick{
 		trump:   trump,
 		leadPos: leadPos,
-		cards:   cards,
 	}, nil
 }
 
 func (t *trick) Encoded() string {
-	s := fmt.Sprintf("%d-%s", t.leadPos, t.trump)
+	s := fmt.Sprintf("%d-%s", t.leadPos, t.trump.Encoded())
 	for _, c := range t.cards {
-		s += fmt.Sprintf("-%s", c)
+		s += fmt.Sprintf("-%s", c.Encoded())
 	}
 	return s
 }
@@ -110,6 +128,11 @@ func (t *trick) PlayCard(playerPos int, card deck.Card) error {
 	ord := t.toOrd(playerPos)
 	if len(t.cards) != ord {
 		return ErrIncorrectPlayOrder
+	}
+	for _, c := range t.cards {
+		if c.IsSameAs(card) {
+			return fmt.Errorf("card %s already in trick", c.Encoded())
+		}
 	}
 	t.cards = append(t.cards, card)
 	return nil

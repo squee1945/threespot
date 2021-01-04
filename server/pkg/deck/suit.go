@@ -7,7 +7,8 @@ import (
 
 type Suit interface {
 	Encoded() string
-	String() string
+	Human() string
+	IsSameAs(Suit) bool
 }
 
 type suit struct {
@@ -31,7 +32,7 @@ var (
 		"N": NoTrump,
 	}
 
-	stringFromEncoded = map[string]string{
+	humanFromEncoded = map[string]string{
 		"H": "Hearts",
 		"D": "Diamonds",
 		"S": "Spades",
@@ -48,10 +49,14 @@ func NewSuitFromEncoded(encoded string) (Suit, error) {
 	return s, nil
 }
 
-func (s *suit) String() string {
-	return stringFromEncoded[s.encoded]
+func (s *suit) Human() string {
+	return humanFromEncoded[s.encoded]
 }
 
 func (s *suit) Encoded() string {
 	return s.encoded
+}
+
+func (s *suit) IsSameAs(other Suit) bool {
+	return s.Encoded() == other.Encoded()
 }
