@@ -20,6 +20,7 @@ type Game interface {
 
 	AddPlayer(ctx context.Context, player Player, pos int) (Game, error)
 	PlaceBid(ctx context.Context, player Player, bid Bid) (Game, error)
+	SetTrump(ctx context.Context, player Player, trump deck.Suit) (Game, error)
 	PlayCard(ctx context.Context, player Player, card deck.Card) (Game, error)
 }
 
@@ -32,6 +33,7 @@ var (
 	ErrIncorrectPlayOrder   = errors.New("Playing out of order")
 	ErrInvalidBid           = errors.New("Invalid bid")
 	ErrNotBidding           = errors.New("Not currently bidding")
+	ErrNotCollecting        = errors.New("Not currently accepting trump selection")
 	ErrNotPlaying           = errors.New("Not currently playing cards")
 	ErrMissingCard          = errors.New("Player does not have this card")
 	ErrNotFollowingSuit     = errors.New("Must follow lead suit")
@@ -40,10 +42,11 @@ var (
 type GameState string
 
 var (
-	JoiningState  GameState = "JOINING"
-	BiddingState  GameState = "BIDDING"
-	PlayingState  GameState = "PLAYING"
-	CompleteState GameState = "COMPLETE"
+	JoiningState    GameState = "JOINING"
+	BiddingState    GameState = "BIDDING"
+	CollectingState GameState = "COLLECTING" // Trump
+	PlayingState    GameState = "PLAYING"
+	CompleteState   GameState = "COMPLETE"
 )
 
 type game struct {
@@ -106,6 +109,9 @@ func (g *game) State() GameState {
 	}
 	if !g.currentBidding.IsDone() {
 		return BiddingState
+	}
+	if g.currentTrick == nil {
+		return CollectingState
 	}
 	return PlayingState
 }
@@ -193,14 +199,51 @@ func (g *game) PlaceBid(ctx context.Context, player Player, bid Bid) (Game, erro
 
 	// If we have all the bids, start playing.
 	if g.currentBidding.IsDone() {
-		_, pos, err := g.currentBidding.WinningBidAndPos()
+		bid, pos, err := g.currentBidding.WinningBidAndPos()
 		if err != nil {
 			return nil, err
 		}
-		// TODO: need to collect the trump from the player!!!
-		if err := g.startTrick(gs, deck.NoTrump, pos); err != nil {
-			return nil, err
+		// If no-trump, we skip past trump selection.
+		if bid.IsNoTrump() {
+			if err := g.startTrick(gs, deck.NoTrump, pos); err != nil {
+				return nil, err
+			}
 		}
+	}
+
+	if err = g.gameStore.Set(ctx, g.id, gs); err != nil {
+		return nil, fmt.Errorf("saving game: %v", err)
+	}
+
+	return gameFromDatastore(ctx, g.gameStore, g.playerStore, g.id, gs)
+}
+
+func (g *game) SetTrump(ctx context.Context, player Player, trump deck.Suit) (Game, error) {
+	// Are we in collecting state?
+	if g.State() != CollectingState {
+		return nil, ErrNotCollecting
+	}
+
+	// Is this the right player to set trump?
+	_, winningPos, err := g.currentBidding.WinningBidAndPos()
+	if err != nil {
+		return nil, err
+	}
+	pos, err := g.playerPos(player)
+	if err != nil {
+		return nil, err
+	}
+	if pos != winningPos {
+		return nil, fmt.Errorf("incorrect player to select trump")
+	}
+
+	gs, err := g.gameStore.Get(ctx, g.id)
+	if err != nil {
+		return nil, fmt.Errorf("fetching game to update: %v", err)
+	}
+
+	if err := g.startTrick(gs, trump, winningPos); err != nil {
+		return nil, err
 	}
 
 	if err = g.gameStore.Set(ctx, g.id, gs); err != nil {

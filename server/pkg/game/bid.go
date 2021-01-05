@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 	"sort"
+	"strings"
 )
 
 // Bid is a bid by a player.
@@ -15,6 +16,8 @@ type Bid interface {
 	Value() string
 	// IsLessThan returns true if the other bid is smaller than this one.
 	IsLessThan(other Bid) bool
+	// IsNoTrump returns true if the bid is no trump.
+	IsNoTrump() bool
 }
 
 var (
@@ -78,6 +81,10 @@ func (b *bid) Human() string {
 
 func (b *bid) Value() string {
 	return b.value
+}
+
+func (b *bid) IsNoTrump() bool {
+	return strings.HasSuffix(b.value, "N")
 }
 
 func (b *bid) IsLessThan(other Bid) bool {
