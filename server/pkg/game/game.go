@@ -15,8 +15,7 @@ type Game interface {
 	Players() []Player
 	PlacedBids() []Bid
 	AvailableBids(Player) []string
-	PosToBid() int
-	WinningBid() Bid
+	WinningBid() (Bid, error)
 	PlayerHand(player Player) Hand
 
 	AddPlayer(ctx context.Context, player Player, pos int) (Game, error)
@@ -57,12 +56,11 @@ type game struct {
 
 	score Score // The score of the game.
 
-	currentDealerPos  int    // The position of the current dealer.
-	currentBids       []Bid  // The bids for the current hand. The 0-index is the bid from the player clockwise from the currentDealerPos.
-	currentWinningBid Bid    // The winning bid for the current hand.
-	currentHands      []Hand // Cards held by each player, parallel with the PlayerIDs above.
-	currentTrick      Trick  // Cards played for current trick; 0-index is the lead player (i.e., the order the cards were played).
-	currentTally      Tally  // The running tally for the current hand.
+	currentDealerPos int          // The position of the current dealer.
+	currentBidding   BiddingRound // The bids for the current hand. The 0-index is the bid from the player clockwise from the currentDealerPos.
+	currentHands     []Hand       // Cards held by each player, parallel with the PlayerIDs above.
+	currentTrick     Trick        // Cards played for current trick; 0-index is the lead player (i.e., the order the cards were played).
+	currentTally     Tally        // The running tally for the current hand.
 }
 
 var _ Game = (*game)(nil) // Ensure interface is implemented.
@@ -106,7 +104,7 @@ func (g *game) State() GameState {
 	if g.complete {
 		return CompleteState
 	}
-	if g.currentWinningBid == nil {
+	if !g.currentBidding.IsDone() {
 		return BiddingState
 	}
 	return PlayingState
@@ -117,26 +115,26 @@ func (g *game) Players() []Player {
 }
 
 func (g *game) PlacedBids() []Bid {
-	return g.currentBids
+	return g.currentBidding.Bids()
 }
 
 func (g *game) AvailableBids(player Player) []string {
-	if len(g.currentBids) == 4 {
+	if g.currentBidding.IsDone() {
 		return nil
 	}
 	pos, err := g.playerPos(player)
 	if err != nil {
 		return nil
 	}
-	return nextBidValues(g.currentBids, pos == g.currentDealerPos)
+	return nextBidValues(g.currentBidding.Bids(), pos == g.currentDealerPos)
 }
 
-func (g *game) PosToBid() int {
-	return (g.currentDealerPos + len(g.currentBids) + 1) % 4
-}
-
-func (g *game) WinningBid() Bid {
-	return g.currentWinningBid
+func (g *game) WinningBid() (Bid, error) {
+	bid, _, err := g.currentBidding.WinningBidAndPos()
+	if err != nil {
+		return nil, fmt.Errorf("bidding is not done")
+	}
+	return bid, nil
 }
 
 func (g *game) PlayerHand(player Player) Hand {
@@ -167,15 +165,6 @@ func (g *game) PlaceBid(ctx context.Context, player Player, bid Bid) (Game, erro
 		return nil, ErrNotBidding
 	}
 
-	// Can the player bid at the moment?
-	pos, err := g.playerPos(player)
-	if err != nil {
-		return nil, err
-	}
-	if pos != g.PosToBid() {
-		return nil, ErrIncorrectBidOrder
-	}
-
 	// Is bid in available bids?
 	found := false
 	for _, ab := range g.AvailableBids(player) {
@@ -188,11 +177,19 @@ func (g *game) PlaceBid(ctx context.Context, player Player, bid Bid) (Game, erro
 		return nil, ErrInvalidBid
 	}
 
+	pos, err := g.playerPos(player)
+	if err != nil {
+		return nil, err
+	}
+	if err := g.currentBidding.PlaceBid(pos, bid); err != nil {
+		return nil, err
+	}
+
 	gs, err := g.gameStore.Get(ctx, g.id)
 	if err != nil {
 		return nil, fmt.Errorf("fetching game to update: %v", err)
 	}
-	gs.CurrentBids = append(gs.CurrentBids, bid.Encoded())
+	gs.CurrentBidding = g.currentBidding.Encoded()
 
 	if err = g.gameStore.Set(ctx, g.id, gs); err != nil {
 		return nil, fmt.Errorf("saving game: %v", err)
@@ -206,17 +203,9 @@ func (g *game) PlayCard(ctx context.Context, player Player, card deck.Card) (Gam
 		return nil, ErrNotPlaying
 	}
 
-	// Is it the player's turn?
 	pos, err := g.playerPos(player)
 	if err != nil {
 		return nil, err
-	}
-	currentTurnPos, err := g.currentTrick.CurrentTurnPos()
-	if err != nil {
-		return nil, err
-	}
-	if currentTurnPos != pos {
-		return nil, ErrIncorrectPlayOrder
 	}
 
 	playerHand := g.currentHands[pos]
@@ -314,13 +303,9 @@ func gameFromDatastore(ctx context.Context, gameStore storage.GameStore, playerS
 		players[i] = player
 	}
 
-	var bids []Bid
-	for _, encoded := range gs.CurrentBids {
-		bid, err := NewBidFromEncoded(encoded)
-		if err != nil {
-			return nil, err
-		}
-		bids = append(bids, bid)
+	bidding, err := NewBiddingRoundFromEncoded(gs.CurrentBidding)
+	if err != nil {
+		return nil, err
 	}
 
 	var hands []Hand
@@ -332,17 +317,9 @@ func gameFromDatastore(ctx context.Context, gameStore storage.GameStore, playerS
 		hands = append(hands, hand)
 	}
 
-	var winningBid Bid
-	var trick Trick
-	if gs.CurrentWinningBid != "" {
-		winningBid, err = NewBidFromEncoded(gs.CurrentWinningBid)
-		if err != nil {
-			return nil, err
-		}
-		trick, err = NewTrickFromEncoded(gs.CurrentTrick)
-		if err != nil {
-			return nil, err
-		}
+	trick, err := NewTrickFromEncoded(gs.CurrentTrick)
+	if err != nil {
+		return nil, err
 	}
 
 	score, err := NewScoreFromEncoded(gs.Score)
@@ -356,18 +333,17 @@ func gameFromDatastore(ctx context.Context, gameStore storage.GameStore, playerS
 	}
 
 	g := &game{
-		gameStore:         gameStore,
-		playerStore:       playerStore,
-		id:                id,
-		players:           players,
-		complete:          gs.Complete,
-		score:             score,
-		currentDealerPos:  gs.CurrentDealerPos,
-		currentBids:       bids,
-		currentWinningBid: winningBid,
-		currentHands:      hands,
-		currentTrick:      trick,
-		currentTally:      tally,
+		gameStore:        gameStore,
+		playerStore:      playerStore,
+		id:               id,
+		players:          players,
+		complete:         gs.Complete,
+		score:            score,
+		currentDealerPos: gs.CurrentDealerPos,
+		currentBidding:   bidding,
+		currentHands:     hands,
+		currentTrick:     trick,
+		currentTally:     tally,
 	}
 	return g, nil
 }

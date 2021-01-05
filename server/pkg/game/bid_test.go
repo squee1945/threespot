@@ -12,7 +12,6 @@ func TestNewBidFromEncoded(t *testing.T) {
 	testCases := []struct {
 		name    string
 		encoded string
-		wantPos int
 		wantVal string
 		wantErr bool
 	}{
@@ -21,46 +20,28 @@ func TestNewBidFromEncoded(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:    "bad pos",
-			encoded: "?|7",
-			wantErr: true,
-		},
-		{
-			name:    "pos too high",
-			encoded: "4|7",
-			wantErr: true,
-		},
-		{
 			name:    "bad value",
-			encoded: "0|?",
-			wantErr: true,
-		},
-		{
-			name:    "too short",
-			encoded: "0",
+			encoded: "?",
 			wantErr: true,
 		},
 		{
 			name:    "too long",
-			encoded: "0|7|8",
+			encoded: "78",
 			wantErr: true,
 		},
 		{
 			name:    "pass bid",
-			encoded: "0|P",
-			wantPos: 0,
+			encoded: "P",
 			wantVal: "P",
 		},
 		{
 			name:    "regular bid",
-			encoded: "1|7",
-			wantPos: 1,
+			encoded: "7",
 			wantVal: "7",
 		},
 		{
 			name:    "no trump bid",
-			encoded: "3|7N",
-			wantPos: 3,
+			encoded: "7N",
 			wantVal: "7N",
 		},
 	}
@@ -79,11 +60,8 @@ func TestNewBidFromEncoded(t *testing.T) {
 				return
 			}
 
-			if got, want := bid.Pos(), tc.wantPos; got != want {
-				t.Errorf("bid.Pos()=%d, want=%d", got, want)
-			}
 			if got, want := bid.Value(), tc.wantVal; got != want {
-				t.Errorf("bid.Pos()=%s, want=%s", got, want)
+				t.Errorf("bid.Value()=%s, want=%s", got, want)
 			}
 
 			// Re-encode the bid and make sure it matches.
@@ -143,8 +121,8 @@ func TestBidIsLessThan(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("%s-%s", tc.b1, tc.b2), func(t *testing.T) {
-			bid1 := buildBid(t, 0, tc.b1)
-			bid2 := buildBid(t, 1, tc.b2)
+			bid1 := buildBid(t, tc.b1)
+			bid2 := buildBid(t, tc.b2)
 			if got, want := bid1.IsLessThan(bid2), tc.want; got != want {
 				t.Errorf("bid.IsLessThan()=%t want=%t", got, want)
 			}
@@ -207,7 +185,7 @@ func TestNextBidValues(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("high=%s isDealer=%t", tc.highBid, tc.isDealer), func(t *testing.T) {
-			got := nextBidValues([]Bid{buildBid(t, 0, tc.highBid)}, tc.isDealer)
+			got := nextBidValues([]Bid{buildBid(t, tc.highBid)}, tc.isDealer)
 
 			if diff := cmp.Diff(tc.want, got); diff != "" {
 				t.Errorf("nextBidValues() mismatch (-want +got):\n%s", diff)
@@ -216,9 +194,9 @@ func TestNextBidValues(t *testing.T) {
 	}
 }
 
-func buildBid(t *testing.T, pos int, val string) Bid {
+func buildBid(t *testing.T, val string) Bid {
 	t.Helper()
-	bid, err := NewBidFromEncoded(fmt.Sprintf("%d|%s", pos, val))
+	bid, err := NewBidFromEncoded(val)
 	if err != nil {
 		t.Fatal(err)
 	}

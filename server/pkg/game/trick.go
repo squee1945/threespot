@@ -67,7 +67,7 @@ type trick struct {
 	trump deck.Suit
 	// leadPos is the position (0..3) of the leadoff player.
 	leadPos int
-	// cards are the cards played. plays[0] is the card played by the player in leadPos.
+	// cards are the cards played. cards[0] is the card played by the player in leadPos.
 	cards []deck.Card
 }
 

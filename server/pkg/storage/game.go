@@ -12,17 +12,13 @@ type Game struct {
 	Created   time.Time
 	Complete  bool
 
-	Score string `datastore:",noindex"`
-	// Score        []int   `datastore:",noindex"` // 0-index is player 0/2 score; 1-index is player 1/3 score.
-	// ScoreHistory [][]int `datastore:",noindex"` // A list of pairs like above.
+	Score string `datastore:",noindex"` // The running tally of the game.
 
-	CurrentDealerPos  int      `datastore:",noindex"` // The position of the current dealer.
-	CurrentBids       []string `datastore:",noindex"` // The bids for the current hand; empty string is 'pass'. 0-index is the player clockwise from the CurrentDealerPos.
-	CurrentWinningBid string   `datastore:",noindex"` // The winning bid for the current hand.
-	CurrentWinningPos int      `datastore:",noindex"` // The position of the winning bidder (who will play first).
-	CurrentHands      []string `datastore:",noindex"` // Cards held by each player, parallel with the PlayerIDs above.
-	CurrentTrick      string   `datastore:",noindex"` // Cards played for current trick; 0-index is the lead player (i.e., the order the cards were played).
-	CurrentTally      string   `datastore:",noindex"` // The running tally for the current hand.
+	CurrentDealerPos int      `datastore:",noindex"` // The position of the current dealer.
+	CurrentBidding   string   `datastore:",noindex"` // The bids for the current hand; 0-index is the player clockwise from the CurrentDealerPos (one higher, wrapping at 4).
+	CurrentHands     []string `datastore:",noindex"` // Cards held by each player, parallel with the PlayerIDs above.
+	CurrentTrick     string   `datastore:",noindex"` // Cards played for current trick; 0-index is the lead player (i.e., the order the cards were played).
+	CurrentTally     string   `datastore:",noindex"` // The running tally for the current hand.
 }
 
 type GameStore interface {
