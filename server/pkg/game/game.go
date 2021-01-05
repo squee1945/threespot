@@ -191,9 +191,22 @@ func (g *game) PlaceBid(ctx context.Context, player Player, bid Bid) (Game, erro
 	}
 	gs.CurrentBidding = g.currentBidding.Encoded()
 
+	// If we have all the bids, start playing.
+	if g.currentBidding.IsDone() {
+		_, pos, err := g.currentBidding.WinningBidAndPos()
+		if err != nil {
+			return nil, err
+		}
+		// TODO: need to collect the trump from the player!!!
+		if err := g.startTrick(gs, deck.NoTrump, pos); err != nil {
+			return nil, err
+		}
+	}
+
 	if err = g.gameStore.Set(ctx, g.id, gs); err != nil {
 		return nil, fmt.Errorf("saving game: %v", err)
 	}
+
 	return gameFromDatastore(ctx, g.gameStore, g.playerStore, g.id, gs)
 }
 
@@ -244,23 +257,97 @@ func (g *game) PlayCard(ctx context.Context, player Player, card deck.Card) (Gam
 	}
 	gs.CurrentTrick = g.currentTrick.Encoded()
 
-	// TODO: if the last card, compute the results
+	// If the last card, compute the results
 	if g.currentTrick.IsDone() {
+
 		// Who won the trick?
-		// winningPos, err := g.currentTrick.WinningPos()
-		// if err != nil {
-		// 	return nil, err
-		// }
-		// TODO: Adjust the tally.
-		// TODO: If all cards are played, update the score.
-		// TODO: If the score is a winning (note: bid out, etc.), complete the game.
-		// TODO: Else deal a new hand and go to bidding round.
+		winningPos, err := g.currentTrick.WinningPos()
+		if err != nil {
+			return nil, err
+		}
+
+		// Add the trick to the tally.
+		if err := g.currentTally.AddTrick(g.currentTrick); err != nil {
+			return nil, err
+		}
+		gs.CurrentTally = g.currentTally.Encoded()
+
+		// If all cards are played, update the score.
+		if g.currentHands[0].IsEmpty() {
+			if err := g.score.AddTally(g.currentTally); err != nil {
+				return nil, err
+			}
+			gs.Score = g.score.Encoded()
+
+			// If the score is a winning (note: bid out, etc.), complete the game.
+			// TODO: need better stuff here: consider bid-out, stealing the 5, etc.
+			if g.score.CurrentScore()[0] > g.score.ToWin() || g.score.CurrentScore()[1] > g.score.ToWin() {
+				g.complete = true
+				gs.Complete = true
+			} else {
+				// Else deal a new hand and go to bidding round.
+				if err := g.startHand(gs); err != nil {
+					return nil, err
+				}
+			}
+		} else {
+			if err := g.startTrick(gs, g.currentTrick.Trump(), winningPos); err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	if err = g.gameStore.Set(ctx, g.id, gs); err != nil {
 		return nil, fmt.Errorf("saving game: %v", err)
 	}
 	return gameFromDatastore(ctx, g.gameStore, g.playerStore, g.id, gs)
+}
+
+func (g *game) startHand(gs *storage.Game) error {
+	deck, err := deck.NewDeck()
+	if err != nil {
+		return err
+	}
+	deck.Shuffle()
+
+	g.currentHands = nil
+	gs.CurrentHands = nil
+	for _, h := range deck.Deal() {
+		hand, err := NewHand(h)
+		if err != nil {
+			return err
+		}
+		g.currentHands = append(g.currentHands, hand)
+		gs.CurrentHands = append(gs.CurrentHands, hand.Encoded())
+	}
+
+	g.currentDealerPos = (g.currentDealerPos + 1) % 4
+	gs.CurrentDealerPos = g.currentDealerPos
+
+	leadBidder := (g.currentDealerPos + 1) % 4 // to the left of the dealer
+	biddingRound, err := NewBiddingRound(leadBidder)
+	if err != nil {
+		return err
+	}
+	g.currentBidding = biddingRound
+	gs.CurrentBidding = g.currentBidding.Encoded()
+
+	g.currentTrick = nil
+	gs.CurrentTrick = ""
+
+	g.currentTally = NewTally()
+	gs.CurrentTally = g.currentTally.Encoded()
+	return nil
+}
+
+func (g *game) startTrick(gs *storage.Game, trump deck.Suit, leadPos int) error {
+	trick, err := NewTrick(trump, leadPos)
+	if err != nil {
+		return err
+	}
+	g.currentTrick = trick
+	gs.CurrentTrick = g.currentTrick.Encoded()
+	return nil
 }
 
 func (g *game) playerCount() int {
