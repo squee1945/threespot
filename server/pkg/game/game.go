@@ -13,14 +13,28 @@ type Game interface {
 	ID() string
 	State() GameState
 	Players() []Player
-	PlacedBids() []Bid
-	AvailableBids(Player) []string
-	WinningBid() (Bid, error)
+	PlayerPos(player Player) (int, error)
 	PlayerHand(player Player) Hand
+	Score() Score
+
+	CurrentBidding() BiddingRound
+	CurrentTrick() Trick
+
+	// PlacedBids() []Bid
+	// LeadBidPos() int
+	AvailableBids(Player) []Bid
+	// WinningBid() (Bid, error)
+	// WinningBidPos() (int, error)
+	// PlayerHand(player Player) Hand
+	// Score() Score
+	DealerPos() int
+	PosToPlay() (int, error)
+	// TrickCards() ([]deck.Card, error)
+	// HandTrump() (deck.Suit, error)
 
 	AddPlayer(ctx context.Context, player Player, pos int) (Game, error)
 	PlaceBid(ctx context.Context, player Player, bid Bid) (Game, error)
-	SetTrump(ctx context.Context, player Player, trump deck.Suit) (Game, error)
+	CallTrump(ctx context.Context, player Player, trump deck.Suit) (Game, error)
 	PlayCard(ctx context.Context, player Player, card deck.Card) (Game, error)
 }
 
@@ -33,7 +47,7 @@ var (
 	ErrIncorrectPlayOrder   = errors.New("Playing out of order")
 	ErrInvalidBid           = errors.New("Invalid bid")
 	ErrNotBidding           = errors.New("Not currently bidding")
-	ErrNotCollecting        = errors.New("Not currently accepting trump selection")
+	ErrNotCalling           = errors.New("Not currently calling trump")
 	ErrNotPlaying           = errors.New("Not currently playing cards")
 	ErrMissingCard          = errors.New("Player does not have this card")
 	ErrNotFollowingSuit     = errors.New("Must follow lead suit")
@@ -42,11 +56,11 @@ var (
 type GameState string
 
 var (
-	JoiningState    GameState = "JOINING"
-	BiddingState    GameState = "BIDDING"
-	CollectingState GameState = "COLLECTING" // Trump
-	PlayingState    GameState = "PLAYING"
-	CompleteState   GameState = "COMPLETE"
+	JoiningState   GameState = "JOINING"
+	BiddingState   GameState = "BIDDING"
+	CallingState   GameState = "CALLING" // Trump
+	PlayingState   GameState = "PLAYING"
+	CompletedState GameState = "COMPLETED"
 )
 
 type game struct {
@@ -105,13 +119,13 @@ func (g *game) State() GameState {
 		return JoiningState
 	}
 	if g.complete {
-		return CompleteState
+		return CompletedState
 	}
 	if !g.currentBidding.IsDone() {
 		return BiddingState
 	}
 	if g.currentTrick == nil {
-		return CollectingState
+		return CallingState
 	}
 	return PlayingState
 }
@@ -120,15 +134,55 @@ func (g *game) Players() []Player {
 	return g.players
 }
 
+func (g *game) CurrentBidding() BiddingRound {
+	return g.currentBidding
+}
+
+func (g *game) CurrentTrick() Trick {
+	return g.currentTrick
+}
+
 func (g *game) PlacedBids() []Bid {
 	return g.currentBidding.Bids()
 }
 
-func (g *game) AvailableBids(player Player) []string {
+func (g *game) LeadBidPos() int {
+	return g.currentBidding.LeadPos()
+}
+
+func (g *game) DealerPos() int {
+	return g.currentDealerPos
+}
+
+func (g *game) PosToPlay() (int, error) {
+	switch g.State() {
+	case BiddingState:
+		return g.currentBidding.CurrentTurnPos()
+	case CallingState:
+		_, pos, err := g.currentBidding.WinningBidAndPos()
+		if err != nil {
+			return 0, err
+		}
+		return pos, nil
+	case PlayingState:
+		pos, err := g.currentTrick.CurrentTurnPos()
+		if err != nil {
+			return 0, err
+		}
+		return pos, nil
+	}
+	return 0, fmt.Errorf("no one plays in %s state", g.State())
+}
+
+func (g *game) Score() Score {
+	return g.score
+}
+
+func (g *game) AvailableBids(player Player) []Bid {
 	if g.currentBidding.IsDone() {
 		return nil
 	}
-	pos, err := g.playerPos(player)
+	pos, err := g.PlayerPos(player)
 	if err != nil {
 		return nil
 	}
@@ -144,7 +198,7 @@ func (g *game) WinningBid() (Bid, error) {
 }
 
 func (g *game) PlayerHand(player Player) Hand {
-	pos, err := g.playerPos(player)
+	pos, err := g.PlayerPos(player)
 	if err != nil {
 		return nil
 	}
@@ -174,7 +228,7 @@ func (g *game) PlaceBid(ctx context.Context, player Player, bid Bid) (Game, erro
 	// Is bid in available bids?
 	found := false
 	for _, ab := range g.AvailableBids(player) {
-		if ab == bid.Value() {
+		if ab.IsEqualTo(bid) {
 			found = true
 			break
 		}
@@ -183,7 +237,7 @@ func (g *game) PlaceBid(ctx context.Context, player Player, bid Bid) (Game, erro
 		return nil, ErrInvalidBid
 	}
 
-	pos, err := g.playerPos(player)
+	pos, err := g.PlayerPos(player)
 	if err != nil {
 		return nil, err
 	}
@@ -218,10 +272,10 @@ func (g *game) PlaceBid(ctx context.Context, player Player, bid Bid) (Game, erro
 	return gameFromDatastore(ctx, g.gameStore, g.playerStore, g.id, gs)
 }
 
-func (g *game) SetTrump(ctx context.Context, player Player, trump deck.Suit) (Game, error) {
-	// Are we in collecting state?
-	if g.State() != CollectingState {
-		return nil, ErrNotCollecting
+func (g *game) CallTrump(ctx context.Context, player Player, trump deck.Suit) (Game, error) {
+	// Are we in calling state?
+	if g.State() != CallingState {
+		return nil, ErrNotCalling
 	}
 
 	// Is this the right player to set trump?
@@ -229,7 +283,7 @@ func (g *game) SetTrump(ctx context.Context, player Player, trump deck.Suit) (Ga
 	if err != nil {
 		return nil, err
 	}
-	pos, err := g.playerPos(player)
+	pos, err := g.PlayerPos(player)
 	if err != nil {
 		return nil, err
 	}
@@ -259,7 +313,7 @@ func (g *game) PlayCard(ctx context.Context, player Player, card deck.Card) (Gam
 		return nil, ErrNotPlaying
 	}
 
-	pos, err := g.playerPos(player)
+	pos, err := g.PlayerPos(player)
 	if err != nil {
 		return nil, err
 	}
@@ -403,7 +457,7 @@ func (g *game) playerCount() int {
 	return c
 }
 
-func (g *game) playerPos(player Player) (int, error) {
+func (g *game) PlayerPos(player Player) (int, error) {
 	for pos, p := range g.Players() {
 		if p.ID() == player.ID() {
 			return pos, nil

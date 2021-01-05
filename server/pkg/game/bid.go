@@ -2,7 +2,6 @@ package game
 
 import (
 	"fmt"
-	"sort"
 	"strings"
 )
 
@@ -12,12 +11,14 @@ type Bid interface {
 	Human() string
 	// Encoded is the encoded form of this bid.
 	Encoded() string
-	// Valid is the value of this bid.
-	Value() string
 	// IsLessThan returns true if the other bid is smaller than this one.
 	IsLessThan(other Bid) bool
+	// IsEqualTo returns true if the other bid is the same value as this one.
+	IsEqualTo(other Bid) bool
 	// IsNoTrump returns true if the bid is no trump.
 	IsNoTrump() bool
+	// IsPass returns true if the bid is a pass.
+	IsPass() bool
 }
 
 var (
@@ -38,22 +39,23 @@ var (
 		"CN": "12 No Trump",
 		// TODO: Kaiser bid
 	}
-	bidValue = map[string]int{
-		pass: 0,
-		"7":  70,
-		"7N": 75,
-		"8":  80,
-		"8N": 85,
-		"9":  90,
-		"9N": 95,
-		"A":  100,
-		"AN": 105,
-		"B":  110,
-		"BN": 115,
-		"C":  120,
-		"CN": 125,
+	bidFromEncoded = map[string]Bid{
+		pass: &bid{value: pass},
+		"7":  &bid{value: "7"},
+		"7N": &bid{value: "7N"},
+		"8":  &bid{value: "8"},
+		"8N": &bid{value: "8N"},
+		"9":  &bid{value: "9"},
+		"9N": &bid{value: "9N"},
+		"A":  &bid{value: "A"},
+		"AN": &bid{value: "AN"},
+		"B":  &bid{value: "B"},
+		"BN": &bid{value: "BN"},
+		"C":  &bid{value: "C"},
+		"CN": &bid{value: "CN"},
 		// TODO: Kaiser bid
 	}
+	orderedBids = []string{"P", "7", "7N", "8", "8N", "9", "9N", "A", "AN", "B", "BN", "C", "CN"}
 	humanValues = map[string]string{}
 )
 
@@ -65,10 +67,11 @@ var _ Bid = (*bid)(nil) // Ensure interface is implemented.
 
 // NewBidFromEncoded builds a bid from the Encoded() form.
 func NewBidFromEncoded(encoded string) (Bid, error) {
-	if _, present := humanFromEncoded[encoded]; !present {
+	b, present := bidFromEncoded[encoded]
+	if !present {
 		return nil, fmt.Errorf("unknown bid %q", encoded)
 	}
-	return &bid{value: encoded}, nil
+	return b, nil
 }
 
 func (b *bid) Encoded() string {
@@ -79,39 +82,71 @@ func (b *bid) Human() string {
 	return humanFromEncoded[b.value]
 }
 
-func (b *bid) Value() string {
-	return b.value
-}
-
 func (b *bid) IsNoTrump() bool {
 	return strings.HasSuffix(b.value, "N")
 }
 
-func (b *bid) IsLessThan(other Bid) bool {
-	return bidValue[b.Value()] < bidValue[other.Value()]
+func (b *bid) IsPass() bool {
+	return b.Encoded() == pass
 }
 
-func nextBidValues(currentBids []Bid, isDealer bool) []string {
-	highBidValue := 1 // skips "pass", will do it below
-	for _, b := range currentBids {
-		bv := bidValue[b.Value()]
-		if bv > highBidValue {
-			highBidValue = bv
-		}
+func (b *bid) IsLessThan(other Bid) bool {
+	return bidValue(b.Encoded()) < bidValue(other.Encoded())
+}
+
+func (b *bid) IsEqualTo(other Bid) bool {
+	return bidValue(b.Encoded()) == bidValue(other.Encoded())
+}
+
+func nextBidValues(bids []Bid, isDealer bool) []Bid {
+	if len(bids) == 0 {
+		return valuesToBids(orderedBids)
 	}
 
-	var available []string
-	for k, v := range bidValue {
-		if (isDealer && v >= highBidValue) || (!isDealer && v > highBidValue) {
-			available = append(available, k)
+	highBid, highIndex := highestBid(bids)
+
+	var encodeds []string
+	if !isDealer {
+		encodeds = []string{pass}
+		encodeds = append(encodeds, orderedBids[highIndex+1:]...)
+	} else {
+		if highBid.IsPass() {
+			encodeds = orderedBids[1:]
+		} else {
+			encodeds = []string{pass}
+			encodeds = append(encodeds, orderedBids[highIndex:]...)
 		}
 	}
+	return valuesToBids(encodeds)
+}
 
-	// if not dealer, can always pass
-	// if dealer, can only pass if there is another bid
-	if !isDealer || (isDealer && highBidValue > 1) {
-		available = append(available, pass)
+func valuesToBids(encodeds []string) []Bid {
+	var available []Bid
+	for _, encoded := range encodeds {
+		available = append(available, bidFromEncoded[encoded])
 	}
-	sort.SliceStable(available, func(i, j int) bool { return bidValue[available[i]] < bidValue[available[j]] })
 	return available
+}
+
+func highestBid(bids []Bid) (Bid, int) {
+	highIndex := 0
+	highBid := bids[0]
+
+	for _, bid := range bids {
+		index := bidValue(bid.Encoded())
+		if index > highIndex {
+			highIndex = index
+			highBid = bid
+		}
+	}
+	return highBid, highIndex
+}
+
+func bidValue(encoded string) int {
+	for i, b := range orderedBids {
+		if b == encoded {
+			return i
+		}
+	}
+	return -1
 }

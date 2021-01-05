@@ -5,22 +5,22 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/squee1945/threespot/server/pkg/game"
+	"github.com/squee1945/threespot/server/pkg/deck"
 )
 
-type JoinGameRequest struct {
-	ID       string
-	Position int
+type CallTrumpRequest struct {
+	ID   string
+	Suit string
 }
 
-func (s *ApiServer) JoinGame(w http.ResponseWriter, r *http.Request) {
+func (s *ApiServer) CallTrump(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	player := s.lookupPlayer(ctx, w, r)
 	if player == nil {
 		return
 	}
 
-	var req JoinGameRequest
+	var req CallTrumpRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		sendServerError(w, "decoding request: %v", err)
@@ -32,13 +32,15 @@ func (s *ApiServer) JoinGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newG, err := g.AddPlayer(ctx, player, req.Position)
+	suit, err := deck.NewSuitFromEncoded(req.Suit)
 	if err != nil {
-		if err == game.ErrInvalidPosition {
-			sendUserError(w, "Invalid player position.")
-			return
-		}
-		sendServerError(w, "adding player: %v", err)
+		sendServerError(w, "creating suit: %v", err)
+		return
+	}
+
+	newG, err := g.CallTrump(ctx, player, suit)
+	if err != nil {
+		sendServerError(w, "calling trump: %v", err)
 		return
 	}
 

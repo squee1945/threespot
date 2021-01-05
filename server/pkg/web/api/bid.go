@@ -13,7 +13,7 @@ type PlaceBidRequest struct {
 	Bid string
 }
 
-func (s *Server) PlaceBid(w http.ResponseWriter, r *http.Request) {
+func (s *ApiServer) PlaceBid(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	player := s.lookupPlayer(ctx, w, r)
 	if player == nil {
@@ -27,22 +27,23 @@ func (s *Server) PlaceBid(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	g := lookupGame(w, req.ID)
+	g := s.lookupGame(ctx, w, req.ID)
 	if g == nil {
 		return
 	}
 
-	bid, err := game.NewBidFromString(req.Bid)
+	bid, err := game.NewBidFromEncoded(req.Bid)
 	if err != nil {
 		sendServerError(w, "creating bid: %v", err)
 		return
 	}
 
-	if err := g.PlaceBid(player, bid); err != nil {
+	newG, err := g.PlaceBid(ctx, player, bid)
+	if err != nil {
 		// TODO: return user errors with better details for invalid bids
 		sendServerError(w, "placing bid: %v", err)
 		return
 	}
 
-	sendGameState(w, req.ID, player)
+	sendGameState(ctx, w, req.ID, newG, player)
 }

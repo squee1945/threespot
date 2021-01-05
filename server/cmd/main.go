@@ -40,6 +40,7 @@ func main() {
 	http.HandleFunc("/api/new", server.NewGame)
 	http.HandleFunc("/api/join", server.JoinGame)
 	http.HandleFunc("/api/bid", server.PlaceBid)
+	http.HandleFunc("/api/trump", server.CallTrump)
 	http.HandleFunc("/api/play", server.PlayCard)
 	http.HandleFunc("/api/state", server.GameState)
 

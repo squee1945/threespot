@@ -1,37 +1,27 @@
 package web
 
 import (
+	"fmt"
+	"log"
 	"net/http"
-	"time"
 
 	"github.com/squee1945/threespot/server/pkg/storage"
 	"github.com/squee1945/threespot/server/pkg/util"
-)
-
-var (
-	playerCookie = "pid"
-	cookieTTL    = 365 * 24 * time.Hour
 )
 
 type Server struct {
 	PlayerStore storage.PlayerStore
 }
 
-func playerID(r *http.Request) (string, error) {
-	cookie, err := r.Cookie(playerCookie)
-	if err != nil {
-		return "", err
-	}
-	return cookie.Value, nil
+func genError(format string, args ...interface{}) string {
+	errorID := "[errorID:" + util.RandString(10) + "]"
+	msg := fmt.Sprintf(format+" "+errorID, args...)
+	log.Printf(msg)
+	return msg
 }
 
-func setPlayerID(w http.ResponseWriter) string {
-	pid := util.RandString(8) // TODO: add a secret hash so that people can't mess with this (Kaiser cheater!)
-	cookie := http.Cookie{
-		Name:    playerCookie,
-		Value:   pid,
-		Expires: time.Now().Add(cookieTTL),
-	}
-	http.SetCookie(w, &cookie)
-	return pid
+func sendServerError(w http.ResponseWriter, format string, args ...interface{}) {
+	msg := genError(format, args)
+	w.WriteHeader(500)
+	w.Write([]byte(msg))
 }

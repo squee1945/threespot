@@ -107,7 +107,7 @@ func (r *biddingRound) WinningBidAndPos() (Bid, int, error) {
 		return nil, 0, fmt.Errorf("bidding is not done")
 	}
 	for i := 3; i >= 0; i-- {
-		if r.bids[i].Value() == pass {
+		if r.bids[i].IsPass() {
 			continue
 		}
 		return r.bids[i], r.toPos(i), nil

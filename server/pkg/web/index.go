@@ -6,19 +6,20 @@ import (
 	"net/http"
 
 	"github.com/squee1945/threespot/server/pkg/game"
+	"github.com/squee1945/threespot/server/pkg/util"
 )
 
 func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 
 	// Give each visitor a unique random cookie ("player ID").
-	playerID, err := playerID(r)
+	playerID, err := util.PlayerID(r)
 	if err != nil {
 		if err != http.ErrNoCookie {
 			sendServerError(w, "looking up player ID in cookie: %v", err)
 			return
 		}
-		playerID = setPlayerID(w)
+		playerID = util.SetPlayerID(w)
 	}
 
 	var args indexArgs

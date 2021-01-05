@@ -60,10 +60,6 @@ func TestNewBidFromEncoded(t *testing.T) {
 				return
 			}
 
-			if got, want := bid.Value(), tc.wantVal; got != want {
-				t.Errorf("bid.Value()=%s, want=%s", got, want)
-			}
-
 			// Re-encode the bid and make sure it matches.
 			if got, want := bid.Encoded(), strings.ToUpper(tc.encoded); got != want {
 				t.Errorf("re-encoding does not match got=%q want=%q", got, want)
@@ -137,6 +133,10 @@ func TestNextBidValues(t *testing.T) {
 		want     []string
 	}{
 		{
+			highBid: "",
+			want:    []string{"P", "7", "7N", "8", "8N", "9", "9N", "A", "AN", "B", "BN", "C", "CN"},
+		},
+		{
 			highBid: "P",
 			want:    []string{"P", "7", "7N", "8", "8N", "9", "9N", "A", "AN", "B", "BN", "C", "CN"},
 		},
@@ -185,9 +185,18 @@ func TestNextBidValues(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("high=%s isDealer=%t", tc.highBid, tc.isDealer), func(t *testing.T) {
-			got := nextBidValues([]Bid{buildBid(t, tc.highBid)}, tc.isDealer)
+			var priorBids []Bid
+			if tc.highBid != "" {
+				priorBids = []Bid{buildBid(t, tc.highBid)}
+			}
+			bids := nextBidValues(priorBids, tc.isDealer)
 
-			if diff := cmp.Diff(tc.want, got); diff != "" {
+			var got []string
+			for _, b := range bids {
+				got = append(got, b.Encoded())
+			}
+
+			if diff := cmp.Diff(tc.want, got, cmp.Comparer(func(b1, b2 Bid) bool { return b1.Encoded() == b2.Encoded() })); diff != "" {
 				t.Errorf("nextBidValues() mismatch (-want +got):\n%s", diff)
 			}
 		})

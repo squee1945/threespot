@@ -8,11 +8,7 @@ import (
 	"github.com/squee1945/threespot/server/pkg/util"
 )
 
-type NewGameResponse struct {
-	ID string
-}
-
-func (s *Server) NewGame(w http.ResponseWriter, r *http.Request) {
+func (s *ApiServer) NewGame(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	player := s.lookupPlayer(ctx, w, r)
 	if player == nil {
@@ -20,14 +16,11 @@ func (s *Server) NewGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id := util.RandString(7)
-	g, err := game.NewGame(s.gameStore, id, player)
+	g, err := game.NewGame(ctx, s.gameStore, s.playerStore, id, player)
 	if err != nil {
 		sendServerError(w, "creating game: %v", err)
 		return
 	}
 
-	if err := sendResponse(w, NewGameResponse{ID: g.ID()}); err != nil {
-		sendServerError(w, "sending response: %v", err)
-		return
-	}
+	sendGameState(ctx, w, id, g, player)
 }

@@ -13,7 +13,7 @@ type PlayCardRequest struct {
 	Card string
 }
 
-func (s *Server) PlayCard(w http.ResponseWriter, r *http.Request) {
+func (s *ApiServer) PlayCard(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	player := s.lookupPlayer(ctx, w, r)
 	if player == nil {
@@ -27,21 +27,22 @@ func (s *Server) PlayCard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	g := lookupGame(w, req.ID)
+	g := s.lookupGame(ctx, w, req.ID)
 	if g == nil {
 		return
 	}
 
-	card, err := deck.NewCardFromString(req.Card)
+	card, err := deck.NewCardFromEncoded(req.Card)
 	if err != nil {
 		sendServerError(w, "creating card: %v", err)
 		return
 	}
 
-	if err := g.PlayCard(player, card); err != nil {
+	newG, err := g.PlayCard(ctx, player, card)
+	if err != nil {
 		sendServerError(w, "playing card: %v", err)
 		return
 	}
 
-	sendGameState(w, req.ID, player)
+	sendGameState(ctx, w, req.ID, newG, player)
 }
