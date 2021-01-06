@@ -16,7 +16,7 @@ type Player interface {
 	// Name is the human-readable name of the player. It can be changed so it should not be used for any references.
 	Name() string
 	// SetName updates the name of the player.
-	SetName(context.Context, string) error
+	SetName(context.Context, string) (Player, error)
 }
 
 const (
@@ -73,15 +73,19 @@ func (p *player) Name() string {
 	return p.name
 }
 
-func (p *player) SetName(ctx context.Context, name string) error {
+func (p *player) SetName(ctx context.Context, name string) (Player, error) {
 	p.name = name
+	return p.save(ctx)
+}
+
+func (p *player) save(ctx context.Context) (Player, error) {
 	ps := &storage.Player{
-		Name: name,
+		Name: p.name,
 	}
 	if err := p.store.Set(ctx, p.id, ps); err != nil {
-		return fmt.Errorf("saving player in store: %v", err)
+		return nil, fmt.Errorf("saving player: %v", err)
 	}
-	return nil
+	return p, nil
 }
 
 func playerFromStorage(store storage.PlayerStore, id string, ps *storage.Player) (Player, error) {

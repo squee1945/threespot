@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/squee1945/threespot/server/pkg/deck"
 	"github.com/squee1945/threespot/server/pkg/storage"
@@ -60,6 +61,7 @@ type game struct {
 
 	id       string
 	players  []Player // Position 0/2 are a team, 1/3 are a team; organizer is position 0.
+	created  time.Time
 	complete bool
 
 	score Score // The score of the game.
@@ -78,7 +80,7 @@ func NewGame(ctx context.Context, gameStore storage.GameStore, playerStore stora
 	if err != nil {
 		return nil, err
 	}
-	g, err := gameFromDatastore(ctx, gameStore, playerStore, id, gs)
+	g, err := gameFromStorage(ctx, gameStore, playerStore, id, gs)
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +96,7 @@ func GetGame(ctx context.Context, gameStore storage.GameStore, playerStore stora
 		}
 		return nil, fmt.Errorf("fetching game from storage: %v", err)
 	}
-	g, err := gameFromDatastore(ctx, gameStore, playerStore, id, gs)
+	g, err := gameFromStorage(ctx, gameStore, playerStore, id, gs)
 	if err != nil {
 		return nil, err
 	}
@@ -207,7 +209,7 @@ func (g *game) AddPlayer(ctx context.Context, player Player, pos int) (Game, err
 		}
 		return nil, fmt.Errorf("adding player: %v", err)
 	}
-	return gameFromDatastore(ctx, g.gameStore, g.playerStore, g.id, gs)
+	return gameFromStorage(ctx, g.gameStore, g.playerStore, g.id, gs)
 }
 
 func (g *game) PlaceBid(ctx context.Context, player Player, bid Bid) (Game, error) {
@@ -256,11 +258,7 @@ func (g *game) PlaceBid(ctx context.Context, player Player, bid Bid) (Game, erro
 		}
 	}
 
-	if err = g.gameStore.Set(ctx, g.id, gs); err != nil {
-		return nil, fmt.Errorf("saving game: %v", err)
-	}
-
-	return gameFromDatastore(ctx, g.gameStore, g.playerStore, g.id, gs)
+	return g.save(ctx)
 }
 
 func (g *game) CallTrump(ctx context.Context, player Player, trump deck.Suit) (Game, error) {
@@ -291,11 +289,7 @@ func (g *game) CallTrump(ctx context.Context, player Player, trump deck.Suit) (G
 		return nil, err
 	}
 
-	if err = g.gameStore.Set(ctx, g.id, gs); err != nil {
-		return nil, fmt.Errorf("saving game: %v", err)
-	}
-
-	return gameFromDatastore(ctx, g.gameStore, g.playerStore, g.id, gs)
+	return g.save(ctx)
 }
 
 func (g *game) PlayCard(ctx context.Context, player Player, card deck.Card) (Game, error) {
@@ -385,10 +379,7 @@ func (g *game) PlayCard(ctx context.Context, player Player, card deck.Card) (Gam
 		}
 	}
 
-	if err = g.gameStore.Set(ctx, g.id, gs); err != nil {
-		return nil, fmt.Errorf("saving game: %v", err)
-	}
-	return gameFromDatastore(ctx, g.gameStore, g.playerStore, g.id, gs)
+	return g.save(ctx)
 }
 
 func (g *game) startHand(gs *storage.Game) error {
@@ -457,7 +448,60 @@ func (g *game) PlayerPos(player Player) (int, error) {
 	return -1, errors.New("unknown player")
 }
 
-func gameFromDatastore(ctx context.Context, gameStore storage.GameStore, playerStore storage.PlayerStore, id string, gs *storage.Game) (Game, error) {
+func (g *game) save(ctx context.Context) (Game, error) {
+	var err error
+	var playerIDs []string
+	for _, player := range g.players {
+		if player == nil {
+			playerIDs = append(playerIDs, "")
+			continue
+		}
+		playerIDs = append(playerIDs, player.ID())
+	}
+
+	var hands []string
+	for _, hand := range g.currentHands {
+		if hand == nil {
+			continue
+		}
+		hands = append(hands, hand.Encoded())
+	}
+
+	score := ""
+	if g.score != nil {
+		score = g.score.Encoded()
+	}
+	bidding := ""
+	if g.currentBidding != nil {
+		bidding = g.currentBidding.Encoded()
+	}
+	trick := ""
+	if g.currentTrick != nil {
+		trick = g.currentTrick.Encoded()
+	}
+	tally := ""
+	if g.currentTally != nil {
+		tally = g.currentTally.Encoded()
+	}
+
+	gs := &storage.Game{
+		PlayerIDs:        playerIDs,
+		Created:          g.created,
+		Complete:         g.complete,
+		Score:            score,
+		CurrentDealerPos: g.currentDealerPos,
+		CurrentBidding:   bidding,
+		CurrentHands:     hands,
+		CurrentTrick:     trick,
+		CurrentTally:     tally,
+	}
+	if err = g.gameStore.Set(ctx, g.id, gs); err != nil {
+		return nil, fmt.Errorf("saving game: %v", err)
+	}
+	return g, nil
+}
+
+func gameFromStorage(ctx context.Context, gameStore storage.GameStore, playerStore storage.PlayerStore, id string, gs *storage.Game) (Game, error) {
 	if gs == nil {
 		return nil, errors.New("nil game")
 	}
@@ -478,39 +522,54 @@ func gameFromDatastore(ctx context.Context, gameStore storage.GameStore, playerS
 		players[i] = player
 	}
 
-	bidding, err := NewBiddingRoundFromEncoded(gs.CurrentBidding)
-	if err != nil {
-		return nil, err
-	}
-
-	var hands []Hand
-	for _, encoded := range gs.CurrentHands {
-		hand, err := NewHandFromEncoded(encoded)
+	var bidding BiddingRound
+	if gs.CurrentBidding != "" {
+		bidding, err = NewBiddingRoundFromEncoded(gs.CurrentBidding)
 		if err != nil {
 			return nil, err
 		}
-		hands = append(hands, hand)
 	}
 
-	trick, err := NewTrickFromEncoded(gs.CurrentTrick)
-	if err != nil {
-		return nil, err
+	var hands []Hand
+	if len(gs.CurrentHands) > 0 {
+		for _, encoded := range gs.CurrentHands {
+			hand, err := NewHandFromEncoded(encoded)
+			if err != nil {
+				return nil, err
+			}
+			hands = append(hands, hand)
+		}
 	}
 
-	score, err := NewScoreFromEncoded(gs.Score)
-	if err != nil {
-		return nil, err
+	var trick Trick
+	if gs.CurrentTrick != "" {
+		trick, err = NewTrickFromEncoded(gs.CurrentTrick)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	tally, err := NewTallyFromEncoded(gs.CurrentTally)
-	if err != nil {
-		return nil, err
+	var score Score
+	if gs.Score != "" {
+		score, err = NewScoreFromEncoded(gs.Score)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var tally Tally
+	if gs.CurrentTally != "" {
+		tally, err = NewTallyFromEncoded(gs.CurrentTally)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	g := &game{
 		gameStore:        gameStore,
 		playerStore:      playerStore,
 		id:               id,
+		created:          gs.Created,
 		players:          players,
 		complete:         gs.Complete,
 		score:            score,
