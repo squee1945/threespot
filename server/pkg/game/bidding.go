@@ -12,8 +12,8 @@ type BiddingRound interface {
 	// IsDone returns true if the bidding is complete (4 bids).
 	IsDone() bool
 
-	// PlaceBid makes a bid for the player in playerPos position.
-	PlaceBid(playerPos int, bid Bid) error
+	// placeBid makes a bid for the player in playerPos position.
+	placeBid(playerPos int, bid Bid) error
 
 	// CurrentTurnPos returns the position of the player who's turn it is to bid. Returns error if IsDone().
 	CurrentTurnPos() (int, error)
@@ -84,10 +84,10 @@ func (r *biddingRound) IsDone() bool {
 	return r.NumPlaced() == 4
 }
 
-func (r *biddingRound) PlaceBid(playerPos int, bid Bid) error {
+func (r *biddingRound) placeBid(playerPos int, bid Bid) error {
 	ord := r.toOrd(playerPos)
 	if len(r.bids) != ord {
-		return ErrIncorrectPlayOrder
+		return ErrIncorrectBidOrder
 	}
 	r.bids = append(r.bids, bid)
 	return nil

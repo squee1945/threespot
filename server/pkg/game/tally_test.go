@@ -198,7 +198,7 @@ func TestTallyAddTrick(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := tc.tally.AddTrick(tc.trick)
+			err := tc.tally.addTrick(tc.trick)
 
 			if tc.wantErr && err == nil {
 				t.Fatal("missing expected error")

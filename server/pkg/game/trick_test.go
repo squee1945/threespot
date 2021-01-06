@@ -198,7 +198,7 @@ func TestTrickPlayCard(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			trick := buildTrick(t, "N", 0, tc.have...)
 
-			err := trick.PlayCard(len(tc.have), buildCard(t, toPlay))
+			err := trick.playCard(len(tc.have), buildCard(t, toPlay))
 
 			if tc.wantErr && err == nil {
 				t.Fatal("missing expected error")
@@ -694,7 +694,7 @@ func buildTrick(t *testing.T, encodedTrump string, leadPos int, encodedCards ...
 		t.Fatal(err)
 	}
 	for pos, c := range encodedCards {
-		if err := trick.PlayCard(leadPos+pos, buildCard(t, c)); err != nil {
+		if err := trick.playCard(leadPos+pos, buildCard(t, c)); err != nil {
 			t.Fatal(err)
 		}
 	}

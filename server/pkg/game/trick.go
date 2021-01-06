@@ -14,8 +14,8 @@ type Trick interface {
 	// IsDone returns true if the trick is complete (4 cards played).
 	IsDone() bool
 
-	// PlayCard adds a card to the trick for the player in playerPos position.
-	PlayCard(playerPos int, card deck.Card) error
+	// playCard adds a card to the trick for the player in playerPos position.
+	playCard(playerPos int, card deck.Card) error
 
 	// CurrentTurnPos returns the position of the player who's turn it is to play. Returns error if IsDone().
 	CurrentTurnPos() (int, error)
@@ -131,7 +131,7 @@ func (t *trick) Encoded() string {
 	return s
 }
 
-func (t *trick) PlayCard(playerPos int, card deck.Card) error {
+func (t *trick) playCard(playerPos int, card deck.Card) error {
 	ord := t.toOrd(playerPos)
 	if len(t.cards) != ord {
 		return ErrIncorrectPlayOrder

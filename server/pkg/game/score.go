@@ -12,8 +12,8 @@ type Score interface {
 	// ToWin is the score to win; either 52 or 62.
 	ToWin() int
 
-	// SetTopScore62 sets the top score to be 62.
-	SetTopScore62()
+	// setTopScore62 sets the top score to be 62.
+	setTopScore62()
 
 	// Encoded is the encoded form of the score.
 	Encoded() string
@@ -25,8 +25,8 @@ type Score interface {
 	// CurrentScore return a pair (points02, points13) representing the current score.
 	CurrentScore() []int
 
-	// AddTally adds a tally to the score. An error is returned if the tally is not done.
-	AddTally(Tally) error
+	// addTally adds a tally to the score. An error is returned if the tally is not done.
+	addTally(Tally) error
 }
 
 type score struct {
@@ -95,7 +95,7 @@ func (s *score) ToWin() int {
 	return s.toWin
 }
 
-func (s *score) SetTopScore62() {
+func (s *score) setTopScore62() {
 	s.toWin = 62
 }
 
@@ -110,7 +110,7 @@ func (s *score) CurrentScore() []int {
 	return s.scores[len(s.scores)-1]
 }
 
-func (s *score) AddTally(tally Tally) error {
+func (s *score) addTally(tally Tally) error {
 	if !tally.IsDone() {
 		return errors.New("tally is not done")
 	}

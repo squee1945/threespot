@@ -13,24 +13,15 @@ type Game interface {
 	ID() string
 	State() GameState
 	Players() []Player
-	PlayerPos(player Player) (int, error)
 	PlayerHand(player Player) Hand
 	Score() Score
+	PlayerPos(player Player) (int, error)
+	DealerPos() int
+	PosToPlay() (int, error)
 
 	CurrentBidding() BiddingRound
 	CurrentTrick() Trick
-
-	// PlacedBids() []Bid
-	// LeadBidPos() int
 	AvailableBids(Player) []Bid
-	// WinningBid() (Bid, error)
-	// WinningBidPos() (int, error)
-	// PlayerHand(player Player) Hand
-	// Score() Score
-	DealerPos() int
-	PosToPlay() (int, error)
-	// TrickCards() ([]deck.Card, error)
-	// HandTrump() (deck.Suit, error)
 
 	AddPlayer(ctx context.Context, player Player, pos int) (Game, error)
 	PlaceBid(ctx context.Context, player Player, bid Bid) (Game, error)
@@ -142,13 +133,13 @@ func (g *game) CurrentTrick() Trick {
 	return g.currentTrick
 }
 
-func (g *game) PlacedBids() []Bid {
-	return g.currentBidding.Bids()
-}
+// func (g *game) PlacedBids() []Bid {
+// 	return g.currentBidding.Bids()
+// }
 
-func (g *game) LeadBidPos() int {
-	return g.currentBidding.LeadPos()
-}
+// func (g *game) LeadBidPos() int {
+// 	return g.currentBidding.LeadPos()
+// }
 
 func (g *game) DealerPos() int {
 	return g.currentDealerPos
@@ -189,13 +180,13 @@ func (g *game) AvailableBids(player Player) []Bid {
 	return nextBidValues(g.currentBidding.Bids(), pos == g.currentDealerPos)
 }
 
-func (g *game) WinningBid() (Bid, error) {
-	bid, _, err := g.currentBidding.WinningBidAndPos()
-	if err != nil {
-		return nil, fmt.Errorf("bidding is not done")
-	}
-	return bid, nil
-}
+// func (g *game) WinningBid() (Bid, error) {
+// 	bid, _, err := g.currentBidding.WinningBidAndPos()
+// 	if err != nil {
+// 		return nil, fmt.Errorf("bidding is not done")
+// 	}
+// 	return bid, nil
+// }
 
 func (g *game) PlayerHand(player Player) Hand {
 	pos, err := g.PlayerPos(player)
@@ -241,7 +232,7 @@ func (g *game) PlaceBid(ctx context.Context, player Player, bid Bid) (Game, erro
 	if err != nil {
 		return nil, err
 	}
-	if err := g.currentBidding.PlaceBid(pos, bid); err != nil {
+	if err := g.currentBidding.placeBid(pos, bid); err != nil {
 		return nil, err
 	}
 
@@ -342,14 +333,14 @@ func (g *game) PlayCard(ctx context.Context, player Player, card deck.Card) (Gam
 	}
 
 	// Remove the card from the player hand.
-	newHand, err := playerHand.RemoveCard(card)
+	newHand, err := playerHand.removeCard(card)
 	if err != nil {
 		return nil, err
 	}
 	gs.CurrentHands[pos] = newHand.Encoded()
 
 	// Add the card to the current trick
-	if err := g.currentTrick.PlayCard(pos, card); err != nil {
+	if err := g.currentTrick.playCard(pos, card); err != nil {
 		return nil, err
 	}
 	gs.CurrentTrick = g.currentTrick.Encoded()
@@ -364,14 +355,14 @@ func (g *game) PlayCard(ctx context.Context, player Player, card deck.Card) (Gam
 		}
 
 		// Add the trick to the tally.
-		if err := g.currentTally.AddTrick(g.currentTrick); err != nil {
+		if err := g.currentTally.addTrick(g.currentTrick); err != nil {
 			return nil, err
 		}
 		gs.CurrentTally = g.currentTally.Encoded()
 
 		// If all cards are played, update the score.
 		if g.currentHands[0].IsEmpty() {
-			if err := g.score.AddTally(g.currentTally); err != nil {
+			if err := g.score.addTally(g.currentTally); err != nil {
 				return nil, err
 			}
 			gs.Score = g.score.Encoded()

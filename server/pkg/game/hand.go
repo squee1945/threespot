@@ -17,8 +17,8 @@ type Hand interface {
 	// ContainsSuit returns true if a card of the given suit is in the hand.
 	// The ignoreCard is not considered when searching for the suit (i.e., it is the card that is being played).
 	ContainsSuit(suit deck.Suit, ignoreCard deck.Card) bool
-	// RemoveCard removes the given card from the hand, returning an error if it is not present.
-	RemoveCard(card deck.Card) (Hand, error)
+	// removeCard removes the given card from the hand, returning an error if it is not present.
+	removeCard(card deck.Card) (Hand, error)
 	// IsEmpty returns true if there are no cards left in the hand.
 	IsEmpty() bool
 	// Encoded returns the encoded form of the hand.
@@ -104,7 +104,7 @@ func (h *hand) Cards() []deck.Card {
 	return h.cards
 }
 
-func (h *hand) RemoveCard(card deck.Card) (Hand, error) {
+func (h *hand) removeCard(card deck.Card) (Hand, error) {
 	if !h.Contains(card) {
 		return nil, ErrMissingCard
 	}

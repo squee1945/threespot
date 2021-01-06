@@ -8,8 +8,8 @@ import (
 
 // Tally keeps track of the score during an individial hand.
 type Tally interface {
-	// AddTrick adds a trick to the tally.
-	AddTrick(Trick) error
+	// addTrick adds a trick to the tally.
+	addTrick(Trick) error
 	// IsDone returns true if the tally is complete.
 	IsDone() bool
 	// Points returns the points of the tally. first int is players 0/2; second int is players 1/3.
@@ -59,7 +59,7 @@ func NewTally() Tally {
 	return &tally{}
 }
 
-func (t *tally) AddTrick(trick Trick) error {
+func (t *tally) addTrick(trick Trick) error {
 	if !trick.IsDone() {
 		return fmt.Errorf("trick is not complete")
 	}

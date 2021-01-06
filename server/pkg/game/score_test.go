@@ -104,7 +104,7 @@ func TestScoreSetTopScore62(t *testing.T) {
 	if got, want := score.ToWin(), 52; got != want {
 		t.Errorf("got=%d want=%d", got, want)
 	}
-	score.SetTopScore62()
+	score.setTopScore62()
 	if got, want := score.ToWin(), 62; got != want {
 		t.Errorf("got=%d want=%d", got, want)
 	}
@@ -112,9 +112,9 @@ func TestScoreSetTopScore62(t *testing.T) {
 
 func TestScoreScores(t *testing.T) {
 	score := NewScore()
-	score.AddTally(buildTally(t, 8, 1, 2))
-	score.AddTally(buildTally(t, 8, 3, 4))
-	score.AddTally(buildTally(t, 8, 5, 6))
+	score.addTally(buildTally(t, 8, 1, 2))
+	score.addTally(buildTally(t, 8, 3, 4))
+	score.addTally(buildTally(t, 8, 5, 6))
 	// Check that we're keeping a running score.
 	want := [][]int{
 		{1, 2},
@@ -157,7 +157,7 @@ func TestScoreCurrentScore(t *testing.T) {
 			score := NewScore()
 			for _, s := range tc.tallies {
 				tally := buildTally(t, 8, s[0], s[1])
-				if err := score.AddTally(tally); err != nil {
+				if err := score.addTally(tally); err != nil {
 					t.Fatal(err)
 				}
 			}
@@ -206,7 +206,7 @@ func TestScoreAddTally(t *testing.T) {
 			score := NewScore()
 			for _, tally := range tc.tallies {
 
-				err := score.AddTally(tally)
+				err := score.addTally(tally)
 
 				if tc.wantErr && err == nil {
 					t.Fatal("missing expected error")
