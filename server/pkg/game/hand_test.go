@@ -261,7 +261,7 @@ func TestHandRemoveCard(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			hand := buildHand(t, tc.cards)
 
-			hand, err := hand.removeCard(buildCard(t, tc.remove))
+			err := hand.removeCard(buildCard(t, tc.remove))
 
 			if tc.wantErr && err == nil {
 				t.Fatal("missing expected error")

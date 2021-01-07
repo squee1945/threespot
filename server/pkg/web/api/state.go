@@ -150,16 +150,19 @@ func buildBiddingInfo(g game.Game, player game.Player, playerPos int) (*BiddingI
 	if err != nil {
 		return nil, err
 	}
-
 	var availableBids []BidInfo
 	if playerPos == positionToPlay {
 		availableBids = bidsToBidInfos(g.AvailableBids(player))
+	}
+	playerHand, err := g.PlayerHand(player)
+	if err != nil {
+		return nil, err
 	}
 
 	info := &BiddingInfo{
 		PositionToPlay: positionToPlay,
 		DealerPosition: g.DealerPos(),
-		PlayerHand:     cardsToStrings(g.PlayerHand(player).Cards()),
+		PlayerHand:     cardsToStrings(playerHand.Cards()),
 		LeadBid:        g.CurrentBidding().LeadPos(),
 		BidsPlaced:     bidsToBidInfos(g.CurrentBidding().Bids()),
 		AvailableBids:  availableBids,
@@ -194,6 +197,10 @@ func buildPlayingInfo(g game.Game, player game.Player, playerPos int) (*PlayingI
 	if err != nil {
 		return nil, err
 	}
+	playerHand, err := g.PlayerHand(player)
+	if err != nil {
+		return nil, err
+	}
 
 	info := &PlayingInfo{
 		PositionToPlay: positionToPlay,
@@ -201,7 +208,7 @@ func buildPlayingInfo(g game.Game, player game.Player, playerPos int) (*PlayingI
 		WinningBid:     bidToBidInfo(winningBid),
 		WinningBidPos:  winningBidPos,
 		Trump:          g.CurrentTrick().Trump().Encoded(),
-		PlayerHand:     cardsToStrings(g.PlayerHand(player).Cards()),
+		PlayerHand:     cardsToStrings(playerHand.Cards()),
 		Trick:          cardsToStrings(g.CurrentTrick().Cards()),
 	}
 	return info, nil

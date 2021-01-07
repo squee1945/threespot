@@ -8,6 +8,14 @@ import (
 	"github.com/squee1945/threespot/server/pkg/deck"
 )
 
+// Hands are the hands for a set of players.
+type Hands interface {
+	// Hand returns the hand for the player in playerPos.
+	Hand(playerPos int) (Hand, error)
+	// Encoded returns the encoded form for the hands.
+	Encoded() string
+}
+
 // Hand is a hand of cards held by a player.
 type Hand interface {
 	// Cards are the cards in the hand.
@@ -18,12 +26,17 @@ type Hand interface {
 	// The ignoreCard is not considered when searching for the suit (i.e., it is the card that is being played).
 	ContainsSuit(suit deck.Suit, ignoreCard deck.Card) bool
 	// removeCard removes the given card from the hand, returning an error if it is not present.
-	removeCard(card deck.Card) (Hand, error)
+	removeCard(card deck.Card) error
 	// IsEmpty returns true if there are no cards left in the hand.
 	IsEmpty() bool
 	// Encoded returns the encoded form of the hand.
 	Encoded() string
 }
+
+const (
+	handsDelim = "+"
+	cardsDelim = "|"
+)
 
 var (
 	suitValues = map[string]int{
@@ -34,11 +47,67 @@ var (
 	}
 )
 
+type hands struct {
+	hs []Hand
+}
+
 type hand struct {
 	cards []deck.Card
 }
 
-var _ Hand = (*hand)(nil) // Ensure interface is implemented.
+var _ Hands = (*hands)(nil) // Ensure interface is implemented.
+var _ Hand = (*hand)(nil)   // Ensure interface is implemented.
+
+// NewHandsFromEncoded creates a set of hands from the Encoded() form.
+func NewHandsFromEncoded(encoded string) (Hands, error) {
+	if encoded == "" {
+		return &hands{}, nil
+	}
+	parts := strings.Split(encoded, handsDelim)
+	if len(parts) != 4 {
+		return nil, fmt.Errorf("encoded %q did not have 4 parts", encoded)
+	}
+	var hs []Hand
+	for _, p := range parts {
+		h, err := NewHandFromEncoded(p)
+		if err != nil {
+			return nil, err
+		}
+		hs = append(hs, h)
+	}
+	return &hands{hs: hs}, nil
+}
+
+// NewHands creates a new set of hands.
+func NewHands(cardSets [][]deck.Card) (Hands, error) {
+	if len(cardSets) != 4 {
+		return nil, fmt.Errorf("must have 4 sets of cards")
+	}
+	var hs []Hand
+	for _, set := range cardSets {
+		h, err := NewHand(set)
+		if err != nil {
+			return nil, err
+		}
+		hs = append(hs, h)
+	}
+	return &hands{hs: hs}, nil
+}
+
+func (hs *hands) Hand(playerPos int) (Hand, error) {
+	if playerPos < 0 || playerPos > 3 {
+		return nil, fmt.Errorf("player position must be on interval [0,3]")
+	}
+	return hs.hs[playerPos], nil
+}
+
+func (hs *hands) Encoded() string {
+	var encodes []string
+	for _, h := range hs.hs {
+		encodes = append(encodes, h.Encoded())
+	}
+	return strings.Join(encodes, handsDelim)
+}
 
 // NewHandFromEncoded builds a hand from the Encoded() form.
 func NewHandFromEncoded(encoded string) (Hand, error) {
@@ -46,7 +115,7 @@ func NewHandFromEncoded(encoded string) (Hand, error) {
 	if encoded == "" {
 		return &hand{}, nil
 	}
-	parts := strings.Split(strings.ToUpper(encoded), "|")
+	parts := strings.Split(strings.ToUpper(encoded), cardsDelim)
 	var cards []deck.Card
 	for i, p := range parts {
 		card, err := deck.NewCardFromEncoded(p)
@@ -75,7 +144,7 @@ func (h *hand) Encoded() string {
 	for _, card := range h.cards {
 		cs = append(cs, card.Encoded())
 	}
-	return strings.Join(cs, "|")
+	return strings.Join(cs, cardsDelim)
 }
 
 func (h *hand) Contains(card deck.Card) bool {
@@ -104,9 +173,9 @@ func (h *hand) Cards() []deck.Card {
 	return h.cards
 }
 
-func (h *hand) removeCard(card deck.Card) (Hand, error) {
+func (h *hand) removeCard(card deck.Card) error {
 	if !h.Contains(card) {
-		return nil, ErrMissingCard
+		return ErrMissingCard
 	}
 	var newCards []deck.Card
 	for _, c := range h.cards {
@@ -115,7 +184,8 @@ func (h *hand) removeCard(card deck.Card) (Hand, error) {
 		}
 		newCards = append(newCards, c)
 	}
-	return &hand{cards: newCards}, nil
+	h.cards = newCards
+	return nil
 }
 
 func (h *hand) IsEmpty() bool {

@@ -36,7 +36,7 @@ func (s *ApiServer) SetName(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := player.SetName(ctx, n)
+	_, err = player.SetName(ctx, n)
 	if err != nil {
 		sendServerError(w, "setting player name: %v", err)
 		return

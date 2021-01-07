@@ -14,7 +14,7 @@ type Game interface {
 	ID() string
 	State() GameState
 	Players() []Player
-	PlayerHand(player Player) Hand
+	PlayerHand(player Player) (Hand, error)
 	Score() Score
 	PlayerPos(player Player) (int, error)
 	DealerPos() int
@@ -68,7 +68,7 @@ type game struct {
 
 	currentDealerPos int          // The position of the current dealer.
 	currentBidding   BiddingRound // The bids for the current hand.
-	currentHands     []Hand       // Cards held by each player, parallel with the PlayerIDs above.
+	currentHands     Hands        // Cards held by each player, parallel with the PlayerIDs above.
 	currentTrick     Trick        // Cards played for current trick.
 	currentTally     Tally        // The running tally for the current hand.
 }
@@ -176,12 +176,12 @@ func (g *game) AvailableBids(player Player) []Bid {
 	return nextBidValues(g.currentBidding.Bids(), pos == g.currentDealerPos)
 }
 
-func (g *game) PlayerHand(player Player) Hand {
+func (g *game) PlayerHand(player Player) (Hand, error) {
 	pos, err := g.PlayerPos(player)
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	return g.currentHands[pos]
+	return g.currentHands.Hand(pos)
 }
 
 func (g *game) AddPlayer(ctx context.Context, player Player, pos int) (Game, error) {
@@ -284,7 +284,10 @@ func (g *game) PlayCard(ctx context.Context, player Player, card deck.Card) (Gam
 		return nil, err
 	}
 
-	playerHand := g.currentHands[pos]
+	playerHand, err := g.currentHands.Hand(pos)
+	if err != nil {
+		return nil, err
+	}
 
 	// Does the player have the card to play?
 	if !playerHand.Contains(card) {
@@ -302,23 +305,15 @@ func (g *game) PlayCard(ctx context.Context, player Player, card deck.Card) (Gam
 		}
 	}
 
-	gs, err := g.gameStore.Get(ctx, g.id)
-	if err != nil {
-		return nil, fmt.Errorf("fetching game to update: %v", err)
-	}
-
 	// Remove the card from the player hand.
-	newHand, err := playerHand.removeCard(card)
-	if err != nil {
+	if err := playerHand.removeCard(card); err != nil {
 		return nil, err
 	}
-	gs.CurrentHands[pos] = newHand.Encoded()
 
 	// Add the card to the current trick
 	if err := g.currentTrick.playCard(pos, card); err != nil {
 		return nil, err
 	}
-	gs.CurrentTrick = g.currentTrick.Encoded()
 
 	// If the last card, compute the results
 	if g.currentTrick.IsDone() {
@@ -333,20 +328,21 @@ func (g *game) PlayCard(ctx context.Context, player Player, card deck.Card) (Gam
 		if err := g.currentTally.addTrick(g.currentTrick); err != nil {
 			return nil, err
 		}
-		gs.CurrentTally = g.currentTally.Encoded()
 
 		// If all cards are played, update the score.
-		if g.currentHands[0].IsEmpty() {
+		someHand, err := g.currentHands.Hand(0)
+		if err != nil {
+			return nil, err
+		}
+		if someHand.IsEmpty() {
 			if err := g.score.addTally(g.currentTally); err != nil {
 				return nil, err
 			}
-			gs.Score = g.score.Encoded()
 
 			// If the score is a winning (note: bid out, etc.), complete the game.
 			// TODO: need better stuff here: consider bid-out, stealing the 5, etc.
 			if g.score.CurrentScore()[0] > g.score.ToWin() || g.score.CurrentScore()[1] > g.score.ToWin() {
 				g.complete = true
-				gs.Complete = true
 			} else {
 				// Else deal a new hand and go to bidding round.
 				if err := g.startHand(); err != nil {
@@ -370,15 +366,10 @@ func (g *game) startHand() error {
 	}
 	deck.Shuffle()
 
-	g.currentHands = nil
-	for _, h := range deck.Deal() {
-		hand, err := NewHand(h)
-		if err != nil {
-			return err
-		}
-		g.currentHands = append(g.currentHands, hand)
+	g.currentHands, err = NewHands(deck.Deal())
+	if err != nil {
+		return err
 	}
-
 	g.currentDealerPos = (g.currentDealerPos + 1) % 4
 
 	leadBidder := (g.currentDealerPos + 1) % 4 // to the left of the dealer
@@ -431,14 +422,10 @@ func (g *game) save(ctx context.Context) (Game, error) {
 		playerIDs = append(playerIDs, player.ID())
 	}
 
-	var hands []string
-	for _, hand := range g.currentHands {
-		if hand == nil {
-			continue
-		}
-		hands = append(hands, hand.Encoded())
+	hands := ""
+	if g.currentHands != nil {
+		hands = g.currentHands.Encoded()
 	}
-
 	score := ""
 	if g.score != nil {
 		score = g.score.Encoded()
@@ -502,14 +489,11 @@ func gameFromStorage(ctx context.Context, gameStore storage.GameStore, playerSto
 		}
 	}
 
-	var hands []Hand
-	if len(gs.CurrentHands) > 0 {
-		for _, encoded := range gs.CurrentHands {
-			hand, err := NewHandFromEncoded(encoded)
-			if err != nil {
-				return nil, err
-			}
-			hands = append(hands, hand)
+	var hands Hands
+	if gs.CurrentHands != "" {
+		hands, err = NewHandsFromEncoded(gs.CurrentHands)
+		if err != nil {
+			return nil, err
 		}
 	}
 
