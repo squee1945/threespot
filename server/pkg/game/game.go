@@ -129,6 +129,15 @@ func (g *game) Players() []Player {
 	return g.players
 }
 
+func (g *game) PlayerPos(player Player) (int, error) {
+	for pos, p := range g.Players() {
+		if p.ID() == player.ID() {
+			return pos, nil
+		}
+	}
+	return -1, errors.New("unknown player")
+}
+
 func (g *game) CurrentBidding() BiddingRound {
 	return g.currentBidding
 }
@@ -223,12 +232,6 @@ func (g *game) PlaceBid(ctx context.Context, player Player, bid Bid) (Game, erro
 	if err := g.currentBidding.placeBid(pos, bid); err != nil {
 		return nil, err
 	}
-
-	gs, err := g.gameStore.Get(ctx, g.id)
-	if err != nil {
-		return nil, fmt.Errorf("fetching game to update: %v", err)
-	}
-	gs.CurrentBidding = g.currentBidding.Encoded()
 
 	// If we have all the bids, start playing.
 	if g.currentBidding.IsDone() {
@@ -400,15 +403,6 @@ func (g *game) playerCount() int {
 		}
 	}
 	return c
-}
-
-func (g *game) PlayerPos(player Player) (int, error) {
-	for pos, p := range g.Players() {
-		if p.ID() == player.ID() {
-			return pos, nil
-		}
-	}
-	return -1, errors.New("unknown player")
 }
 
 func (g *game) save(ctx context.Context) (Game, error) {
