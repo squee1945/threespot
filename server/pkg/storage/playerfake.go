@@ -11,10 +11,14 @@ type fakePlayerStore struct {
 var _ PlayerStore = (*fakePlayerStore)(nil) // Ensure interface is implemented.
 
 // NewFakePlayerStore creates an in-memory player store.
-func NewFakePlayerStore() PlayerStore {
-	return &fakePlayerStore{
+func NewFakePlayerStore(ids ...string) PlayerStore {
+	fs := &fakePlayerStore{
 		players: make(map[string]*Player),
 	}
+	for _, id := range ids {
+		fs.players[id] = &Player{Name: id + " NAME"}
+	}
+	return fs
 }
 
 func (s *fakePlayerStore) Create(ctx context.Context, id, name string) (*Player, error) {

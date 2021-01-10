@@ -152,7 +152,11 @@ func buildBiddingInfo(g game.Game, player game.Player, playerPos int) (*BiddingI
 	}
 	var availableBids []BidInfo
 	if playerPos == positionToPlay {
-		availableBids = bidsToBidInfos(g.AvailableBids(player))
+		available, err := g.AvailableBids(player)
+		if err != nil {
+			return nil, err
+		}
+		availableBids = bidsToBidInfos(available)
 	}
 	playerHand, err := g.PlayerHand(player)
 	if err != nil {

@@ -33,7 +33,7 @@ func main() {
 
 	// Pages for humans.
 	http.HandleFunc("/", server.Index)
-	http.HandleFunc("/game", server.Game)
+	http.HandleFunc("/game/", server.Game)
 
 	// Pages for machines.
 	http.HandleFunc("/api/user", server.UpdateUser)

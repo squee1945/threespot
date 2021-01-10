@@ -8,6 +8,10 @@ import (
 	"github.com/squee1945/threespot/server/pkg/deck"
 )
 
+var (
+	compareHands = cmp.Comparer(func(h1, h2 Hand) bool { return h1.Encoded() == h2.Encoded() })
+)
+
 func TestNewHandsFromEncoded(t *testing.T) {
 	testCases := []struct {
 		name             string
@@ -173,7 +177,7 @@ func TestNewHandFromEncoded(t *testing.T) {
 			if tc.wantErr {
 				return
 			}
-			if diff := cmp.Diff(tc.want, hand, cmp.Comparer(func(h1, h2 Hand) bool { return h1.Encoded() == h2.Encoded() })); diff != "" {
+			if diff := cmp.Diff(tc.want, hand, compareHands); diff != "" {
 				t.Errorf("NewHandFromEncoded() mismatch (-want +got):\n%s", diff)
 			}
 

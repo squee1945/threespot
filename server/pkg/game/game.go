@@ -22,7 +22,7 @@ type Game interface {
 
 	CurrentBidding() BiddingRound
 	CurrentTrick() Trick
-	AvailableBids(Player) []Bid
+	AvailableBids(Player) ([]Bid, error)
 
 	AddPlayer(ctx context.Context, player Player, pos int) (Game, error)
 	PlaceBid(ctx context.Context, player Player, bid Bid) (Game, error)
@@ -36,6 +36,7 @@ var (
 	ErrPlayerPositionFilled = errors.New("Player position is already filled")
 	ErrPlayerAlreadyAdded   = errors.New("Player is already added")
 	ErrIncorrectBidOrder    = errors.New("Bidding out of order")
+	ErrIncorrectCaller      = errors.New("Player cannot call trump")
 	ErrIncorrectPlayOrder   = errors.New("Playing out of order")
 	ErrInvalidBid           = errors.New("Invalid bid")
 	ErrNotBidding           = errors.New("Not currently bidding")
@@ -46,6 +47,10 @@ var (
 )
 
 type GameState string
+
+func (gs GameState) String() string {
+	return string(gs)
+}
 
 var (
 	JoiningState   GameState = "JOINING"
@@ -90,7 +95,6 @@ func NewGame(ctx context.Context, gameStore storage.GameStore, playerStore stora
 
 // GetGame fetches the game from the GameStore, returning ErrNotFound if not found.
 func GetGame(ctx context.Context, gameStore storage.GameStore, playerStore storage.PlayerStore, id string) (Game, error) {
-	return nil, nil
 	gs, err := gameStore.Get(ctx, id)
 	if err != nil {
 		if err == storage.ErrNotFound {
@@ -110,11 +114,11 @@ func (g *game) ID() string {
 }
 
 func (g *game) State() GameState {
-	if g.playerCount() < 4 {
-		return JoiningState
-	}
 	if g.complete {
 		return CompletedState
+	}
+	if g.playerCount() < 4 {
+		return JoiningState
 	}
 	if !g.currentBidding.IsDone() {
 		return BiddingState
@@ -174,15 +178,26 @@ func (g *game) Score() Score {
 	return g.score
 }
 
-func (g *game) AvailableBids(player Player) []Bid {
+func (g *game) AvailableBids(player Player) ([]Bid, error) {
+	if g.State() != BiddingState {
+		return nil, ErrNotBidding
+	}
 	if g.currentBidding.IsDone() {
-		return nil
+		return nil, ErrNotBidding
 	}
 	pos, err := g.PlayerPos(player)
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	return nextBidValues(g.currentBidding.Bids(), pos == g.currentDealerPos)
+	// Is it this player's turn to bid?
+	currentTurnPos, err := g.currentBidding.CurrentTurnPos()
+	if err != nil {
+		return nil, err
+	}
+	if pos != currentTurnPos {
+		return nil, ErrIncorrectBidOrder
+	}
+	return nextBidValues(g.currentBidding.Bids(), pos == g.currentDealerPos), nil
 }
 
 func (g *game) PlayerHand(player Player) (Hand, error) {
@@ -215,7 +230,11 @@ func (g *game) PlaceBid(ctx context.Context, player Player, bid Bid) (Game, erro
 
 	// Is bid in available bids?
 	found := false
-	for _, ab := range g.AvailableBids(player) {
+	available, err := g.AvailableBids(player)
+	if err != nil {
+		return nil, err
+	}
+	for _, ab := range available {
 		if ab.IsEqualTo(bid) {
 			found = true
 			break
@@ -266,7 +285,7 @@ func (g *game) CallTrump(ctx context.Context, player Player, trump deck.Suit) (G
 		return nil, err
 	}
 	if pos != winningPos {
-		return nil, fmt.Errorf("incorrect player to select trump")
+		return nil, ErrIncorrectCaller
 	}
 
 	if err := g.startTrick(trump, winningPos); err != nil {
@@ -298,14 +317,15 @@ func (g *game) PlayCard(ctx context.Context, player Player, card deck.Card) (Gam
 	}
 
 	// Is the card a valid card to play (i.e., does it follow suit)?
-	leadSuit, err := g.currentTrick.LeadSuit()
-	if err != nil {
-		return nil, err
-	}
-	if g.currentTrick.NumPlayed() > 0 && card.Suit() != leadSuit {
-		if playerHand.ContainsSuit(leadSuit, card) {
+	if g.currentTrick.NumPlayed() > 0 {
+		leadSuit, err := g.currentTrick.LeadSuit()
+		if err != nil {
+			return nil, err
+		}
+		if card.Suit() != leadSuit && playerHand.ContainsSuit(leadSuit, card) {
 			return nil, ErrNotFollowingSuit
 		}
+
 	}
 
 	// Remove the card from the player hand.
@@ -328,6 +348,9 @@ func (g *game) PlayCard(ctx context.Context, player Player, card deck.Card) (Gam
 		}
 
 		// Add the trick to the tally.
+		if g.currentTally == nil {
+			g.currentTally = NewTally()
+		}
 		if err := g.currentTally.addTrick(g.currentTrick); err != nil {
 			return nil, err
 		}
@@ -338,6 +361,9 @@ func (g *game) PlayCard(ctx context.Context, player Player, card deck.Card) (Gam
 			return nil, err
 		}
 		if someHand.IsEmpty() {
+			if g.score == nil {
+				g.score = NewScore()
+			}
 			if err := g.score.addTally(g.currentTally); err != nil {
 				return nil, err
 			}
@@ -406,7 +432,14 @@ func (g *game) playerCount() int {
 }
 
 func (g *game) save(ctx context.Context) (Game, error) {
-	var err error
+	gs := storageFromGame(g)
+	if err := g.gameStore.Set(ctx, g.id, gs); err != nil {
+		return nil, fmt.Errorf("saving game: %v", err)
+	}
+	return g, nil
+}
+
+func storageFromGame(g *game) *storage.Game {
 	var playerIDs []string
 	for _, player := range g.players {
 		if player == nil {
@@ -437,7 +470,7 @@ func (g *game) save(ctx context.Context) (Game, error) {
 		tally = g.currentTally.Encoded()
 	}
 
-	gs := &storage.Game{
+	return &storage.Game{
 		PlayerIDs:        playerIDs,
 		Created:          g.created,
 		Complete:         g.complete,
@@ -448,10 +481,6 @@ func (g *game) save(ctx context.Context) (Game, error) {
 		CurrentTrick:     trick,
 		CurrentTally:     tally,
 	}
-	if err = g.gameStore.Set(ctx, g.id, gs); err != nil {
-		return nil, fmt.Errorf("saving game: %v", err)
-	}
-	return g, nil
 }
 
 func gameFromStorage(ctx context.Context, gameStore storage.GameStore, playerStore storage.PlayerStore, id string, gs *storage.Game) (Game, error) {
