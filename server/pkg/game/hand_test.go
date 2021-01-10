@@ -8,6 +8,123 @@ import (
 	"github.com/squee1945/threespot/server/pkg/deck"
 )
 
+func TestNewHandsFromEncoded(t *testing.T) {
+	testCases := []struct {
+		name             string
+		encoded          string
+		want             [][]deck.Card
+		wantErr          bool
+		encodingOverride string
+	}{
+		{
+			name:             "empty string",
+			encoded:          "",
+			want:             make([][]deck.Card, 4),
+			encodingOverride: "+++",
+		},
+		{
+			name:    "too short",
+			encoded: "++",
+			wantErr: true,
+		},
+		{
+			name:    "too long",
+			encoded: "++++",
+			wantErr: true,
+		},
+		{
+			name:    "valid empty hands",
+			encoded: "+++",
+			want:    make([][]deck.Card, 4),
+		},
+		{
+			name:    "valid hands",
+			encoded: "QH|5H+8S|3S+KC+JD",
+			want: [][]deck.Card{
+				[]deck.Card{buildCard(t, "QH"), buildCard(t, "5H")},
+				[]deck.Card{buildCard(t, "8S"), buildCard(t, "3S")},
+				[]deck.Card{buildCard(t, "KC")},
+				[]deck.Card{buildCard(t, "JD")},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			hands, err := NewHandsFromEncoded(tc.encoded)
+
+			if tc.wantErr && err == nil {
+				t.Fatal("missing expected error")
+			}
+			if !tc.wantErr && err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if tc.wantErr {
+				return
+			}
+
+			var got [][]deck.Card
+			for i := 0; i < 4; i++ {
+				h, err := hands.Hand(i)
+				if err != nil {
+					t.Fatal(err)
+				}
+				got = append(got, h.Cards())
+			}
+
+			if diff := cmp.Diff(tc.want, got, compareCards); diff != "" {
+				t.Errorf("NewHandsFromEncoded() mismatch (-want +got):\n%s", diff)
+			}
+
+			encoded := tc.encoded
+			if tc.encodingOverride != "" {
+				encoded = tc.encodingOverride
+			}
+			// Re-encode hands and make sure it matches.
+			if got, want := hands.Encoded(), strings.ToUpper(encoded); got != want {
+				t.Errorf("re-encoding does not match got=%q want=%q", got, want)
+			}
+		})
+	}
+}
+
+func TestNewHands(t *testing.T) {
+	want := [][]deck.Card{
+		[]deck.Card{buildCard(t, "AH")},
+		[]deck.Card{buildCard(t, "AS"), buildCard(t, "KS")},
+		[]deck.Card{buildCard(t, "AD"), buildCard(t, "KD")},
+		[]deck.Card{buildCard(t, "AC")},
+	}
+
+	hands, err := NewHands(want)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var got [][]deck.Card
+	for i := 0; i < 4; i++ {
+		h, err := hands.Hand(i)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got = append(got, h.Cards())
+	}
+	if diff := cmp.Diff(want, got, compareCards); diff != "" {
+		t.Errorf("NewHands() mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestNewHandsErrors(t *testing.T) {
+	_, err := NewHands(make([][]deck.Card, 3))
+	if err == nil {
+		t.Errorf("missing error for too few hands")
+	}
+	_, err = NewHands(make([][]deck.Card, 5))
+	if err == nil {
+		t.Errorf("missing error for too many hands")
+	}
+}
+
 func TestNewHandFromEncoded(t *testing.T) {
 	testCases := []struct {
 		name    string

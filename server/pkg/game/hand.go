@@ -61,7 +61,15 @@ var _ Hand = (*hand)(nil)   // Ensure interface is implemented.
 // NewHandsFromEncoded creates a set of hands from the Encoded() form.
 func NewHandsFromEncoded(encoded string) (Hands, error) {
 	if encoded == "" {
-		return &hands{}, nil
+		hands := &hands{}
+		for i := 0; i < 4; i++ {
+			h, err := NewHandFromEncoded("")
+			if err != nil {
+				return nil, err
+			}
+			hands.hs = append(hands.hs, h)
+		}
+		return hands, nil
 	}
 	parts := strings.Split(encoded, handsDelim)
 	if len(parts) != 4 {

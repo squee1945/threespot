@@ -12,7 +12,7 @@ type BiddingRound interface {
 	// IsDone returns true if the bidding is complete (4 bids).
 	IsDone() bool
 
-	// placeBid makes a bid for the player in playerPos position.
+	// placeBid makes a bid for the player in playerPos position. Bid validation must be performed before calling this method.
 	placeBid(playerPos int, bid Bid) error
 
 	// CurrentTurnPos returns the position of the player who's turn it is to bid. Returns error if IsDone().
@@ -46,10 +46,17 @@ var _ BiddingRound = (*biddingRound)(nil) // Ensure interface is implemented.
 // NewBiddingRoundFromEncoded returns a set of bigs from the Encoded() form.
 func NewBiddingRoundFromEncoded(encoded string) (BiddingRound, error) {
 	// "{leadPos}|{bid0}|{bid1}|{bid2}|{bid3}"
+	if encoded == "" {
+		return nil, errors.New("empty string is invalid")
+	}
 	parts := strings.Split(encoded, "|")
 	if len(parts) < 1 {
 		return nil, fmt.Errorf("encoded %q has too few parts", encoded)
 	}
+	if len(parts) > 5 {
+		return nil, fmt.Errorf("encoded %q has too many parts", encoded)
+	}
+
 	leadPos, err := strconv.Atoi(parts[0])
 	if err != nil {
 		return nil, fmt.Errorf("encoded part[0] %q was not an int: %v", parts[0], err)
@@ -63,6 +70,9 @@ func NewBiddingRoundFromEncoded(encoded string) (BiddingRound, error) {
 	br := brr.(*biddingRound)
 
 	for _, bstr := range parts[1:] {
+		if bstr == "" {
+			continue
+		}
 		bid, err := NewBidFromEncoded(bstr)
 		if err != nil {
 			return nil, err

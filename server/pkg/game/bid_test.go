@@ -8,6 +8,10 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
+var (
+	compareBids = cmp.Comparer(func(b1, b2 Bid) bool { return b1.Encoded() == b2.Encoded() })
+)
+
 func TestNewBidFromEncoded(t *testing.T) {
 	testCases := []struct {
 		name    string
@@ -196,7 +200,7 @@ func TestNextBidValues(t *testing.T) {
 				got = append(got, b.Encoded())
 			}
 
-			if diff := cmp.Diff(tc.want, got, cmp.Comparer(func(b1, b2 Bid) bool { return b1.Encoded() == b2.Encoded() })); diff != "" {
+			if diff := cmp.Diff(tc.want, got, compareBids); diff != "" {
 				t.Errorf("nextBidValues() mismatch (-want +got):\n%s", diff)
 			}
 		})
