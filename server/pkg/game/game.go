@@ -528,20 +528,14 @@ func gameFromStorage(ctx context.Context, gameStore storage.GameStore, playerSto
 		}
 	}
 
-	var score Score
-	if gs.Score != "" {
-		score, err = NewScoreFromEncoded(gs.Score)
-		if err != nil {
-			return nil, err
-		}
+	score, err := NewScoreFromEncoded(gs.Score)
+	if err != nil {
+		return nil, err
 	}
 
-	var tally Tally
-	if gs.CurrentTally != "" {
-		tally, err = NewTallyFromEncoded(gs.CurrentTally)
-		if err != nil {
-			return nil, err
-		}
+	tally, err := NewTallyFromEncoded(gs.CurrentTally)
+	if err != nil {
+		return nil, err
 	}
 
 	g := &game{

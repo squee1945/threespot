@@ -1,11 +1,11 @@
-package web
+package api
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 
 	"github.com/squee1945/threespot/server/pkg/game"
+	"google.golang.org/appengine"
 )
 
 type JoinGameRequest struct {
@@ -14,7 +14,12 @@ type JoinGameRequest struct {
 }
 
 func (s *ApiServer) JoinGame(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
+	ctx := appengine.NewContext(r)
+	if r.Method != "POST" {
+		sendUserError(w, "Invalid method")
+		return
+	}
+
 	player := s.lookupPlayer(ctx, w, r)
 	if player == nil {
 		return

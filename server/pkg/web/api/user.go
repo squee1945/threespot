@@ -1,48 +1,69 @@
-package web
+package api
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"strings"
+
+	"github.com/squee1945/threespot/server/pkg/game"
+	"github.com/squee1945/threespot/server/pkg/util"
+	"google.golang.org/appengine"
 )
 
-// TODO: update this to be an API (JSON docs)
-
-type SetNameRequest struct {
-	ID   string
+type UpdateUserRequest struct {
 	Name string
 }
 
-type SetNameResponse struct{}
+type UpdateUserResponse struct {
+	Name string
+}
 
-func (s *ApiServer) SetName(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
-	player := s.lookupPlayer(ctx, w, r)
-	if player == nil {
+func (s *ApiServer) UpdateUser(w http.ResponseWriter, r *http.Request) {
+	ctx := appengine.NewContext(r)
+	if r.Method != "POST" {
+		sendUserError(w, "Invalid method")
 		return
 	}
 
-	var req SetNameRequest
-	err := json.NewDecoder(r.Body).Decode(&req)
+	playerID, err := util.PlayerID(r)
 	if err != nil {
+		sendServerError(w, "looking up player ID in cookie: %v", err)
+		return
+	}
+
+	var req UpdateUserRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		sendServerError(w, "decoding request: %v", err)
 		return
 	}
 
-	n := strings.TrimSpace(req.Name)
-	if n == "" {
+	name := strings.TrimSpace(req.Name)
+	if name == "" {
 		sendUserError(w, "Name is required.")
 		return
 	}
 
-	_, err = player.SetName(ctx, n)
+	player, err := game.GetPlayer(ctx, s.playerStore, playerID)
+	if err != nil {
+		if err == game.ErrNotFound {
+			player, err = game.NewPlayer(ctx, s.playerStore, playerID, name)
+			if err != nil {
+				sendServerError(w, "creating player: %v", err)
+				return
+			}
+		} else {
+			sendServerError(w, "searching for player: %v", err)
+			return
+		}
+	}
+
+	player, err = player.SetName(ctx, name)
 	if err != nil {
 		sendServerError(w, "setting player name: %v", err)
 		return
 	}
 
-	if err := sendResponse(w, SetNameResponse{}); err != nil {
+	if err := sendResponse(w, UpdateUserResponse{Name: player.Name()}); err != nil {
 		sendServerError(w, "sending response: %v", err)
 	}
 }

@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"cloud.google.com/go/datastore"
+	"google.golang.org/appengine/datastore"
 )
 
 type Game struct {
@@ -28,141 +28,105 @@ type GameStore interface {
 	AddPlayer(ctx context.Context, id, playerID string, pos int) (*Game, error)
 }
 
-type datastoreGameStore struct {
-	dsClient *datastore.Client
-}
+type datastoreGameStore struct{}
 
 var _ GameStore = (*datastoreGameStore)(nil) // Ensure interface is implemented.
 
-func NewDatastoreGameStore(dsClient *datastore.Client) GameStore {
-	return &datastoreGameStore{
-		dsClient: dsClient,
-	}
+func NewDatastoreGameStore() GameStore {
+	return &datastoreGameStore{}
 }
 
 func (s *datastoreGameStore) Create(ctx context.Context, id, organizingPlayerID string) (*Game, error) {
-	var (
-		g   Game
-		err error
-		tx  *datastore.Transaction
-	)
-
-	// Lookup, set in transaction to ensure uniqueness
-	k := gameKey(id)
-	for i := 0; i < retries; i++ {
-		tx, err = s.dsClient.NewTransaction(ctx)
-		if err != nil {
-			break
-		}
-
+	k := gameKey(ctx, id)
+	gs := &Game{}
+	err := datastore.RunInTransaction(ctx, func(tc context.Context) error {
 		found := true
-		if err = tx.Get(k, &g); err != nil {
-			if err == datastore.ErrNoSuchEntity {
-				// This is good and what we're looking for.
-				found = false
-			} else {
-				break
+		if err := datastore.Get(ctx, k, gs); err != nil {
+			if err != datastore.ErrNoSuchEntity {
+				return err
 			}
+			found = false
 		}
 		if found {
-			return nil, ErrNotUnique
+			return ErrNotUnique
 		}
 
-		g.PlayerIDs = make([]string, 4)
-		g.PlayerIDs[0] = organizingPlayerID
-		g.Created = time.Now().UTC()
-		if _, err = tx.Put(k, &g); err != nil {
-			break
+		gs = &Game{}
+		gs.PlayerIDs = make([]string, 4)
+		gs.PlayerIDs[0] = organizingPlayerID
+		gs.Created = time.Now().UTC()
+
+		if _, err := datastore.Put(ctx, k, gs); err != nil {
+			return err
 		}
 
-		// Attempt to commit the transaction. If there's a conflict, try again.
-		if _, err = tx.Commit(); err != datastore.ErrConcurrentTransaction {
-			break
-		}
-	}
+		return nil
+	}, &datastore.TransactionOptions{Attempts: 3})
+
 	if err != nil {
 		return nil, err
 	}
-	return &g, nil
+	return gs, nil
 }
 
 func (s *datastoreGameStore) Get(ctx context.Context, id string) (*Game, error) {
-	k := gameKey(id)
-	var g Game
-	if err := s.dsClient.Get(ctx, k, &g); err != nil {
+	k := gameKey(ctx, id)
+	gs := &Game{}
+	if err := datastore.Get(ctx, k, gs); err != nil {
 		if err == datastore.ErrNoSuchEntity {
 			return nil, ErrNotFound
 		}
 		return nil, err
 	}
-	return &g, nil
+	return gs, nil
 
 }
 
-func (s *datastoreGameStore) Set(ctx context.Context, id string, g *Game) error {
-	k := gameKey(id)
-	if _, err := s.dsClient.Put(ctx, k, g); err != nil {
+func (s *datastoreGameStore) Set(ctx context.Context, id string, gs *Game) error {
+	k := gameKey(ctx, id)
+	if _, err := datastore.Put(ctx, k, gs); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (s *datastoreGameStore) AddPlayer(ctx context.Context, id, playerID string, pos int) (*Game, error) {
-	var (
-		g   Game
-		err error
-		tx  *datastore.Transaction
-	)
-
-	// Lookup, set in transaction to ensure only one player placed in a position.
-	k := gameKey(id)
-	for i := 0; i < retries; i++ {
-		tx, err = s.dsClient.NewTransaction(ctx)
-		if err != nil {
-			break
-		}
-
-		if err = tx.Get(k, &g); err != nil {
+	k := gameKey(ctx, id)
+	gs := &Game{}
+	err := datastore.RunInTransaction(ctx, func(tc context.Context) error {
+		if err := datastore.Get(ctx, k, gs); err != nil {
 			if err == datastore.ErrNoSuchEntity {
-				err = ErrNotFound
-				break
-			} else {
-				break
+				return ErrNotFound
 			}
+			return err
 		}
-
 		// Error if not unique
-		for _, pid := range g.PlayerIDs {
+		for _, pid := range gs.PlayerIDs {
 			if pid == "" {
 				continue
 			}
 			if pid == playerID {
-				err = ErrPlayerAlreadyAdded
-				break
+				return ErrPlayerAlreadyAdded
 			}
 		}
 
-		if g.PlayerIDs[pos] != "" {
-			err = ErrPlayerPositionFilled
-			break
+		if gs.PlayerIDs[pos] != "" {
+			return ErrPlayerPositionFilled
 		}
 
-		g.PlayerIDs[pos] = playerID
-		if _, err = tx.Put(k, &g); err != nil {
-			break
+		gs.PlayerIDs[pos] = playerID
+		if _, err := datastore.Put(ctx, k, gs); err != nil {
+			return err
 		}
+		return nil
+	}, &datastore.TransactionOptions{Attempts: 3})
 
-		// Attempt to commit the transaction. If there's a conflict, try again.
-		if _, err = tx.Commit(); err != datastore.ErrConcurrentTransaction {
-			break
-		}
-	}
 	if err != nil {
 		return nil, err
 	}
-	return &g, nil
+	return gs, nil
 }
 
-func gameKey(id string) *datastore.Key {
-	return datastore.NameKey("KaiserGame", id, nil)
+func gameKey(ctx context.Context, id string) *datastore.Key {
+	return datastore.NewKey(ctx, "KaiserGame", id, 0, nil)
 }

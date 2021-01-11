@@ -1,16 +1,20 @@
 package web
 
 import (
-	"context"
-	"html/template"
 	"net/http"
 
 	"github.com/squee1945/threespot/server/pkg/game"
 	"github.com/squee1945/threespot/server/pkg/util"
+	"google.golang.org/appengine"
 )
 
 func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
+	if r.URL.Path != "/" {
+		http.NotFound(w, r)
+		return
+	}
+
+	ctx := appengine.NewContext(r)
 
 	// Give each visitor a unique random cookie ("player ID").
 	playerID, err := util.PlayerID(r)
@@ -23,7 +27,7 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var args indexArgs
-	if player, err := game.GetPlayer(ctx, s.PlayerStore, playerID); err != nil {
+	if player, err := game.GetPlayer(ctx, s.playerStore, playerID); err != nil {
 		if err != game.ErrNotFound {
 			sendServerError(w, "looking up player: %v", err)
 			return
@@ -34,30 +38,10 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 		args.Registered = true
 	}
 
-	if err := indexPage.Execute(w, args); err != nil {
-		sendServerError(w, "rending index page: %v", err)
-	}
+	s.render("index.html", w, args)
 }
 
 type indexArgs struct {
 	Welcome    string
 	Registered bool
 }
-
-var indexTemplateStr = `
-<html>
-<head><title>Online Kaiser</title></head>
-<body>
-<h1>Kaiser</h1>
-<p>{{.Welcome}}</p>
-{{if .Registered }}
-	<p>TODO: Show form to start new game, or join existing game.</p>
-	<p>TODO: Show links to active games.</p>
-{{ else }}
-	<p>TODO: Show form to set user info.</p>
-{{ end }}
-</body>
-</html>
-`
-
-var indexPage = template.Must(template.New("index").Parse(indexTemplateStr))

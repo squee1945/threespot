@@ -808,7 +808,7 @@ func TestPlayCard(t *testing.T) {
 				PlayerIDs:      pids,
 				CurrentHands:   "AH|KH+AS+AC+KD", // KC played
 				CurrentBidding: "0|P|P|P|7",
-				CurrentTrick:   "3|H",   // Lead-off position (3) won last trick.
+				CurrentTrick:   "3|H",   // Lead-off position (3) won last trick; hearts still trump.
 				CurrentTally:   "1|0|1", // One card played; team 1/3 got the point.
 			},
 			wantState: PlayingState,

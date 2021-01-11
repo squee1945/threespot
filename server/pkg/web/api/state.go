@@ -1,17 +1,13 @@
-package web
+package api
 
 import (
-	"context"
-	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/squee1945/threespot/server/pkg/deck"
 	"github.com/squee1945/threespot/server/pkg/game"
+	"google.golang.org/appengine"
 )
-
-type GameStateRequest struct {
-	ID string
-}
 
 type BidInfo struct {
 	Code  string
@@ -50,6 +46,7 @@ type CompletedInfo struct {
 }
 
 type GameStateResponse struct {
+	ID    string
 	State string // "JOINING", BIDDING", "CALLING", "PLAYING", "COMPLETED"
 
 	PlayerPosition int
@@ -66,28 +63,34 @@ type GameStateResponse struct {
 }
 
 func (s *ApiServer) GameState(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
+	ctx := appengine.NewContext(r)
+	if r.Method != "GET" {
+		sendUserError(w, "Invalid method")
+		return
+	}
+
+	var id string
+	if strings.HasPrefix(r.URL.Path, "/api/state/") {
+		id = r.URL.Path[len("/api/state/"):]
+	} else {
+		sendUserError(w, "Missing ID")
+		return
+	}
+
 	player := s.lookupPlayer(ctx, w, r)
 	if player == nil {
 		return
 	}
 
-	var req GameStateRequest
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
-		sendServerError(w, "decoding request: %v", err)
-		return
-	}
-
-	g := s.lookupGame(ctx, w, req.ID)
+	g := s.lookupGame(ctx, w, id)
 	if g == nil {
 		return
 	}
 
-	sendGameState(ctx, w, req.ID, g, player)
+	sendGameState(ctx, w, id, g, player)
 }
 
-func buildGameState(g game.Game, player game.Player) (*GameStateResponse, error) {
+func BuildGameState(g game.Game, player game.Player) (*GameStateResponse, error) {
 	playerPos, err := g.PlayerPos(player)
 	if err != nil {
 		return nil, err
@@ -95,10 +98,15 @@ func buildGameState(g game.Game, player game.Player) (*GameStateResponse, error)
 
 	var playerNames []string
 	for _, p := range g.Players() {
+		if p == nil {
+			playerNames = append(playerNames, "")
+			continue
+		}
 		playerNames = append(playerNames, p.Name())
 	}
 
 	state := &GameStateResponse{
+		ID:             g.ID(),
 		State:          string(g.State()),
 		PlayerPosition: playerPos,
 		PlayerNames:    playerNames,

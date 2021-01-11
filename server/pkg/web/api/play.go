@@ -1,11 +1,11 @@
-package web
+package api
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 
 	"github.com/squee1945/threespot/server/pkg/deck"
+	"google.golang.org/appengine"
 )
 
 type PlayCardRequest struct {
@@ -14,7 +14,12 @@ type PlayCardRequest struct {
 }
 
 func (s *ApiServer) PlayCard(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
+	ctx := appengine.NewContext(r)
+	if r.Method != "POST" {
+		sendUserError(w, "Invalid method")
+		return
+	}
+
 	player := s.lookupPlayer(ctx, w, r)
 	if player == nil {
 		return

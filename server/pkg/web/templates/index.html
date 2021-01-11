@@ -1,0 +1,80 @@
+{{template "base" .}}
+
+{{define "title"}}Online Kaiser{{end}}
+
+{{define "content"}}
+  	<div class="row">
+    	<div class="col">
+    		<h1>Kaiser</h1>
+     	</div>
+	</div>
+
+	{{if .Registered}}
+	  	<div class="row">
+	    	<div class="col">
+	    		<p>Start a new game, or choose one of your active games from the right.</p>
+	    	</div>
+		</div>
+	  	<div class="row">
+	    	<div class="col-4">
+	      		<p>Create a new game</p>
+		      	<form id="new-game">
+		    		<button type="submit" class="btn btn-primary btn-sm">Create game</button>
+		      	</form>
+	    	</div>
+	    	<div class="col-8">
+	      		<p>Join an existing game</p>
+		      	<form id="existing-game">
+		      		<div class="mb-3">
+		    			<label for="game-code" class="form-label" required>Game Code</label>
+		    			<input class="form-control form-control-sm" id="game-code">
+		  			</div>
+		    		<button type="submit" class="btn btn-primary btn-sm">Join game</button>
+		      	</form>
+		      	TODO: list past games
+	    	</div>
+	  	</div>
+  	{{else}}
+	  	<div class="row">
+	    	<div class="col">
+	    		<p>Enter a name to get started.</p>
+		      	<form id="set-user">
+		      		<div class="mb-3">
+		    			<label for="set-user-name" class="form-label" required>Name</label>
+		    			<input class="form-control form-control-sm" id="set-user-name">
+		  			</div>
+		    		<button type="submit" class="btn btn-primary btn-sm">Update name</button>
+		      	</form>
+	    	</div>
+		</div>
+  	{{end}}
+{{end}}
+
+{{define "scripts"}}
+<script>
+	$("#set-user").on("submit", (event) => {
+	    event.preventDefault();
+	    event.stopPropagation();
+	    callSetUser($("#set-user-name").val(), (json) => {
+	    	$("#user-name").text(json["Name"]);
+	    });
+	});
+
+	$("#new-game").on("submit", (event) => {
+	    event.preventDefault();
+	    event.stopPropagation();
+	    callNewGame((json) => {
+	    	location.href = "/game/" + json["ID"];
+	    });
+	});
+
+	$("#existing-game").on("submit", (event) => {
+	    event.preventDefault();
+	    event.stopPropagation();
+	    getGameState($("#game-code").val(), (json) =>{
+	    	location.href = "/game/" + json["ID"];
+	    });
+	});
+</script>
+{{end}}
+

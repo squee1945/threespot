@@ -1,2 +1,9 @@
-runtime: go115
+runtime: go111
+
 main: cmd
+
+handlers:
+- url: /static
+  static_dir: static
+- url: .*
+  script: auto

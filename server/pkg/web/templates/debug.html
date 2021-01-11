@@ -1,0 +1,67 @@
+{{template "base" .}}
+
+{{define "title"}}Online Kaiser - Debug{{end}}
+
+{{define "content"}}
+  <div class="row">
+    <div class="col-4">
+      <h4>Actions</h4>
+    </div>
+    <div class="col-8">
+      <h4>Game State</h4>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-4">
+      
+      <div class="row"><div class="col border">
+      	<h5>Update user</h5>
+      	<p>Hello <span id="user-name">{{ .PlayerName }}</span></p>
+      	<form id="set-user">
+      		<div class="mb-3">
+    			<label for="set-user-name" class="form-label" required>Name</label>
+    			<input class="form-control form-control-sm" id="set-user-name">
+  			</div>
+    		<button type="submit" text="Update user" class="btn btn-primary btn-sm">Submit</button>
+      	</form>
+      </div></div>
+
+      {{ if .PrettyGameState }}
+      	TODO
+      {{ else if .PlayerName }}
+	      <div class="row"><div class="col border">
+	      	<h5>Create game</h5>
+	      	<form id="new-game">
+	    		<button type="submit" text="Create game" class="btn btn-primary btn-sm">Submit</button>
+	      	</form>
+	      </div></div>       
+      {{ end }}
+
+    </div>
+    <div class="col-8 border">
+      <small><pre>{{.PrettyGameState}}</pre></small>
+    </div>
+  </div>
+{{end}}
+
+{{define "scripts"}}
+<script>
+	$("#set-user").on("submit", (event) => {
+	    event.preventDefault();
+	    event.stopPropagation();
+	    callSetUser($("#set-user-name").val(), (json) => {
+	    	$("#user-name").text(json["Name"]);
+	    });
+	});
+
+	$("#new-game").on("submit", (event) => {
+	    event.preventDefault();
+	    event.stopPropagation();
+	    callNewGame((json) => {
+	    	location.href = '/debug/' + json['ID'];
+	    });
+	});
+</script>
+{{end}}
+

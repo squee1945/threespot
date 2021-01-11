@@ -3,7 +3,7 @@ package storage
 import (
 	"context"
 
-	"cloud.google.com/go/datastore"
+	"google.golang.org/appengine/datastore"
 )
 
 type Player struct {
@@ -17,94 +17,87 @@ type PlayerStore interface {
 	Set(ctx context.Context, id string, p *Player) error
 }
 
-type datastorePlayerStore struct {
-	dsClient *datastore.Client
-}
+type datastorePlayerStore struct{}
 
 var _ PlayerStore = (*datastorePlayerStore)(nil) // Ensure interface is implemented.
 
-func NewDatastorePlayerStore(dsClient *datastore.Client) PlayerStore {
-	return &datastorePlayerStore{
-		dsClient: dsClient,
-	}
+func NewDatastorePlayerStore() PlayerStore {
+	return &datastorePlayerStore{}
 }
 
 func (s *datastorePlayerStore) Create(ctx context.Context, id, name string) (*Player, error) {
-	var (
-		p   Player
-		err error
-		tx  *datastore.Transaction
-	)
-
-	// Lookup, set in transaction to ensure uniqueness
-	k := playerKey(id)
-	for i := 0; i < retries; i++ {
-		tx, err = s.dsClient.NewTransaction(ctx)
-		if err != nil {
-			break
-		}
-
-		found := true
-		if err = tx.Get(k, &p); err != nil {
-			if err == datastore.ErrNoSuchEntity {
-				// This is good and what we're looking for.
-				found = false
-			} else {
-				break
+	k := playerKey(ctx, id)
+	ps := &Player{}
+	err := datastore.RunInTransaction(ctx, func(tc context.Context) error {
+		if err := datastore.Get(ctx, k, ps); err != nil {
+			if err != datastore.ErrNoSuchEntity {
+				return err
 			}
 		}
-		if found {
-			return nil, ErrNotUnique
+		if ps != nil {
+			return ErrNotUnique
 		}
 
-		p.Name = name
-		if _, err = tx.Put(k, &p); err != nil {
-			break
+		ps = &Player{}
+		ps.Name = name
+
+		if _, err := datastore.Put(ctx, k, ps); err != nil {
+			return err
 		}
 
-		// Attempt to commit the transaction. If there's a conflict, try again.
-		if _, err = tx.Commit(); err != datastore.ErrConcurrentTransaction {
-			break
-		}
-	}
+		return nil
+	}, &datastore.TransactionOptions{Attempts: 3})
+
 	if err != nil {
 		return nil, err
 	}
-	return &p, nil
+	return ps, nil
 }
 
 func (s *datastorePlayerStore) Get(ctx context.Context, id string) (*Player, error) {
-	k := playerKey(id)
-	var p Player
-	if err := s.dsClient.Get(ctx, k, &p); err != nil {
+	k := playerKey(ctx, id)
+	ps := &Player{}
+	if err := datastore.Get(ctx, k, ps); err != nil {
 		if err == datastore.ErrNoSuchEntity {
 			return nil, ErrNotFound
 		}
 		return nil, err
 	}
-	return &p, nil
+	return ps, nil
 }
 
 func (s *datastorePlayerStore) GetMulti(ctx context.Context, ids []string) ([]*Player, error) {
 	var keys []*datastore.Key
-	for _, id := range ids {
-		keys = append(keys, playerKey(id))
+	keyPos := make(map[string]int)
+	for i, id := range ids {
+		if id == "" {
+			continue
+		}
+		keyPos[id] = i
+		keys = append(keys, playerKey(ctx, id))
 	}
-	players := make([]*Player, len(ids))
-	if err := s.dsClient.GetMulti(ctx, keys, players); err != nil {
+
+	pss := make([]*Player, len(keys))
+	if err := datastore.GetMulti(ctx, keys, pss); err != nil {
 		return nil, err
 	}
-	return players, nil
+
+	result := make([]*Player, len(ids))
+	for i := 0; i < len(keys); i++ {
+		pos := keyPos[keys[i].StringID()]
+		result[pos] = pss[i]
+	}
+	return result, nil
 }
 
 func (s *datastorePlayerStore) Set(ctx context.Context, id string, p *Player) error {
-	k := playerKey(id)
-	if _, err := s.dsClient.Put(ctx, k, p); err != nil {
+	k := playerKey(ctx, id)
+	if _, err := datastore.Put(ctx, k, p); err != nil {
 		return err
 	}
 	return nil
 }
 
-func playerKey(id string) *datastore.Key {
-	return datastore.NameKey("KaiserPlayer", id, nil)
+func playerKey(ctx context.Context, id string) *datastore.Key {
+	return datastore.NewKey(ctx, "KaiserPlayer", id, 0, nil)
 }

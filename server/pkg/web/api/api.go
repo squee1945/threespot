@@ -1,4 +1,4 @@
-package web
+package api
 
 import (
 	"context"
@@ -11,6 +11,13 @@ import (
 	"github.com/squee1945/threespot/server/pkg/storage"
 	"github.com/squee1945/threespot/server/pkg/util"
 )
+
+func NewServer(gameStore storage.GameStore, playerStore storage.PlayerStore) *ApiServer {
+	return &ApiServer{
+		playerStore: playerStore,
+		gameStore:   gameStore,
+	}
+}
 
 type ApiServer struct {
 	playerStore storage.PlayerStore
@@ -53,11 +60,12 @@ func (s *ApiServer) lookupGame(ctx context.Context, w http.ResponseWriter, id st
 }
 
 func sendGameState(ctx context.Context, w http.ResponseWriter, id string, g game.Game, player game.Player) {
-	state, err := buildGameState(g, player)
+	state, err := BuildGameState(g, player)
 	if err != nil {
 		sendServerError(w, "building state: %v", err)
 		return
 	}
+	log.Printf("Sending %#v\n", state)
 	if err := sendResponse(w, state); err != nil {
 		sendServerError(w, "sending response: %v", err)
 	}
@@ -75,14 +83,14 @@ func genError(exposeMsg bool, format string, args ...interface{}) errorResponse 
 }
 
 func sendUserError(w http.ResponseWriter, format string, args ...interface{}) {
-	resp := genError(true, format, args)
+	resp := genError(true, format, args...)
 	if err := sendResponseStatus(w, resp, http.StatusBadRequest); err != nil {
 		sendServerError(w, "sending response: %v", err)
 	}
 }
 
 func sendServerError(w http.ResponseWriter, format string, args ...interface{}) {
-	resp := genError(false, format, args)
+	resp := genError(false, format, args...)
 	if err := sendResponseStatus(w, resp, http.StatusInternalServerError); err != nil {
 		log.Printf("Error response failed: %v", err)
 		w.WriteHeader(500)

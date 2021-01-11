@@ -1,55 +1,38 @@
 package main
 
 import (
-	"context"
 	"log"
 	"net/http"
-	"os"
 
-	"cloud.google.com/go/datastore"
 	"github.com/squee1945/threespot/server/pkg/storage"
 	"github.com/squee1945/threespot/server/pkg/web"
-)
-
-const (
-	defaultPort = "8080"
+	"github.com/squee1945/threespot/server/pkg/web/api"
+	"google.golang.org/appengine"
 )
 
 func main() {
-	port, ok := os.LookupEnv("PORT")
-	if !ok {
-		port = defaultPort
-	}
-
-	ctx := context.Background()
-	dsClient, err := datastore.NewClient(ctx, datastore.DetectProjectID)
+	playerStore := storage.NewDatastorePlayerStore()
+	gameStore := storage.NewDatastoreGameStore()
+	server, err := web.NewServer(gameStore, playerStore)
 	if err != nil {
-		log.Fatalf("Failed to create datastore client: %v", err)
+		log.Fatal(err)
 	}
-
-	server := &web.Server{
-		PlayerStore: storage.NewDatastorePlayerStore(dsClient),
-	}
+	apiServer := api.NewServer(gameStore, playerStore)
 
 	// Pages for humans.
 	http.HandleFunc("/", server.Index)
 	http.HandleFunc("/game/", server.Game)
+	// http.HandleFunc("/debug", server.Debug)
+	// http.HandleFunc("/debug/", server.Debug)
 
 	// Pages for machines.
-	http.HandleFunc("/api/user", server.UpdateUser)
-	http.HandleFunc("/api/new", server.NewGame)
-	http.HandleFunc("/api/join", server.JoinGame)
-	http.HandleFunc("/api/bid", server.PlaceBid)
-	http.HandleFunc("/api/trump", server.CallTrump)
-	http.HandleFunc("/api/play", server.PlayCard)
-	http.HandleFunc("/api/state", server.GameState)
+	http.HandleFunc("/api/user", apiServer.UpdateUser)
+	http.HandleFunc("/api/new", apiServer.NewGame)
+	http.HandleFunc("/api/join", apiServer.JoinGame)
+	http.HandleFunc("/api/bid", apiServer.PlaceBid)
+	http.HandleFunc("/api/trump", apiServer.CallTrump)
+	http.HandleFunc("/api/play", apiServer.PlayCard)
+	http.HandleFunc("/api/state/", apiServer.GameState)
 
-	s := &http.Server{
-		Addr:    ":" + port,
-		Handler: nil,
-		// ReadTimeout:    10 * time.Second,
-		// WriteTimeout:   10 * time.Second,
-		// MaxHeaderBytes: 1 << 20,
-	}
-	log.Fatal(s.ListenAndServe())
+	appengine.Main()
 }
