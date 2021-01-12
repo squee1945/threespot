@@ -5,6 +5,7 @@ var kaiser = (function() {
 	}
 	var id = null;
 	var state = null;
+	var lastVersion = null;
 
 	function init(gameID, options) {
 	    if (options) {
@@ -27,21 +28,65 @@ var kaiser = (function() {
 			contentType: "application/json",
 		})
 		.done((json) => {
-			// TODO
-			// If the state version has not changed, don't do anything.
-			// Otherwise, set the state and fire event
-			this.state = json
+			if (lastVersion == null || lastVersion != json["Version"]) {
+				lastVersion = json["Version"]
+				state = json
+				updateBoard();
+			}
 		})
 		.fail(alertFailure);
 	}
 
 	function refreshGameState() {
 		getGameState()
-		setTimeout(refreshGameState, this.pollingMs);
+		setTimeout(refreshGameState, pollingMs);
 	}
 
 	function state() {
-		return this.state;
+		return state;
+	}
+
+	function updateBoard() {
+		let s = state()["State"];
+		switch (s) {
+			case "JOINING":
+				updateBoardJoining();
+				break;
+			case "BIDDING":
+				updateBoardBidding();
+				break;
+			case "CALLING":
+				updateBoardCalling();
+				break;
+			case "PLAYING":
+				updateBoardPlaying();
+				break;
+			case "COMPLETED":
+				updateBoardCompleted();
+				break;
+			default:
+				console.log("Unknown state '" + s + "'");
+		}
+	}
+
+	function updateBoardJoining() {
+		// TODO
+	}
+
+	function updateBoardBidding() {
+		// TODO
+	}
+
+	function updateBoardCalling() {
+		// TODO
+	}
+
+	function updateBoardPlaying() {
+		// TODO
+	}
+
+	function updateBoardCompleted() {
+		// TODO
 	}
 
 	function alertFailure(xhr, status, errorThrown) {
@@ -52,7 +97,7 @@ var kaiser = (function() {
 		}
 	}
 
-	function callSetUser(name, done) {
+	function updateUser(name, done) {
 		let data = {
 			Name: name,
 		};
@@ -67,7 +112,7 @@ var kaiser = (function() {
 		.fail(alertFailure);
 	}
 
-	function callNewGame(done) {
+	function newGame(done) {
 		$.ajax({
 			url: "/api/new",
 			type: "POST",
@@ -81,8 +126,8 @@ var kaiser = (function() {
   return {
     init: init,
     state: state,
-    callSetUser: callSetUser,
-    callNewGame: callNewGame,
+    updateUser: updateUser,
+    newGame: newGame,
   };
 
 })();

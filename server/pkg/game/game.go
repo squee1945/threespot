@@ -12,6 +12,7 @@ import (
 
 type Game interface {
 	ID() string
+	Version() int64
 	State() GameState
 	Players() []Player
 	PlayerHand(player Player) (Hand, error)
@@ -67,6 +68,7 @@ type game struct {
 	id       string
 	players  []Player // Position 0/2 are a team, 1/3 are a team; organizer is position 0.
 	created  time.Time
+	updated  time.Time
 	complete bool
 
 	score Score // The score of the game.
@@ -111,6 +113,10 @@ func GetGame(ctx context.Context, gameStore storage.GameStore, playerStore stora
 
 func (g *game) ID() string {
 	return g.id
+}
+
+func (g *game) Version() int64 {
+	return g.updated.UnixNano()
 }
 
 func (g *game) State() GameState {
@@ -473,6 +479,7 @@ func storageFromGame(g *game) *storage.Game {
 	return &storage.Game{
 		PlayerIDs:        playerIDs,
 		Created:          g.created,
+		Updated:          g.updated,
 		Complete:         g.complete,
 		Score:            score,
 		CurrentDealerPos: g.currentDealerPos,
@@ -543,6 +550,7 @@ func gameFromStorage(ctx context.Context, gameStore storage.GameStore, playerSto
 		playerStore:      playerStore,
 		id:               id,
 		created:          gs.Created,
+		updated:          gs.Updated,
 		players:          players,
 		complete:         gs.Complete,
 		score:            score,

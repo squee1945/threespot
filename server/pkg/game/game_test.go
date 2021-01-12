@@ -549,7 +549,9 @@ func TestPlaceBid(t *testing.T) {
 			bid: "8N",
 			want: &storage.Game{
 				PlayerIDs:      pids,
+				Score:          "52-",
 				CurrentBidding: "0|8|8N",
+				CurrentTally:   "0|0|0",
 			},
 			wantState: BiddingState,
 		},
@@ -564,8 +566,10 @@ func TestPlaceBid(t *testing.T) {
 			bid: "8",
 			want: &storage.Game{
 				PlayerIDs:        pids,
+				Score:            "52-",
 				CurrentDealerPos: 3,
 				CurrentBidding:   "0|8|P|P|8",
+				CurrentTally:     "0|0|0",
 			},
 			wantState: CallingState,
 		},
@@ -579,8 +583,10 @@ func TestPlaceBid(t *testing.T) {
 			bid: "P",
 			want: &storage.Game{
 				PlayerIDs:      pids,
+				Score:          "52-",
 				CurrentBidding: "0|P|8N|P|P",
 				CurrentTrick:   "1|N",
+				CurrentTally:   "0|0|0",
 			},
 			wantState: PlayingState,
 		},
@@ -668,8 +674,10 @@ func TestCallTrump(t *testing.T) {
 			trump: "S",
 			want: &storage.Game{
 				PlayerIDs:      pids,
+				Score:          "52-",
 				CurrentBidding: "0|P|P|P|7",
 				CurrentTrick:   "3|S",
+				CurrentTally:   "0|0|0",
 			},
 			wantState: PlayingState,
 		},
@@ -788,9 +796,11 @@ func TestPlayCard(t *testing.T) {
 			card: "KS",
 			want: &storage.Game{
 				PlayerIDs:      pids,
+				Score:          "52-",
 				CurrentHands:   "AH|KH+AS+AC|KC+KD", // KS played
 				CurrentBidding: "0|P|P|P|7",
 				CurrentTrick:   "3|H|AD|7D|KS",
+				CurrentTally:   "0|0|0",
 			},
 			wantState: PlayingState,
 		},
@@ -806,6 +816,7 @@ func TestPlayCard(t *testing.T) {
 			card: "KC",
 			want: &storage.Game{
 				PlayerIDs:      pids,
+				Score:          "52-",
 				CurrentHands:   "AH|KH+AS+AC+KD", // KC played
 				CurrentBidding: "0|P|P|P|7",
 				CurrentTrick:   "3|H",   // Lead-off position (3) won last trick; hearts still trump.

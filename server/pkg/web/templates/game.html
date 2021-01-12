@@ -1,20 +1,66 @@
-{{template "base" .}}
+<!doctype html>
+<html lang="en">
+<head>
+	<title>Kaiser Game {{.ID}}</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+	<link href="/static/css/global.css" rel="stylesheet">
+	<link href="/static/css/game.css" rel="stylesheet">
+	<script src="/static/scripts/jquery-3.5.1.min.js"></script>
+</head>
+<body>
+	<h1>Kaiser <small>(game code {{.ID}})</small></h1>
+	<img class="preload" src="/static/images/cards.png"/>
 
-{{define "style"}}
-<style>
-</style>
-{{end}}
 
-{{define "content"}}
-  <div class="row">
-    <div class="col">
-      <h4>Game Code {{.ID}}</h4>
-    </div>
-  </div>
-{{end}}
+	<div id="card-table">
 
-{{define "scripts"}}
-<script>
-	kaiser.init("{{.ID}}");
-</script>
-{{end}}
+		<div class="joining joining-open" style="left:332px; top:90px;">
+			<h6>Seat available</h6>
+			<form id="joining-1">
+				<div><small><input name="name" value="TODO"/></small></div>
+				<div><small><button>Join position</button></small></div>
+			</form>
+		</div>
+		<div class="joining joining-filled" style="left:50px; top:260px;">
+			<h5>Welcome Jason</h5>
+		</div>
+		<div class="joining joining-filled" style="left:620px; top:260px;">
+			<h5>Welcome Jason</h5>
+		</div>
+		<div class="joining joining-filled" style="left:332px; top:454px;">
+			<h5>Welcome Jason</h5>
+		</div>
+	</div>
+
+
+	<script src="/static/scripts/deckType.js"></script>
+	<script src="/static/scripts/cards.js"></script>
+
+	<!-- top  x:350px top:90px --> 
+	<!-- left  x:350px top:90px --> 
+
+	<!--<script src="/static/scripts/main.js"></script>-->
+	<script>
+		var table = "#card-table";
+		cards.init({table:table, cardsUrl:"/static/images/cards.png"});
+		var deck = new cards.Deck();
+		//deck.x -= 50;
+		deck.addCards(cards.all);
+		deck.render({immediate:true});
+ 
+		// var hands = [
+		// 	new cards.Hand({faceUp:true, y:340}),
+		// 	new cards.Hand({faceUp:false, x:20}),
+		// 	new cards.Hand({faceUp:false, y:60}),
+		// 	new cards.Hand({faceUp:false, x:380}),
+		// ]
+
+		// hands[0].addCard(new cards.Card('h', 5, table));
+		// hands[0].addCard(new cards.Card('h', 12, table));
+		// hands[0].addCard(new cards.Card('h', 13, table));
+		// hands[0].addCard(new cards.Card('h', 14, table));
+		// hands[0].render();
+	</script>
+   </body>
+</html>

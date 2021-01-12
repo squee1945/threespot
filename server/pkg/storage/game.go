@@ -10,6 +10,7 @@ import (
 type Game struct {
 	PlayerIDs []string // Organizing player is 0-index; clockwise afterwards (e.g., 0 and 2 are partners).
 	Created   time.Time
+	Updated   time.Time
 	Complete  bool
 
 	Score string `datastore:",noindex"` // The running tally of the game.
@@ -55,6 +56,7 @@ func (s *datastoreGameStore) Create(ctx context.Context, id, organizingPlayerID 
 		gs.PlayerIDs = make([]string, 4)
 		gs.PlayerIDs[0] = organizingPlayerID
 		gs.Created = time.Now().UTC()
+		gs.Updated = gs.Created
 
 		if _, err := datastore.Put(ctx, k, gs); err != nil {
 			return err
@@ -84,6 +86,7 @@ func (s *datastoreGameStore) Get(ctx context.Context, id string) (*Game, error) 
 
 func (s *datastoreGameStore) Set(ctx context.Context, id string, gs *Game) error {
 	k := gameKey(ctx, id)
+	gs.Updated = time.Now().UTC()
 	if _, err := datastore.Put(ctx, k, gs); err != nil {
 		return err
 	}
@@ -115,6 +118,7 @@ func (s *datastoreGameStore) AddPlayer(ctx context.Context, id, playerID string,
 		}
 
 		gs.PlayerIDs[pos] = playerID
+		gs.Updated = time.Now().UTC()
 		if _, err := datastore.Put(ctx, k, gs); err != nil {
 			return err
 		}

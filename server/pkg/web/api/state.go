@@ -46,8 +46,9 @@ type CompletedInfo struct {
 }
 
 type GameStateResponse struct {
-	ID    string
-	State string // "JOINING", BIDDING", "CALLING", "PLAYING", "COMPLETED"
+	ID      string
+	Version int64
+	State   string // "JOINING", BIDDING", "CALLING", "PLAYING", "COMPLETED"
 
 	PlayerPosition int
 	PlayerNames    []string
@@ -107,6 +108,7 @@ func BuildGameState(g game.Game, player game.Player) (*GameStateResponse, error)
 
 	state := &GameStateResponse{
 		ID:             g.ID(),
+		Version:        g.Version(),
 		State:          string(g.State()),
 		PlayerPosition: playerPos,
 		PlayerNames:    playerNames,

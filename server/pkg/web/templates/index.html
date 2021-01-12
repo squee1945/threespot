@@ -55,7 +55,7 @@
 	$("#set-user").on("submit", (event) => {
 	    event.preventDefault();
 	    event.stopPropagation();
-	    callSetUser($("#set-user-name").val(), (json) => {
+	    kaiser.updateUser($("#set-user-name").val(), (json) => {
 	    	$("#user-name").text(json["Name"]);
 	    });
 	});
@@ -63,7 +63,7 @@
 	$("#new-game").on("submit", (event) => {
 	    event.preventDefault();
 	    event.stopPropagation();
-	    callNewGame((json) => {
+	    kaiser.newGame((json) => {
 	    	location.href = "/game/" + json["ID"];
 	    });
 	});
@@ -71,9 +71,7 @@
 	$("#existing-game").on("submit", (event) => {
 	    event.preventDefault();
 	    event.stopPropagation();
-	    getGameState($("#game-code").val(), (json) =>{
-	    	location.href = "/game/" + json["ID"];
-	    });
+	    location.href = "/game/" + $("#game-code").val();
 	});
 </script>
 {{end}}
