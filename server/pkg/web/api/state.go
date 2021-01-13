@@ -48,7 +48,7 @@ type CompletedInfo struct {
 type GameStateResponse struct {
 	ID      string
 	Version int64
-	State   string // "JOINING", BIDDING", "CALLING", "PLAYING", "COMPLETED"
+	State   string // "JOINING", "BIDDING", "CALLING", "PLAYING", "COMPLETED"
 
 	PlayerPosition int
 	PlayerNames    []string

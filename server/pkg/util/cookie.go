@@ -28,3 +28,12 @@ func SetPlayerID(w http.ResponseWriter) string {
 	http.SetCookie(w, &cookie)
 	return pid
 }
+
+func ClearPlayerID(w http.ResponseWriter) {
+	cookie := http.Cookie{
+		Name:    playerCookie,
+		Value:   "",
+		Expires: time.Now(),
+	}
+	http.SetCookie(w, &cookie)
+}

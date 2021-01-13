@@ -1,0 +1,74 @@
+{{template "game" .}}
+
+{{define "card-table"}}
+
+		<div class="joining joining-open" style="left:50px; top:260px; {{if (index .Players 1)}}display:none;{{end}}">
+			<form id="joining-1">
+				<h6>Seat available</h6>
+				<div><small><input id="username-1" name="name" value="TODO"/></small></div>
+				<div><small><button>Join position</button></small></div>
+			</form>
+		</div>
+		<div id="joined-1" class="joining joining-filled" style="left:50px; top:260px; {{if not (index .Players 1)}}display:none;{{end}}">
+			<h5>Welcome {{(index .Players 1).Name}}</h5>
+		</div>
+
+		<div class="joining joining-open" style="left:332px; top:90px;">
+			<form id="joining-2">
+				<h6>Seat available</h6>
+				<div><small><input id="username-2"name="name" value="TODO"/></small></div>
+				<div><small><button>Join position</button></small></div>
+			</form>
+		</div>
+
+		<div class="joining joining-open" style="left:627px; top:264px;">
+			<form id="joining-3">
+				<h6>Seat available</h6>
+				<div><small><input id="username-3"name="name" value="TODO"/></small></div>
+				<div><small><button>Join position</button></small></div>
+			</form>
+		</div>
+
+		<div class="joining joining-filled" style="left:332px; top:457px;">
+			<h5>Welcome Jason</h5>
+		</div>
+{{end}}
+
+{{define "scripts"}}
+<script>
+	var id = "{{.ID}}";
+	server.init();
+
+	function updateScreen(gameState) {
+		for (var i = 0; i < 4; i++) {
+			if (gameState.Players[i] === "") {
+				$("#joining-" + i).show();
+				$("#joined-" + i).hide();
+			} else {
+				$("#joining-" + i).hide();
+		    	$("#joined-1 h5").text("Welcome " +gameState.Players[i]);
+				$("#joined-" + i).show();
+			}
+		}
+	}
+
+	$("#joining-1").on("submit", function(event) {
+	    event.preventDefault();
+	    event.stopPropagation();
+
+	    kaiser.updateUser($("#username-1").val(), function(user) {
+
+		    server.joinGame(id, 1, function(gameState) {
+		    	if (gameState.State === "BIDDING") {
+		    		location.href = "/game/" + id;
+		    		return;
+		    	}
+		    	updateScreen(gameState);
+		    });
+	    });
+	});
+
+	// TODO: Add other positions.
+
+</script>
+{{end}}

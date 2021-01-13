@@ -81,7 +81,6 @@ footer a:hover {
 	height:68px;
 	width:160px;
 	background-color: white;
-	border-color: black;
 	border: 2px black solid;
 	border-radius:4px;
 	-webkit-border-radius:4px;
@@ -92,8 +91,6 @@ footer a:hover {
 	font-size: 10px;
 	padding: 4px;
 	position: absolute;
-	left: 50px;
-	top: 50px;
 }
 
 .joining h6 {
@@ -124,6 +121,4 @@ footer a:hover {
 }
 
 .joining-filled {
-	left:75px;
-	top:200px;
 }

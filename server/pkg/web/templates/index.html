@@ -1,7 +1,5 @@
 {{template "base" .}}
 
-{{define "title"}}Online Kaiser{{end}}
-
 {{define "content"}}
   	<div class="row">
     	<div class="col">
@@ -40,8 +38,8 @@
 	    		<p>Enter a name to get started.</p>
 		      	<form id="set-user">
 		      		<div class="mb-3">
-		    			<label for="set-user-name" class="form-label" required>Name</label>
-		    			<input class="form-control form-control-sm" id="set-user-name">
+		    			<label for="username" class="form-label" required>Name</label>
+		    			<input class="form-control form-control-sm" id="username">
 		  			</div>
 		    		<button type="submit" class="btn btn-primary btn-sm">Update name</button>
 		      	</form>
@@ -52,25 +50,31 @@
 
 {{define "scripts"}}
 <script>
+	server.init();
+
 	$("#set-user").on("submit", (event) => {
 	    event.preventDefault();
 	    event.stopPropagation();
-	    kaiser.updateUser($("#set-user-name").val(), (json) => {
-	    	$("#user-name").text(json["Name"]);
+
+	    server.updateUser($("#username").val(), (user) => {
+	    	$("#username").text(user.Name);
 	    });
+	    location.href = "/";
 	});
 
-	$("#new-game").on("submit", (event) => {
+	$("#new-game").on("submit", function(event) {
 	    event.preventDefault();
 	    event.stopPropagation();
-	    kaiser.newGame((json) => {
-	    	location.href = "/game/" + json["ID"];
+
+	    server.newGame(function(gameState) {
+	    	location.href = "/join/" + gameState.ID;
 	    });
 	});
 
 	$("#existing-game").on("submit", (event) => {
 	    event.preventDefault();
 	    event.stopPropagation();
+
 	    location.href = "/game/" + $("#game-code").val();
 	});
 </script>

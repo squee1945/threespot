@@ -44,6 +44,11 @@ type Server struct {
 	pageMap     map[string]*template.Template
 }
 
+func (s *Server) ClearCookie(w http.ResponseWriter, r *http.Request) {
+	util.ClearPlayerID(w)
+	http.Redirect(w, r, "/", 302)
+}
+
 func (s *Server) render(name string, w http.ResponseWriter, args interface{}) {
 	tmpl, ok := s.pageMap[name]
 	if !ok {

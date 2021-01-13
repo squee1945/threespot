@@ -43,6 +43,10 @@ func (s *ApiServer) JoinGame(w http.ResponseWriter, r *http.Request) {
 			sendUserError(w, "Invalid player position.")
 			return
 		}
+		if err == game.ErrPlayerAlreadyAdded {
+			sendUserError(w, "You're already in this game!")
+			return
+		}
 		sendServerError(w, "adding player: %v", err)
 		return
 	}

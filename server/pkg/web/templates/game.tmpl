@@ -1,0 +1,29 @@
+{{define "game"}}
+<!doctype html>
+<html lang="en">
+<head>
+	<title>Kaiser</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+	<link href="/static/css/global.css" rel="stylesheet">
+	<link href="/static/css/game.css" rel="stylesheet">
+	<script src="/static/scripts/jquery-3.5.1.min.js"></script>
+</head>
+<body>
+	<h1>Kaiser <small>(Link: Todo)</small></h1>
+	<img class="preload" src="/static/images/cards.png"/>
+
+
+	<div id="card-table">
+	{{block "card-table" .}}{{end}}
+	</div>
+
+
+	<script src="/static/scripts/deckType.js"></script>
+	<script src="/static/scripts/cards.js"></script>
+	<script src="/static/scripts/server.js"></script>
+	<script src="/static/scripts/kaiser.js"></script>
+	{{block "scripts" .}}{{end}}
+   </body>
+</html>
+{{end}}

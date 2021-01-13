@@ -21,9 +21,11 @@ func main() {
 
 	// Pages for humans.
 	http.HandleFunc("/", server.Index)
+	http.HandleFunc("/join/", server.Join)
 	http.HandleFunc("/game/", server.Game)
 	// http.HandleFunc("/debug", server.Debug)
 	// http.HandleFunc("/debug/", server.Debug)
+	http.HandleFunc("/clear-cookie", server.ClearCookie)
 
 	// Pages for machines.
 	http.HandleFunc("/api/user", apiServer.UpdateUser)

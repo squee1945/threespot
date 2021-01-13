@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"fmt"
 
 	"google.golang.org/appengine/datastore"
 )
@@ -26,15 +27,23 @@ func NewDatastorePlayerStore() PlayerStore {
 }
 
 func (s *datastorePlayerStore) Create(ctx context.Context, id, name string) (*Player, error) {
+	if id == "" {
+		return nil, fmt.Errorf("id required")
+	}
+	if name == "" {
+		return nil, fmt.Errorf("name required")
+	}
 	k := playerKey(ctx, id)
 	ps := &Player{}
 	err := datastore.RunInTransaction(ctx, func(tc context.Context) error {
+		found := true
 		if err := datastore.Get(ctx, k, ps); err != nil {
 			if err != datastore.ErrNoSuchEntity {
 				return err
 			}
+			found = false
 		}
-		if ps != nil {
+		if found {
 			return ErrNotUnique
 		}
 
