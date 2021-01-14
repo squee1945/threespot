@@ -1,6 +1,7 @@
 package web
 
 import (
+	"log"
 	"net/http"
 	"strings"
 
@@ -21,35 +22,52 @@ func (s *Server) Game(w http.ResponseWriter, r *http.Request) {
 	playerID, err := util.PlayerID(r)
 	if err != nil {
 		if err == http.ErrNoCookie {
-			http.Redirect(w, r, "/", 302)
+			http.Redirect(w, r, "/", 301)
 			return
 		}
 		sendServerError(w, "fetching player cookie: %v", err)
 		return
 	}
 
-	_, err = game.GetPlayer(ctx, s.playerStore, playerID)
+	player, err := game.GetPlayer(ctx, s.playerStore, playerID)
 	if err != nil {
 		if err == game.ErrNotFound {
-			http.Redirect(w, r, "/", 302)
+			http.Redirect(w, r, "/", 301)
 			return
 		}
 		sendServerError(w, "getting player: %v", err)
 		return
 	}
 
-	_, err = game.GetGame(ctx, s.gameStore, s.playerStore, id)
+	g, err := game.GetGame(ctx, s.gameStore, s.playerStore, id)
 	if err != nil {
 		if err == game.ErrNotFound {
 			// TODO: do something better?
-			http.Redirect(w, r, "/", 302)
+			http.Redirect(w, r, "/", 301)
 			return
 		}
 		sendServerError(w, "getting game: %v", err)
 		return
 	}
 
-	// TODO: check that player is part of this game.
+	if g.State() == game.JoiningState {
+		http.Redirect(w, r, "/join/"+id, 301)
+		return
+	}
+
+	// Check that player is part of this game.
+	inGame := false
+	for _, p := range g.Players() {
+		if player.ID() == p.ID() {
+			inGame = true
+			break
+		}
+	}
+	if !inGame {
+		log.Printf("Player %q is not in game %q", player.ID(), id)
+		http.Redirect(w, r, "/?error=NOT_IN_GAME", 301)
+		return
+	}
 
 	s.render("game.html", w, gameArgs{ID: id})
 }

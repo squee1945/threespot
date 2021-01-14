@@ -5,12 +5,15 @@
 
 {{define "scripts"}}
 	<script>
+		var id = "{{.ID}}";
 		var table = "#card-table";
 		cards.init({table:table, cardsUrl:"/static/images/cards.png"});
 		var deck = new cards.Deck();
 		//deck.x -= 50;
 		deck.addCards(cards.all);
 		deck.render({immediate:true});
+
+		kaiser.init(id); // This starts polling and updating the game board.
  
 		// var hands = [
 		// 	new cards.Hand({faceUp:true, y:340}),

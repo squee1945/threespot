@@ -49,6 +49,11 @@ func (s *Server) Join(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if g.State() != game.JoiningState {
+		http.Redirect(w, r, "/game/"+id, 301)
+		return
+	}
+
 	s.render("join.html", w, joinArgs{ID: id, Players: g.Players()})
 }
 

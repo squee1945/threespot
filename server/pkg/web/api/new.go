@@ -27,5 +27,5 @@ func (s *ApiServer) NewGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sendGameState(ctx, w, id, g, player)
+	s.sendGameState(ctx, w, id, g, player)
 }

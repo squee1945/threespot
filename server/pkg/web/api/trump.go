@@ -49,5 +49,5 @@ func (s *ApiServer) CallTrump(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sendGameState(ctx, w, req.ID, newG, player)
+	s.sendGameState(ctx, w, req.ID, newG, player)
 }

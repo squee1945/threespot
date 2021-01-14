@@ -6,22 +6,25 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/squee1945/threespot/server/pkg/game"
 	"github.com/squee1945/threespot/server/pkg/storage"
 	"github.com/squee1945/threespot/server/pkg/util"
 )
 
-func NewServer(gameStore storage.GameStore, playerStore storage.PlayerStore) *ApiServer {
+func NewServer(gameStore storage.GameStore, playerStore storage.PlayerStore, cache storage.Cache) *ApiServer {
 	return &ApiServer{
 		playerStore: playerStore,
 		gameStore:   gameStore,
+		cache:       cache,
 	}
 }
 
 type ApiServer struct {
 	playerStore storage.PlayerStore
 	gameStore   storage.GameStore
+	cache       storage.Cache
 }
 
 type errorResponse struct {
@@ -59,13 +62,19 @@ func (s *ApiServer) lookupGame(ctx context.Context, w http.ResponseWriter, id st
 	return g
 }
 
-func sendGameState(ctx context.Context, w http.ResponseWriter, id string, g game.Game, player game.Player) {
+func (s *ApiServer) sendGameState(ctx context.Context, w http.ResponseWriter, id string, g game.Game, player game.Player) {
+	s.setGameStateVersion(ctx, id, g.Version())
+	// sendGameState(ctx, w, id, g, player)
+	// }
+
+	// func sendGameState(ctx context.Context, w http.ResponseWriter, id string, g game.Game, player game.Player) {
 	state, err := BuildGameState(g, player)
 	if err != nil {
 		sendServerError(w, "building state: %v", err)
 		return
 	}
 	log.Printf("Sending %#v\n", state)
+	w.Header().Set("Etag", state.Version)
 	if err := sendResponse(w, state); err != nil {
 		sendServerError(w, "sending response: %v", err)
 	}
@@ -110,4 +119,30 @@ func sendResponseStatus(w http.ResponseWriter, doc interface{}, status int) erro
 	w.WriteHeader(status)
 	w.Write(b)
 	return nil
+}
+
+func (s *ApiServer) setGameStateVersion(ctx context.Context, id, version string) {
+	if id == "" || version == "" {
+		log.Printf("ID %q and version %q must not be empty string. Skipping cache.", id, version)
+	}
+	key := id + "-version"
+	if err := s.cache.Set(ctx, key, version, 10*time.Minute); err != nil {
+		log.Printf("Failed to write cache. Suppressing error: %v", err)
+	}
+}
+
+func (s *ApiServer) getGameStateVersion(ctx context.Context, id string) string {
+	if id == "" {
+		log.Printf("ID must not be empty string. Skipping cache.")
+	}
+	key := id + "-version"
+	version, err := s.cache.Get(ctx, key)
+	if err != nil {
+		if err == storage.ErrCacheMiss {
+			return ""
+		}
+		log.Printf("Failed to read cache. Suppressing error: %v", err)
+		return ""
+	}
+	return version
 }

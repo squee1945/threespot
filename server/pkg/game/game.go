@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/squee1945/threespot/server/pkg/deck"
@@ -12,7 +13,7 @@ import (
 
 type Game interface {
 	ID() string
-	Version() int64
+	Version() string
 	State() GameState
 	Players() []Player
 	PlayerHand(player Player) (Hand, error)
@@ -115,8 +116,8 @@ func (g *game) ID() string {
 	return g.id
 }
 
-func (g *game) Version() int64 {
-	return g.updated.UnixNano()
+func (g *game) Version() string {
+	return strconv.FormatInt(g.updated.UnixNano(), 10)
 }
 
 func (g *game) State() GameState {

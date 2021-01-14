@@ -1,53 +1,41 @@
 
 var kaiser = (function() {
-	var opt = {
-		pollingMs : 1000,
+	var _opt = {
+		pollingMs: 1000,
 	}
-	var id = null;
-	var state = null;
-	var lastVersion = null;
+	var _id = null;
+	var _state = null;
+	var _lastVersion = null;
 
 	function init(gameID, options) {
 	    if (options) {
 	      for (var i in options) {
-	        if (opt.hasOwnProperty(i)) {
-	          opt[i] = options[i];
+	        if (_opt.hasOwnProperty(i)) {
+	          _opt[i] = options[i];
 	        }
 	      }
 	    }
-		id = gameID;
-		getGameState();
-		// setTimeout(refreshGameState, this.pollingMs);
+		_id = gameID;
+		updateGameState();
 	}
 
-	function getGameState() {
-		$.ajax({
-			url: "/api/state/" + id,
-			type: "GET",
-			dataType: "json",
-			contentType: "application/json",
-		})
-		.done((json) => {
-			if (lastVersion == null || lastVersion != json["Version"]) {
-				lastVersion = json["Version"]
-				state = json
+	function updateGameState() {
+		server.gameState(_id, (gameState) => {
+			if (gameState.Version != _lastVersion) {
+				_lastVersion = gameState.Version;
+				_state = gameState;
 				updateBoard();
 			}
 		})
-		.fail(alertFailure);
-	}
-
-	function refreshGameState() {
-		getGameState()
-		setTimeout(refreshGameState, pollingMs);
+		setTimeout(updateGameState, _opt.pollingMs);
 	}
 
 	function state() {
-		return state;
+		return _state;
 	}
 
 	function updateBoard() {
-		let s = state()["State"];
+		let s = state().State;
 		switch (s) {
 			case "JOINING":
 				updateBoardJoining();
@@ -89,45 +77,9 @@ var kaiser = (function() {
 		// TODO
 	}
 
-	function alertFailure(xhr, status, errorThrown) {
-		if (xhr.responseJSON != null) {
-			alert(xhr.responseJSON['Error']);
-		} else {
-			alert(Object.keys(xhr) + "\n" + errorThrown + " (status: " + status + ")");
-		}
-	}
-
-	function updateUser(name, done) {
-		let data = {
-			Name: name,
-		};
-		$.ajax({
-		    url: "/api/user",
-		    type: "POST",
-		    dataType: "json",
-	 	    data: JSON.stringify(data),
-	    	contentType: "application/json",
-		})
-		.done(done)
-		.fail(alertFailure);
-	}
-
-	function newGame(done) {
-		$.ajax({
-			url: "/api/new",
-			type: "POST",
-			dataType: "json",
-			contentType: "application/json",
-		})
-		.done(done)
-		.fail(alertFailure);
-	}
-
   return {
     init: init,
     state: state,
-    updateUser: updateUser,
-    newGame: newGame,
   };
 
 })();

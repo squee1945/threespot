@@ -1,17 +1,17 @@
 
 var server = (function() {
-	var opt = {
+	var _opt = {
 		// pollingMs : 1000,
 	}
 	// var id = null;
 	// var state = null;
 	// var lastVersion = null;
 
-	function init(gameID, options) {
+	function init(options) {
 	 //    if (options) {
 	 //      for (var i in options) {
-	 //        if (opt.hasOwnProperty(i)) {
-	 //          opt[i] = options[i];
+	 //        if (_opt.hasOwnProperty(i)) {
+	 //          _opt[i] = options[i];
 	 //        }
 	 //      }
 	 //    }
@@ -81,12 +81,63 @@ var server = (function() {
 		.fail(alertFailure);
 	}
 
+	function placeBid(id, bid, done) {
+		var data = {
+			ID: id,
+			Bid: bid,
+		}
+		$.ajax({
+			url: "/api/bid",
+			type: "POST",
+			dataType: "json",
+			contentType: "json",
+	 	    data: JSON.stringify(data),
+		})
+		.done(done)
+		.fail(alertFailure);
+	}
+
+	function playCard(id, card, done) {
+		var data = {
+			ID: id,
+			Card: card,
+		}
+		$.ajax({
+			url: "/api/play",
+			type: "POST",
+			dataType: "json",
+			contentType: "json",
+	 	    data: JSON.stringify(data),
+		})
+		.done(done)
+		.fail(alertFailure);
+	}
+
+	function callTrump(id, suit, done) {
+		var data = {
+			ID: id,
+			Suit: suit,
+		}
+		$.ajax({
+			url: "/api/trump",
+			type: "POST",
+			dataType: "json",
+			contentType: "json",
+	 	    data: JSON.stringify(data),
+		})
+		.done(done)
+		.fail(alertFailure);
+	}
+
   return {
     init: init,
     gameState: gameState,
     updateUser: updateUser,
     newGame: newGame,
     joinGame: joinGame,
+    placeBid: placeBid,
+    playCard: playCard,
+    callTrump: callTrump,
   };
 
 })();

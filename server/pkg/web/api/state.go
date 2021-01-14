@@ -47,7 +47,7 @@ type CompletedInfo struct {
 
 type GameStateResponse struct {
 	ID      string
-	Version int64
+	Version string
 	State   string // "JOINING", "BIDDING", "CALLING", "PLAYING", "COMPLETED"
 
 	PlayerPosition int
@@ -78,6 +78,15 @@ func (s *ApiServer) GameState(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check If-None-Modified against a cache entry.
+	if etag := r.Header.Get("If-None-Match"); etag != "" {
+		current := s.getGameStateVersion(ctx, id)
+		if current != "" && current == etag {
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
+	}
+
 	player := s.lookupPlayer(ctx, w, r)
 	if player == nil {
 		return
@@ -88,7 +97,7 @@ func (s *ApiServer) GameState(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sendGameState(ctx, w, id, g, player)
+	s.sendGameState(ctx, w, id, g, player)
 }
 
 func BuildGameState(g game.Game, player game.Player) (*GameStateResponse, error) {

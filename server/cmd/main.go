@@ -17,7 +17,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	apiServer := api.NewServer(gameStore, playerStore)
+	cache := storage.NewMemcacheCache()
+	apiServer := api.NewServer(gameStore, playerStore, cache)
 
 	// Pages for humans.
 	http.HandleFunc("/", server.Index)
