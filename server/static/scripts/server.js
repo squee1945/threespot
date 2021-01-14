@@ -129,17 +129,16 @@ var server = (function() {
 		.fail(alertFailure);
 	}
 
-  return {
-    init: init,
-    gameState: gameState,
-    updateUser: updateUser,
-    newGame: newGame,
-    joinGame: joinGame,
-    placeBid: placeBid,
-    playCard: playCard,
-    callTrump: callTrump,
-  };
-
+	return {
+		init: init,
+		gameState: gameState,
+		updateUser: updateUser,
+		newGame: newGame,
+		joinGame: joinGame,
+		placeBid: placeBid,
+		playCard: playCard,
+		callTrump: callTrump,
+	};
 })();
 
 if (typeof module !== 'undefined') {

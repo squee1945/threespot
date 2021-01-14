@@ -77,11 +77,10 @@ var kaiser = (function() {
 		// TODO
 	}
 
-  return {
-    init: init,
-    state: state,
-  };
-
+  	return {
+    	init: init,
+    	state: state,
+  	};
 })();
 
 if (typeof module !== 'undefined') {

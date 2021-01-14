@@ -24,6 +24,7 @@ type Game interface {
 
 	CurrentBidding() BiddingRound
 	CurrentTrick() Trick
+	LastTrick() Trick
 	AvailableBids(Player) ([]Bid, error)
 
 	AddPlayer(ctx context.Context, player Player, pos int) (Game, error)
@@ -78,6 +79,7 @@ type game struct {
 	currentBidding   BiddingRound // The bids for the current hand.
 	currentHands     Hands        // Cards held by each player, parallel with the PlayerIDs above.
 	currentTrick     Trick        // Cards played for current trick.
+	lastTrick        Trick        // Last trick played.
 	currentTally     Tally        // The running tally for the current hand.
 }
 
@@ -155,6 +157,10 @@ func (g *game) CurrentBidding() BiddingRound {
 
 func (g *game) CurrentTrick() Trick {
 	return g.currentTrick
+}
+
+func (g *game) LastTrick() Trick {
+	return g.lastTrick
 }
 
 func (g *game) DealerPos() int {
@@ -362,6 +368,15 @@ func (g *game) PlayCard(ctx context.Context, player Player, card deck.Card) (Gam
 			return nil, err
 		}
 
+		// Store the last trick for player reference.
+		if g.currentTrick != nil {
+			lastTrick, err := NewTrickFromEncoded(g.currentTrick.Encoded())
+			if err != nil {
+				return nil, err
+			}
+			g.lastTrick = lastTrick
+		}
+
 		// If all cards are played, update the score.
 		someHand, err := g.currentHands.Hand(0)
 		if err != nil {
@@ -472,6 +487,10 @@ func storageFromGame(g *game) *storage.Game {
 	if g.currentTrick != nil {
 		trick = g.currentTrick.Encoded()
 	}
+	lastTrick := ""
+	if g.lastTrick != nil {
+		lastTrick = g.lastTrick.Encoded()
+	}
 	tally := ""
 	if g.currentTally != nil {
 		tally = g.currentTally.Encoded()
@@ -487,6 +506,7 @@ func storageFromGame(g *game) *storage.Game {
 		CurrentBidding:   bidding,
 		CurrentHands:     hands,
 		CurrentTrick:     trick,
+		LastTrick:        lastTrick,
 		CurrentTally:     tally,
 	}
 }
@@ -536,6 +556,14 @@ func gameFromStorage(ctx context.Context, gameStore storage.GameStore, playerSto
 		}
 	}
 
+	var lastTrick Trick
+	if gs.LastTrick != "" {
+		lastTrick, err = NewTrickFromEncoded(gs.LastTrick)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	score, err := NewScoreFromEncoded(gs.Score)
 	if err != nil {
 		return nil, err
@@ -559,6 +587,7 @@ func gameFromStorage(ctx context.Context, gameStore storage.GameStore, playerSto
 		currentBidding:   bidding,
 		currentHands:     hands,
 		currentTrick:     trick,
+		lastTrick:        lastTrick,
 		currentTally:     tally,
 	}
 	return g, nil

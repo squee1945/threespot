@@ -23,6 +23,7 @@ type BiddingInfo struct {
 	LeadBid        int
 	BidsPlaced     []BidInfo
 	AvailableBids  []BidInfo
+	LastTrick      []string
 }
 
 type CallingInfo struct {
@@ -39,10 +40,12 @@ type PlayingInfo struct {
 	Trump          string
 	PlayerHand     []string
 	Trick          []string
+	LastTrick      []string
 }
 
 type CompletedInfo struct {
 	WinningTeam int // 0 is players 0/2, 1 is players 1/3
+	LastTrick   []string
 }
 
 type GameStateResponse struct {
@@ -189,6 +192,7 @@ func buildBiddingInfo(g game.Game, player game.Player, playerPos int) (*BiddingI
 		LeadBid:        g.CurrentBidding().LeadPos(),
 		BidsPlaced:     bidsToBidInfos(g.CurrentBidding().Bids()),
 		AvailableBids:  availableBids,
+		LastTrick:      cardsToStrings(g.LastTrick().Cards()),
 	}
 	return info, nil
 }
@@ -233,6 +237,7 @@ func buildPlayingInfo(g game.Game, player game.Player, playerPos int) (*PlayingI
 		Trump:          g.CurrentTrick().Trump().Encoded(),
 		PlayerHand:     cardsToStrings(playerHand.Cards()),
 		Trick:          cardsToStrings(g.CurrentTrick().Cards()),
+		LastTrick:      cardsToStrings(g.LastTrick().Cards()),
 	}
 	return info, nil
 }
@@ -245,6 +250,7 @@ func buildCompletedInfo(g game.Game, player game.Player) (*CompletedInfo, error)
 	}
 	info := &CompletedInfo{
 		WinningTeam: winner,
+		LastTrick:   cardsToStrings(g.LastTrick().Cards()),
 	}
 	return info, nil
 }

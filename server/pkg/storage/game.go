@@ -19,6 +19,7 @@ type Game struct {
 	CurrentBidding   string `datastore:",noindex"` // The bids for the current hand; 0-index is the player clockwise from the CurrentDealerPos (one higher, wrapping at 4).
 	CurrentHands     string `datastore:",noindex"` // Cards held by each player, parallel with the PlayerIDs above.
 	CurrentTrick     string `datastore:",noindex"` // Cards played for current trick; 0-index is the lead player (i.e., the order the cards were played).
+	LastTrick        string `datastore:",noindex"` // Cards played for the previous trick.
 	CurrentTally     string `datastore:",noindex"` // The running tally for the current hand.
 }
 

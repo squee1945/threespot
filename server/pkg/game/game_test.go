@@ -821,6 +821,7 @@ func TestPlayCard(t *testing.T) {
 				CurrentBidding: "0|P|P|P|7",
 				CurrentTrick:   "3|H",   // Lead-off position (3) won last trick; hearts still trump.
 				CurrentTally:   "1|0|1", // One card played; team 1/3 got the point.
+				LastTrick:      "3|H|AD|7D|KS|KC",
 			},
 			wantState: PlayingState,
 		},
@@ -844,6 +845,7 @@ func TestPlayCard(t *testing.T) {
 				CurrentTrick:     "",        // New hand.
 				CurrentTally:     "0|0|0",   // Tally resets.
 				Score:            "52-10|0", // Score added from tally.
+				LastTrick:        "3|H|AD|AH|AS|AC",
 			},
 			wantState:   BiddingState,
 			wantNewHand: true,
@@ -870,6 +872,7 @@ func TestPlayCard(t *testing.T) {
 				CurrentTrick:     "3|H|AD|AH|AS|AC", // Trick does not clear.
 				CurrentTally:     "8|10|0",          // Tally does not clear.
 				Score:            "52-50|0||60|0",   // Score added from tally.
+				LastTrick:        "3|H|AD|AH|AS|AC",
 			},
 			wantState: CompletedState,
 		},
