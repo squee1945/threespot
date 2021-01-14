@@ -13,7 +13,7 @@ import (
 func (s *Server) Game(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
 	if !strings.HasPrefix(r.URL.Path, "/game/") {
-		http.Redirect(w, r, "/", 302)
+		http.Redirect(w, r, "/", 301)
 		return
 	}
 
@@ -42,8 +42,7 @@ func (s *Server) Game(w http.ResponseWriter, r *http.Request) {
 	g, err := game.GetGame(ctx, s.gameStore, s.playerStore, id)
 	if err != nil {
 		if err == game.ErrNotFound {
-			// TODO: do something better?
-			http.Redirect(w, r, "/", 301)
+			http.Redirect(w, r, "/?error=GAME_NOT_FOUND", 301)
 			return
 		}
 		sendServerError(w, "getting game: %v", err)
