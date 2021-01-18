@@ -1,6 +1,7 @@
 
 var kaiser = (function() {
 	var _opt = {
+		// pollingMs is how often to call the server for new game state.
 		pollingMs: 1000,
 	}
 	var _id = null;
@@ -9,7 +10,7 @@ var kaiser = (function() {
 
 	function init(gameID, options) {
 	    if (options) {
-	      for (var i in options) {
+	      for (let i in options) {
 	        if (_opt.hasOwnProperty(i)) {
 	          _opt[i] = options[i];
 	        }

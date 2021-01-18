@@ -1,23 +1,19 @@
-
+// server is used to make AJAX calls back to the server.
 var server = (function() {
 	var _opt = {
-		// pollingMs : 1000,
+		// alert is a callback function(xhr, status, errorThrown) to display an error.
+		// If not specified, the builtin alert will be default.
+		alert: null
 	}
-	// var id = null;
-	// var state = null;
-	// var lastVersion = null;
 
 	function init(options) {
-	 //    if (options) {
-	 //      for (var i in options) {
-	 //        if (_opt.hasOwnProperty(i)) {
-	 //          _opt[i] = options[i];
-	 //        }
-	 //      }
-	 //    }
-		// id = gameID;
-		// getGameState();
-		// // setTimeout(refreshGameState, this.pollingMs);
+	    if (options) {
+	      for (let i in options) {
+	        if (_opt.hasOwnProperty(i)) {
+	          _opt[i] = options[i];
+	        }
+	      }
+	    }
 	}
 
 	function joinState(id, done) {
@@ -43,6 +39,11 @@ var server = (function() {
 	}
 
 	function alertFailure(xhr, status, errorThrown) {
+		if (_opt.alert != null) {
+			_opt.alert(xhr, status, errorThrown);
+			return
+		}
+
 		if (xhr.responseJSON != null) {
 			alert(xhr.responseJSON['Error']);
 		} else {

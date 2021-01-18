@@ -45,6 +45,7 @@
 {{end}}
 
 {{define "scripts"}}
+<script src="/static/scripts/join.js"></script>
 <script>
 	var id = "{{.ID}}";
 	server.init();
@@ -62,10 +63,6 @@
 		}
 	}
 
-	server.joinState(id, function(joinState){
-		updateScreen(joinState);
-	});
-
 	for (let i = 0; i < 4; i++) {
 		$("#joining-" + i).on("submit", function(event) {
 		    event.preventDefault();
@@ -81,5 +78,6 @@
 		});
 	}
 
+	join.init(id, {repaint: updateScreen});
 </script>
 {{end}}

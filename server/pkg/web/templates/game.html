@@ -4,28 +4,31 @@
 {{end}}
 
 {{define "scripts"}}
-	<script>
-		var id = "{{.ID}}";
-		var table = "#card-table";
-		cards.init({table:table, cardsUrl:"/static/images/cards.png"});
-		var deck = new cards.Deck();
-		//deck.x -= 50;
-		deck.addCards(cards.all);
-		deck.render({immediate:true});
+<script src="/static/scripts/kaiser.js"></script>
+<script>
+	var id = "{{.ID}}";
+	server.init();
 
-		kaiser.init(id); // This starts polling and updating the game board.
- 
-		// var hands = [
-		// 	new cards.Hand({faceUp:true, y:340}),
-		// 	new cards.Hand({faceUp:false, x:20}),
-		// 	new cards.Hand({faceUp:false, y:60}),
-		// 	new cards.Hand({faceUp:false, x:380}),
-		// ]
+	// Show a stack of cards in the middle of the table to make it look like a card game.
+	var table = "#card-table";
+	cards.init({table:table, cardsUrl:"/static/images/cards.png"});
+	var deck = new cards.Deck();
+	deck.addCards(cards.all);
+	deck.render({immediate:true});
 
-		// hands[0].addCard(new cards.Card('h', 5, table));
-		// hands[0].addCard(new cards.Card('h', 12, table));
-		// hands[0].addCard(new cards.Card('h', 13, table));
-		// hands[0].addCard(new cards.Card('h', 14, table));
-		// hands[0].render();
-	</script>
+	kaiser.init(id); // This starts polling and updating the game board.
+
+	// var hands = [
+	// 	new cards.Hand({faceUp:true, y:340}),
+	// 	new cards.Hand({faceUp:false, x:20}),
+	// 	new cards.Hand({faceUp:false, y:60}),
+	// 	new cards.Hand({faceUp:false, x:380}),
+	// ]
+
+	// hands[0].addCard(new cards.Card('h', 5, table));
+	// hands[0].addCard(new cards.Card('h', 12, table));
+	// hands[0].addCard(new cards.Card('h', 13, table));
+	// hands[0].addCard(new cards.Card('h', 14, table));
+	// hands[0].render();
+</script>
 {{end}}
