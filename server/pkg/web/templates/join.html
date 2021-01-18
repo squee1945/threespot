@@ -2,82 +2,81 @@
 
 {{define "card-table"}}
 
-		<div id="joining-0" class="joining joining-open" style="left:332px; top:457px; display:none;">
-			<form id="joining-0-form">
-				<h6>Seat available</h6>
-				<div><small><button>Join position</button></small></div>
-			</form>
-		</div>
-		<div id="joined-0" class="joining joining-filled" style="left:332px; top:457px; display:none;">
-			<h5></h5>
-		</div>
+        <div id="joining-0" class="joining joining-open" style="left:332px; top:457px; display:none;">
+            <form id="joining-0-form">
+                <h6>Seat available</h6>
+                <div><small><button>Join position</button></small></div>
+            </form>
+        </div>
+        <div id="joined-0" class="joining joining-filled" style="left:332px; top:457px; display:none;">
+            <h5></h5>
+        </div>
 
-		<div id="joining-1" class="joining joining-open" style="left:50px; top:260px; display:none;">
-			<form id="joining-1-form">
-				<h6>Seat available</h6>
-				<div><small><button>Join position</button></small></div>
-			</form>
-		</div>
-		<div id="joined-1" class="joining joining-filled" style="left:50px; top:260px; display:none;">
-			<h5></h5>
-		</div>
+        <div id="joining-1" class="joining joining-open" style="left:50px; top:260px; display:none;">
+            <form id="joining-1-form">
+                <h6>Seat available</h6>
+                <div><small><button>Join position</button></small></div>
+            </form>
+        </div>
+        <div id="joined-1" class="joining joining-filled" style="left:50px; top:260px; display:none;">
+            <h5></h5>
+        </div>
 
-		<div id="joining-2" class="joining joining-open" style="left:332px; top:90px; display:none;">
-			<form id="joining-2-form">
-				<h6>Seat available</h6>
-				<div><small><button>Join position</button></small></div>
-			</form>
-		</div>
-		<div id="joined-2" class="joining joining-filled" style="left:332px; top:90px; display:none;">
-			<h5></h5>
-		</div>
+        <div id="joining-2" class="joining joining-open" style="left:332px; top:90px; display:none;">
+            <form id="joining-2-form">
+                <h6>Seat available</h6>
+                <div><small><button>Join position</button></small></div>
+            </form>
+        </div>
+        <div id="joined-2" class="joining joining-filled" style="left:332px; top:90px; display:none;">
+            <h5></h5>
+        </div>
 
-		<div id="joining-3" class="joining joining-open" style="left:627px; top:264px; display:none;">
-			<form id="joining-3-form">
-				<h6>Seat available</h6>
-				<div><small><button>Join position</button></small></div>
-			</form>
-		</div>
-		<div id="joined-3" class="joining joining-filled" style="left:627px; top:264px; display:none;">
-			<h5></h5>
-		</div>
+        <div id="joining-3" class="joining joining-open" style="left:627px; top:264px; display:none;">
+            <form id="joining-3-form">
+                <h6>Seat available</h6>
+                <div><small><button>Join position</button></small></div>
+            </form>
+        </div>
+        <div id="joined-3" class="joining joining-filled" style="left:627px; top:264px; display:none;">
+            <h5></h5>
+        </div>
 
 {{end}}
 
 {{define "scripts"}}
 <script src="/static/scripts/join.js"></script>
 <script>
-	var id = "{{.ID}}";
-	server.init();
+    var id = "{{.ID}}";
+    server.init();
 
-	function updateScreen(joinState) {
-		for (var i = 0; i < 4; i++) {
-			if (joinState.PlayerNames[i] === "") {
-				$("#joining-" + i).show();
-				$("#joined-" + i).hide();
-			} else {
-				$("#joining-" + i).hide();
-		    	$("#joined-" + i + " h5").text("Welcome " +joinState.PlayerNames[i]);
-				$("#joined-" + i).show();
-			}
-		}
-	}
+    function repaint(joinState) {
+        for (let pos = 0; pos < 4; pos++) {
+            if (joinState.PlayerNames[pos] === "") {
+                $("#joining-" + pos).show();
+                $("#joined-" + pos).hide();
+            } else {
+                $("#joining-" + pos).hide();
+                $("#joined-" + pos + " h5").text("Welcome " +joinState.PlayerNames[pos]);
+                $("#joined-" + pos).show();
+            }
+        }
+    }
 
-	for (let i = 0; i < 4; i++) {
-		$("#joining-" + i).on("submit", function(event) {
-		    event.preventDefault();
-		    event.stopPropagation();
-		    let pos = i;
-		    server.joinGame(id, pos, function(joinState) {
-		    	if (joinState.State === "BIDDING") {
-		    		location.href = "/game/" + id;
-		    		return;
-		    	}
-		    	updateScreen(joinState);
-		    });
-		});
-	}
+    for (let pos = 0; pos < 4; pos++) {
+        $("#joining-" + pos).on("submit", function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            server.joinGame(id, pos, function(joinState) {
+                if (joinState.State === "BIDDING") {
+                    location.href = "/game/" + id;
+                    return;
+                }
+                repaint(joinState);
+            });
+        });
+    }
 
-	join.init(id, {repaint: updateScreen});
+    join.init(id, {repaint: repaint});
 </script>
 {{end}}

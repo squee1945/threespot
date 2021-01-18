@@ -16,7 +16,42 @@
 	deck.addCards(cards.all);
 	deck.render({immediate:true});
 
-	kaiser.init(id); // This starts polling and updating the game board.
+	function repaint(gameState) {
+		switch (gameState.State) {
+			case "BIDDING":
+				repaintBidding(gameState);
+				break;
+			case "CALLING":
+				repaintCalling(gameState);
+				break;
+			case "PLAYING":
+				repaintPlaying(gameState);
+				break;
+			case "COMPLETED":
+				repaintCompleted(gameState);
+				break;
+			default:
+				console.log("Unknown state '" + s + "'");
+		}
+	}
+
+	function repaintBidding(gameState) {
+		// TODO
+	}
+
+	function repaintCalling(gameState) {
+		// TODO
+	}
+
+	function repaintPlaying(gameState) {
+		// TODO
+	}
+
+	function repaintCompleted(gameState) {
+		// TODO
+	}
+
+	kaiser.init(id, {repaint: repaint}); // This starts polling and updating the game board.
 
 	// var hands = [
 	// 	new cards.Hand({faceUp:true, y:340}),
