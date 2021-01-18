@@ -4,8 +4,6 @@ var server = (function() {
         // alert is a callback function(xhr, status, errorThrown) to display an error.
         // If not specified, the builtin alert will be default.
         alert: null,
-        // maxPollSeconds is the length of time to poll with no updates before telling the user to refresh.
-        maxPollSeconds: 15 * 60,
     }
 
     function init(options) {
