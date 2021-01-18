@@ -58,8 +58,8 @@
 
 	    server.updateUser($("#username").val(), (user) => {
 	    	$("#username").text(user.Name);
+	        location.href = "/";
 	    });
-	    location.href = "/";
 	});
 
 	$("#new-game").on("submit", function(event) {

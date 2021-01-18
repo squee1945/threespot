@@ -100,7 +100,7 @@ func (s *ApiServer) GameState(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.sendGameState(ctx, w, id, g, player)
+	s.sendGameState(ctx, w, g, player)
 }
 
 func BuildGameState(g game.Game, player game.Player) (*GameStateResponse, error) {
@@ -192,7 +192,9 @@ func buildBiddingInfo(g game.Game, player game.Player, playerPos int) (*BiddingI
 		LeadBid:        g.CurrentBidding().LeadPos(),
 		BidsPlaced:     bidsToBidInfos(g.CurrentBidding().Bids()),
 		AvailableBids:  availableBids,
-		LastTrick:      cardsToStrings(g.LastTrick().Cards()),
+	}
+	if g.LastTrick() != nil {
+		info.LastTrick = cardsToStrings(g.LastTrick().Cards())
 	}
 	return info, nil
 }
@@ -236,8 +238,12 @@ func buildPlayingInfo(g game.Game, player game.Player, playerPos int) (*PlayingI
 		WinningBidPos:  winningBidPos,
 		Trump:          g.CurrentTrick().Trump().Encoded(),
 		PlayerHand:     cardsToStrings(playerHand.Cards()),
-		Trick:          cardsToStrings(g.CurrentTrick().Cards()),
-		LastTrick:      cardsToStrings(g.LastTrick().Cards()),
+	}
+	if g.CurrentTrick() != nil {
+		info.Trick = cardsToStrings(g.CurrentTrick().Cards())
+	}
+	if g.LastTrick() != nil {
+		info.LastTrick = cardsToStrings(g.LastTrick().Cards())
 	}
 	return info, nil
 }
@@ -248,9 +254,9 @@ func buildCompletedInfo(g game.Game, player game.Player) (*CompletedInfo, error)
 	if score[1] > score[0] {
 		winner = 2
 	}
-	info := &CompletedInfo{
-		WinningTeam: winner,
-		LastTrick:   cardsToStrings(g.LastTrick().Cards()),
+	info := &CompletedInfo{WinningTeam: winner}
+	if g.LastTrick() != nil {
+		info.LastTrick = cardsToStrings(g.LastTrick().Cards())
 	}
 	return info, nil
 }

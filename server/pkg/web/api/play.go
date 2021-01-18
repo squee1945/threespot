@@ -49,5 +49,5 @@ func (s *ApiServer) PlayCard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.sendGameState(ctx, w, req.ID, newG, player)
+	s.sendGameState(ctx, w, newG, player)
 }

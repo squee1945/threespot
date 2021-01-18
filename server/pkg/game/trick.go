@@ -76,6 +76,10 @@ var _ Trick = (*trick)(nil) // Ensure interface is implemented.
 // NewTrickFromEncoded returns a trick from the Encoded() form.
 func NewTrickFromEncoded(encoded string) (Trick, error) {
 	// "{leadPos}|{trump}|{card0}|{card1}|{card2}|{card3}"
+	if encoded == "" {
+		return nil, fmt.Errorf("empty string is not valid")
+	}
+
 	parts := strings.Split(encoded, "|")
 	if len(parts) < 2 {
 		return nil, fmt.Errorf("encoded string %q must have at least two parts", encoded)

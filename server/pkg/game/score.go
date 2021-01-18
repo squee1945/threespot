@@ -40,7 +40,7 @@ var _ Score = (*score)(nil) // Ensure interface is implemented.
 func NewScoreFromEncoded(encoded string) (Score, error) {
 	// "toWin-p02|p13||p02|p03||"
 	if encoded == "" {
-		return NewScore(), nil
+		encoded = "52-"
 	}
 
 	score := NewScore().(*score)
@@ -55,6 +55,10 @@ func NewScoreFromEncoded(encoded string) (Score, error) {
 		return nil, err
 	}
 	score.toWin = toWin
+
+	if topParts[1] == "" {
+		return score, nil
+	}
 
 	// Process the rest of encoded as a list of pairs.
 	pairs := strings.Split(topParts[1], "||")

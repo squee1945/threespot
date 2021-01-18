@@ -18,7 +18,7 @@ func TestNewBiddingRoundFromEncoded(t *testing.T) {
 	}{
 		{
 			name:    "empty string",
-			wantErr: true,
+			encoded: "0|",
 		},
 		{
 			name:    "lead pos not int",

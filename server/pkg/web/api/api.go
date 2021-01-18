@@ -29,6 +29,7 @@ type ApiServer struct {
 
 type errorResponse struct {
 	Error string
+	Code  string
 }
 
 func (s *ApiServer) lookupPlayer(ctx context.Context, w http.ResponseWriter, r *http.Request) game.Player {
@@ -62,15 +63,11 @@ func (s *ApiServer) lookupGame(ctx context.Context, w http.ResponseWriter, id st
 	return g
 }
 
-func (s *ApiServer) sendGameState(ctx context.Context, w http.ResponseWriter, id string, g game.Game, player game.Player) {
-	s.setGameStateVersion(ctx, id, g.Version())
-	// sendGameState(ctx, w, id, g, player)
-	// }
-
-	// func sendGameState(ctx context.Context, w http.ResponseWriter, id string, g game.Game, player game.Player) {
+func (s *ApiServer) sendGameState(ctx context.Context, w http.ResponseWriter, g game.Game, player game.Player) {
+	s.setGameStateVersion(ctx, g.ID(), g.Version())
 	state, err := BuildGameState(g, player)
 	if err != nil {
-		sendServerError(w, "building state: %v", err)
+		sendServerError(w, "building game state: %v", err)
 		return
 	}
 	log.Printf("Sending %#v\n", state)
@@ -80,26 +77,37 @@ func (s *ApiServer) sendGameState(ctx context.Context, w http.ResponseWriter, id
 	}
 }
 
-func genError(exposeMsg bool, format string, args ...interface{}) errorResponse {
-	errorID := "[errorID:" + util.RandString(10) + "]"
-	msg := fmt.Sprintf(format+" "+errorID, args...)
-	log.Printf(msg)
-	resp := errorResponse{Error: errorID}
-	if exposeMsg {
-		resp.Error = msg
+func (s *ApiServer) sendJoinState(ctx context.Context, w http.ResponseWriter, g game.Game) {
+	s.setGameStateVersion(ctx, g.ID(), g.Version())
+	state := BuildJoinState(g)
+	log.Printf("Sending %#v\n", state)
+	w.Header().Set("Etag", state.Version)
+	if err := sendResponse(w, state); err != nil {
+		sendServerError(w, "sending response: %v", err)
 	}
-	return resp
 }
 
 func sendUserError(w http.ResponseWriter, format string, args ...interface{}) {
-	resp := genError(true, format, args...)
+	msg := fmt.Sprintf(format, args...)
+	code := util.RandString(10)
+	resp := errorResponse{
+		Error: msg,
+		Code:  code,
+	}
+	log.Printf("User error [%s]: %v", code, msg)
 	if err := sendResponseStatus(w, resp, http.StatusBadRequest); err != nil {
 		sendServerError(w, "sending response: %v", err)
 	}
 }
 
 func sendServerError(w http.ResponseWriter, format string, args ...interface{}) {
-	resp := genError(false, format, args...)
+	msg := fmt.Sprintf(format, args...)
+	code := util.RandString(10)
+	resp := errorResponse{
+		Error: fmt.Sprintf("Internal error. Please try again. [%s]", code),
+		Code:  code,
+	}
+	log.Printf("Server error [%s]: %v", code, msg)
 	if err := sendResponseStatus(w, resp, http.StatusInternalServerError); err != nil {
 		log.Printf("Error response failed: %v", err)
 		w.WriteHeader(500)

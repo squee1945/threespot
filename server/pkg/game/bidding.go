@@ -47,7 +47,7 @@ var _ BiddingRound = (*biddingRound)(nil) // Ensure interface is implemented.
 func NewBiddingRoundFromEncoded(encoded string) (BiddingRound, error) {
 	// "{leadPos}|{bid0}|{bid1}|{bid2}|{bid3}"
 	if encoded == "" {
-		return nil, errors.New("empty string is invalid")
+		encoded = "0|"
 	}
 	parts := strings.Split(encoded, "|")
 	if len(parts) < 1 {

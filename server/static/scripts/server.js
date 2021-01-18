@@ -46,7 +46,7 @@ var server = (function() {
 		if (xhr.responseJSON != null) {
 			alert(xhr.responseJSON['Error']);
 		} else {
-			alert(Object.keys(xhr) + "\n" + errorThrown + " (status: " + status + ")");
+			alert(errorThrown);
 		}
 	}
 

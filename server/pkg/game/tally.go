@@ -28,8 +28,9 @@ var _ Tally = (*tally)(nil) // Ensure interface is implemented.
 
 // NewTallyFromEncoded builds a tally from the Encoded() form.
 func NewTallyFromEncoded(encoded string) (Tally, error) {
+	// "cardCount|points02|points13"
 	if encoded == "" {
-		return NewTally(), nil
+		encoded = "0|0|0"
 	}
 	parts := strings.Split(encoded, "|")
 	if len(parts) != 3 {
