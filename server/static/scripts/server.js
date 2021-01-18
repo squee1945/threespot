@@ -20,6 +20,17 @@ var server = (function() {
 		// // setTimeout(refreshGameState, this.pollingMs);
 	}
 
+	function joinState(id, done) {
+		$.ajax({
+			url: "/api/join-state/" + id,
+			type: "GET",
+			dataType: "json",
+			contentType: "application/json",
+		})
+		.done(done)
+		.fail(alertFailure);
+	}
+
 	function gameState(id, done) {
 		$.ajax({
 			url: "/api/state/" + id,
@@ -132,6 +143,7 @@ var server = (function() {
 	return {
 		init: init,
 		gameState: gameState,
+		joinState: joinState,
 		updateUser: updateUser,
 		newGame: newGame,
 		joinGame: joinGame,

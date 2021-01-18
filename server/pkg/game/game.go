@@ -129,7 +129,7 @@ func (g *game) State() GameState {
 	if g.playerCount() < 4 {
 		return JoiningState
 	}
-	if !g.currentBidding.IsDone() {
+	if g.currentBidding == nil || !g.currentBidding.IsDone() {
 		return BiddingState
 	}
 	if g.currentTrick == nil {

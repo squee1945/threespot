@@ -32,6 +32,7 @@ func main() {
 	http.HandleFunc("/api/user", apiServer.UpdateUser)
 	http.HandleFunc("/api/new", apiServer.NewGame)
 	http.HandleFunc("/api/join", apiServer.JoinGame)
+	http.HandleFunc("/api/join-state/", apiServer.JoinGameState)
 	http.HandleFunc("/api/bid", apiServer.PlaceBid)
 	http.HandleFunc("/api/trump", apiServer.CallTrump)
 	http.HandleFunc("/api/play", apiServer.PlayCard)
