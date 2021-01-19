@@ -470,6 +470,7 @@ func (g *game) playerCount() int {
 }
 
 func (g *game) save(ctx context.Context) (*game, error) {
+	g.updated = time.Now().UTC()
 	gs := storageFromGame(g)
 	if err := g.gameStore.Set(ctx, g.id, gs); err != nil {
 		return nil, fmt.Errorf("saving game: %v", err)

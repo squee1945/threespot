@@ -13,6 +13,8 @@ var (
 	comparePlayers = cmp.Comparer(func(p1, p2 Player) bool {
 		return p1 == nil && p2 == nil || (p1 != nil && p2 != nil && p1.ID() == p2.ID())
 	})
+
+	ignoreDates = cmpopts.IgnoreFields(storage.Game{}, "Created", "Updated")
 )
 
 func TestNewGame(t *testing.T) {
@@ -621,7 +623,7 @@ func TestPlaceBid(t *testing.T) {
 				t.Errorf("State()=%s want=%s", got, want)
 			}
 			gotGameStorage := storageFromGame(gotGame.(*game))
-			if diff := cmp.Diff(tc.want, gotGameStorage); diff != "" {
+			if diff := cmp.Diff(tc.want, gotGameStorage, ignoreDates); diff != "" {
 				t.Errorf("game storage mismatch (-want +got):\n%s", diff)
 			}
 		})
@@ -714,7 +716,7 @@ func TestCallTrump(t *testing.T) {
 				t.Errorf("State()=%s want=%s", got, want)
 			}
 			gotGameStorage := storageFromGame(gotGame.(*game))
-			if diff := cmp.Diff(tc.want, gotGameStorage); diff != "" {
+			if diff := cmp.Diff(tc.want, gotGameStorage, ignoreDates); diff != "" {
 				t.Errorf("game storage mismatch (-want +got):\n%s", diff)
 			}
 		})
@@ -909,7 +911,7 @@ func TestPlayCard(t *testing.T) {
 				t.Errorf("State()=%s want=%s", got, want)
 			}
 			gotGameStorage := storageFromGame(gotGame.(*game))
-			var opts []cmp.Option
+			opts := []cmp.Option{ignoreDates}
 			if tc.wantNewHand {
 				opts = append(opts, cmpopts.IgnoreFields(storage.Game{}, "CurrentHands"))
 
