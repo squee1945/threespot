@@ -19,6 +19,8 @@ type Bid interface {
 	IsNoTrump() bool
 	// IsPass returns true if the bid is a pass.
 	IsPass() bool
+	// Value() returns the numeric value of the bid (e.g., "7" and "7N" return 7).
+	Value() (int, error)
 }
 
 var (
@@ -53,6 +55,21 @@ var (
 		"BN": &bid{value: "BN"},
 		"C":  &bid{value: "C"},
 		"CN": &bid{value: "CN"},
+		// TODO: Kaiser bid
+	}
+	bidValueFromEncoded = map[string]int{
+		"7":  7,
+		"7N": 7,
+		"8":  8,
+		"8N": 8,
+		"9":  9,
+		"9N": 9,
+		"A":  10,
+		"AN": 10,
+		"B":  11,
+		"BN": 11,
+		"C":  12,
+		"CN": 12,
 		// TODO: Kaiser bid
 	}
 	orderedBids = []string{"P", "7", "7N", "8", "8N", "9", "9N", "A", "AN", "B", "BN", "C", "CN"}
@@ -96,6 +113,14 @@ func (b *bid) IsLessThan(other Bid) bool {
 
 func (b *bid) IsEqualTo(other Bid) bool {
 	return bidValue(b.Encoded()) == bidValue(other.Encoded())
+}
+
+func (b *bid) Value() (int, error) {
+	v, ok := bidValueFromEncoded[b.Encoded()]
+	if !ok {
+		return 0, fmt.Errorf("unknown bid value for %q", b.Encoded())
+	}
+	return v, nil
 }
 
 func nextBidValues(bids []Bid, isDealer bool) []Bid {

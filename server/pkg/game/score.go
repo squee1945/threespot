@@ -26,7 +26,7 @@ type Score interface {
 	CurrentScore() []int
 
 	// addTally adds a tally to the score. An error is returned if the tally is not done.
-	addTally(Tally) error
+	addTally(BiddingRound, Tally) error
 }
 
 type score struct {
@@ -114,19 +114,51 @@ func (s *score) CurrentScore() []int {
 	return s.scores[len(s.scores)-1]
 }
 
-func (s *score) addTally(tally Tally) error {
+func (s *score) addTally(br BiddingRound, tally Tally) error {
 	if !tally.IsDone() {
 		return errors.New("tally is not done")
 	}
 
-	points02, points13 := tally.Points()
+	bid, pos, err := br.WinningBidAndPos()
+	if err != nil {
+		return err
+	}
 
-	// Keep a running score.
-	last02, last03 := 0, 0
+	last02, last13 := 0, 0
 	if len(s.scores) > 0 {
 		last := s.scores[len(s.scores)-1]
-		last02, last03 = last[0], last[1]
+		last02, last13 = last[0], last[1]
 	}
-	s.scores = append(s.scores, []int{last02 + points02, last03 + points13})
+
+	bidValue, err := bid.Value()
+	if err != nil {
+		return err
+	}
+
+	multiplier := 1
+	if bid.IsNoTrump() {
+		multiplier = 2
+	}
+
+	points02, points13 := tally.Points()
+	sc := make([]int, 2)
+	if pos == 0 || pos == 2 {
+		// Team02 made the bid.
+		if points02 >= bidValue {
+			sc[0] = last02 + (points02 * multiplier)
+		} else {
+			sc[0] = last02 - (bidValue * multiplier)
+		}
+		sc[1] = last13 + points13
+	} else {
+		// Team13 made the bid.
+		if points13 >= bidValue {
+			sc[1] = last13 + (points13 * multiplier)
+		} else {
+			sc[1] = last13 - (bidValue * multiplier)
+		}
+		sc[0] = last02 + points02
+	}
+	s.scores = append(s.scores, sc)
 	return nil
 }

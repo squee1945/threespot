@@ -847,12 +847,12 @@ func TestPlayCard(t *testing.T) {
 			card: "AC",
 			want: &storage.Game{
 				PlayerIDs:        pids,
-				CurrentHands:     "",        // New shuffle
-				CurrentDealerPos: 0,         // Dealer position moves to the left.
-				CurrentBidding:   "1|",      // Bidding resets, starting with position to left of dealer.
-				CurrentTrick:     "",        // New hand.
-				CurrentTally:     "0|0|0",   // Tally resets.
-				Score:            "52-10|0", // Score added from tally.
+				CurrentHands:     "",         // New shuffle
+				CurrentDealerPos: 0,          // Dealer position moves to the left.
+				CurrentBidding:   "1|",       // Bidding resets, starting with position to left of dealer.
+				CurrentTrick:     "",         // New hand.
+				CurrentTally:     "0|0|0",    // Tally resets.
+				Score:            "52-10|-7", // Score added from tally.
 				LastTrick:        "3|H|AD|AH|AS|AC",
 			},
 			wantState:   BiddingState,
@@ -864,7 +864,7 @@ func TestPlayCard(t *testing.T) {
 				PlayerIDs:        pids,
 				CurrentHands:     "++AC+",
 				CurrentDealerPos: 3,
-				CurrentBidding:   "0|P|P|P|7",
+				CurrentBidding:   "0|P|P|7|P",
 				CurrentTrick:     "3|H|AD|AH|AS",
 				CurrentTally:     "7|9|0",
 				Score:            "52-50|0", // Score is close to completion.
@@ -876,7 +876,7 @@ func TestPlayCard(t *testing.T) {
 				PlayerIDs:        pids,
 				CurrentHands:     "+++",             // Hands are empty.
 				CurrentDealerPos: 3,                 // Dealer position does not update.
-				CurrentBidding:   "0|P|P|P|7",       // Bidding does not clear.
+				CurrentBidding:   "0|P|P|7|P",       // Bidding does not clear.
 				CurrentTrick:     "3|H|AD|AH|AS|AC", // Trick does not clear.
 				CurrentTally:     "8|10|0",          // Tally does not clear.
 				Score:            "52-50|0||60|0",   // Score added from tally.

@@ -402,7 +402,7 @@ func (g *game) PlayCard(ctx context.Context, player Player, card deck.Card) (Gam
 			if g.score == nil {
 				g.score = NewScore()
 			}
-			if err := g.score.addTally(g.currentTally); err != nil {
+			if err := g.score.addTally(g.currentBidding, g.currentTally); err != nil {
 				return nil, err
 			}
 

@@ -112,14 +112,14 @@ func TestScoreSetTopScore62(t *testing.T) {
 
 func TestScoreScores(t *testing.T) {
 	score := NewScore()
-	score.addTally(buildTally(t, 8, 1, 2))
-	score.addTally(buildTally(t, 8, 3, 4))
-	score.addTally(buildTally(t, 8, 5, 6))
+	score.addTally(buildBiddingRound(t, "0|7|P|P|P"), buildTally(t, 8, 7, 3))
+	score.addTally(buildBiddingRound(t, "0|7|P|P|P"), buildTally(t, 8, 8, 2))
+	score.addTally(buildBiddingRound(t, "0|7|P|P|P"), buildTally(t, 8, 9, 1))
 	// Check that we're keeping a running score.
 	want := [][]int{
-		{1, 2},
-		{4, 6},
-		{9, 12},
+		{7, 3},
+		{15, 5},
+		{24, 6},
 	}
 	if diff := cmp.Diff(want, score.Scores()); diff != "" {
 		t.Errorf("score.Scores() mismatch (-want +got):\n%s", diff)
@@ -129,6 +129,7 @@ func TestScoreScores(t *testing.T) {
 func TestScoreCurrentScore(t *testing.T) {
 	testCases := []struct {
 		name    string
+		bids    []string
 		tallies [][]int
 		want    []int
 	}{
@@ -138,26 +139,35 @@ func TestScoreCurrentScore(t *testing.T) {
 		},
 		{
 			name:    "one entry",
-			tallies: [][]int{{1, 2}},
-			want:    []int{1, 2},
+			tallies: [][]int{{9, 1}},
+			bids:    []string{"0|7|P|P|P"},
+			want:    []int{9, 1},
 		},
 		{
 			name: "multiple tallies, current is running total",
-			tallies: [][]int{
-				{1, 2},
-				{3, 4},
-				{-3, 6},
+			bids: []string{
+				"0|7|P|P|P",
+				"0|7|P|P|P",
+				"0|7|P|P|P",
 			},
-			want: []int{1, 12},
+			tallies: [][]int{
+				{7, 3},
+				{8, 2},
+				{10, -2},
+			},
+			want: []int{25, 3},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			if len(tc.bids) != len(tc.tallies) {
+				t.Fatalf("bids and tallies must be same length")
+			}
 			score := NewScore()
-			for _, s := range tc.tallies {
-				tally := buildTally(t, 8, s[0], s[1])
-				if err := score.addTally(tally); err != nil {
+			for i := range tc.tallies {
+				tally := buildTally(t, 8, tc.tallies[i][0], tc.tallies[i][1])
+				if err := score.addTally(buildBiddingRound(t, tc.bids[i]), tally); err != nil {
 					t.Fatal(err)
 				}
 			}
@@ -172,51 +182,75 @@ func TestScoreCurrentScore(t *testing.T) {
 func TestScoreAddTally(t *testing.T) {
 	testCases := []struct {
 		name    string
-		tallies []Tally
+		bid     string
+		tally   Tally
 		want    []int
 		wantErr bool
 	}{
 		{
-			name:    "zero tallies",
-			tallies: []Tally{},
-			want:    []int{0, 0},
+			name:  "team02 makes bid",
+			bid:   "0|P|P|9|P",
+			tally: buildTally(t, 8, 9, 1),
+			want:  []int{9, 1},
 		},
 		{
-			name:    "one tally",
-			tallies: []Tally{buildTally(t, 8, 1, 2)},
-			want:    []int{1, 2},
+			name:  "team02 misses bid",
+			bid:   "0|P|P|9|P",
+			tally: buildTally(t, 8, 8, 1),
+			want:  []int{-9, 1},
 		},
 		{
-			name: "mulitple tallies",
-			tallies: []Tally{
-				buildTally(t, 8, 1, 2),
-				buildTally(t, 8, -3, 12),
-			},
-			want: []int{-2, 14},
+			name:  "team02 makes no trump bid",
+			bid:   "0|P|P|9N|P",
+			tally: buildTally(t, 8, 10, 0),
+			want:  []int{20, 0},
 		},
 		{
-			name:    "incomplete tally",
-			tallies: []Tally{buildTally(t, 7, 1, 2)}, // 7 is incomplete
-			wantErr: true,
+			name:  "team02 misses no trump bid",
+			bid:   "0|P|P|9N|P",
+			tally: buildTally(t, 8, 8, 2),
+			want:  []int{-18, 2},
+		},
+		{
+			name:  "team13 makes bid",
+			bid:   "0|P|9|P|P",
+			tally: buildTally(t, 8, 1, 9),
+			want:  []int{1, 9},
+		},
+		{
+			name:  "team13 misses bid",
+			bid:   "0|P|9|P|P",
+			tally: buildTally(t, 8, 1, 8),
+			want:  []int{1, -9},
+		},
+		{
+			name:  "team13 makes no trump bid",
+			bid:   "0|P|9N|P|P",
+			tally: buildTally(t, 8, 0, 10),
+			want:  []int{0, 20},
+		},
+		{
+			name:  "team13 misses no trump bid",
+			bid:   "0|P|9N|P|P",
+			tally: buildTally(t, 8, 2, 8),
+			want:  []int{2, -18},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			score := NewScore()
-			for _, tally := range tc.tallies {
 
-				err := score.addTally(tally)
+			err := score.addTally(buildBiddingRound(t, tc.bid), tc.tally)
 
-				if tc.wantErr && err == nil {
-					t.Fatal("missing expected error")
-				}
-				if !tc.wantErr && err != nil {
-					t.Fatalf("unexpected error: %v", err)
-				}
-				if tc.wantErr {
-					return
-				}
+			if tc.wantErr && err == nil {
+				t.Fatal("missing expected error")
+			}
+			if !tc.wantErr && err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if tc.wantErr {
+				return
 			}
 
 			if diff := cmp.Diff(tc.want, score.CurrentScore()); diff != "" {

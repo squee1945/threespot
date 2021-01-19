@@ -153,10 +153,8 @@ func TestBiddingRoundIsDoneAndNumPlaced(t *testing.T) {
 	}
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("case %d", i), func(t *testing.T) {
-			br, err := NewBiddingRoundFromEncoded(tc.encoded)
-			if err != nil {
-				t.Fatal(err)
-			}
+			br := buildBiddingRound(t, tc.encoded)
+
 			if got, want := br.IsDone(), tc.wantIsDone; got != want {
 				t.Errorf("IsDone()=%t want=%t", got, want)
 			}
@@ -208,12 +206,9 @@ func TestBiddingRoundPlaceBid(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			br, err := NewBiddingRoundFromEncoded(tc.encoded)
-			if err != nil {
-				t.Fatal(err)
-			}
+			br := buildBiddingRound(t, tc.encoded)
 
-			err = br.placeBid(tc.playerPos, tc.bid)
+			err := br.placeBid(tc.playerPos, tc.bid)
 
 			if tc.wantErr != nil && err == nil {
 				t.Fatal("missing expected error")
@@ -236,12 +231,9 @@ func TestBiddingRoundPlaceBid(t *testing.T) {
 }
 func TestBiddingRoundCurrentTurnPosErrors(t *testing.T) {
 	encoded := "0|P|P|P|7"
-	br, err := NewBiddingRoundFromEncoded(encoded)
-	if err != nil {
-		t.Fatal(err)
-	}
+	br := buildBiddingRound(t, encoded)
 
-	_, err = br.CurrentTurnPos()
+	_, err := br.CurrentTurnPos()
 	if err == nil {
 		t.Errorf("missing expected error")
 	}
@@ -272,10 +264,7 @@ func TestBiddingRoundCurrentTurnPos(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			br, err := NewBiddingRoundFromEncoded(tc.encoded)
-			if err != nil {
-				t.Fatal(err)
-			}
+			br := buildBiddingRound(t, tc.encoded)
 
 			got, err := br.CurrentTurnPos()
 			if err != nil {
@@ -290,19 +279,15 @@ func TestBiddingRoundCurrentTurnPos(t *testing.T) {
 }
 
 func TestBiddingRoundWinningBidAndPosErrors(t *testing.T) {
-	br, err := NewBiddingRoundFromEncoded("0|P") // Bidding not done.
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, _, err = br.WinningBidAndPos()
+	br := buildBiddingRound(t, "0|P") // Bidding not done.
+
+	_, _, err := br.WinningBidAndPos()
 	if err == nil {
 		t.Errorf("missing expected error for incomplete bidding")
 	}
 
-	br, err = NewBiddingRoundFromEncoded("0|P|P|P|P") // Bidding not done.
-	if err != nil {
-		t.Fatal(err)
-	}
+	br = buildBiddingRound(t, "0|P|P|P|P") // Bidding done.
+
 	_, _, err = br.WinningBidAndPos()
 	if err == nil {
 		t.Errorf("missing expected error for all passes")
@@ -323,10 +308,7 @@ func TestBiddingRoundWinningBidAndPos(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.encoded, func(t *testing.T) {
-			br, err := NewBiddingRoundFromEncoded(tc.encoded)
-			if err != nil {
-				t.Fatal(err)
-			}
+			br := buildBiddingRound(t, tc.encoded)
 
 			bid, pos, err := br.WinningBidAndPos()
 			if err != nil {
@@ -341,4 +323,12 @@ func TestBiddingRoundWinningBidAndPos(t *testing.T) {
 			}
 		})
 	}
+}
+
+func buildBiddingRound(t *testing.T, encoded string) BiddingRound {
+	br, err := NewBiddingRoundFromEncoded(encoded)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return br
 }
