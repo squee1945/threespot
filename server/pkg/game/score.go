@@ -140,12 +140,14 @@ func (s *score) addTally(br BiddingRound, tally Tally) error {
 		multiplier = 2
 	}
 
+	madeBid := false
 	points02, points13 := tally.Points()
 	sc := make([]int, 2)
 	if pos == 0 || pos == 2 {
 		// Team02 made the bid.
 		if points02 >= bidValue {
 			sc[0] = last02 + (points02 * multiplier)
+			madeBid = true
 		} else {
 			sc[0] = last02 - (bidValue * multiplier)
 		}
@@ -154,11 +156,17 @@ func (s *score) addTally(br BiddingRound, tally Tally) error {
 		// Team13 made the bid.
 		if points13 >= bidValue {
 			sc[1] = last13 + (points13 * multiplier)
+			madeBid = true
 		} else {
 			sc[1] = last13 - (bidValue * multiplier)
 		}
 		sc[0] = last02 + points02
 	}
 	s.scores = append(s.scores, sc)
+
+	if multiplier == 2 && madeBid {
+		s.setTopScore62()
+	}
+
 	return nil
 }
