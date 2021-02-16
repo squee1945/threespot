@@ -17,17 +17,17 @@ type BidInfo struct {
 type JoiningInfo struct{}
 
 type BiddingInfo struct {
-	PositionToPlay int
-	DealerPosition int
-	PlayerHand     []string
-	LeadBid        int
-	BidsPlaced     []BidInfo
-	AvailableBids  []BidInfo
-	LastTrick      []string
+	PositionToPlay  int
+	DealerPosition  int      // last bidder
+	PlayerHand      []string // own hand
+	LeadBidPosition int
+	BidsPlaced      []BidInfo
+	AvailableBids   []BidInfo
+	LastTrick       []string
 }
 
 type CallingInfo struct {
-	PositionToPlay int
+	PositionToPlay int // who's current turn
 	DealerPosition int
 	WinningBid     BidInfo
 }
@@ -53,7 +53,7 @@ type GameStateResponse struct {
 	Version string
 	State   string // "JOINING", "BIDDING", "CALLING", "PLAYING", "COMPLETED"
 
-	PlayerPosition int
+	PlayerPosition int // player's original position
 	PlayerNames    []string
 	Score          [][]int
 	CurrentScore   []int
@@ -186,12 +186,12 @@ func buildBiddingInfo(g game.Game, player game.Player, playerPos int) (*BiddingI
 	}
 
 	info := &BiddingInfo{
-		PositionToPlay: positionToPlay,
-		DealerPosition: g.DealerPos(),
-		PlayerHand:     cardsToStrings(playerHand.Cards()),
-		LeadBid:        g.CurrentBidding().LeadPos(),
-		BidsPlaced:     bidsToBidInfos(g.CurrentBidding().Bids()),
-		AvailableBids:  availableBids,
+		PositionToPlay:  positionToPlay,
+		DealerPosition:  g.DealerPos(),
+		PlayerHand:      cardsToStrings(playerHand.Cards()),
+		LeadBidPosition: g.CurrentBidding().LeadPos(),
+		BidsPlaced:      bidsToBidInfos(g.CurrentBidding().Bids()),
+		AvailableBids:   availableBids,
 	}
 	if g.LastTrick() != nil {
 		info.LastTrick = cardsToStrings(g.LastTrick().Cards())

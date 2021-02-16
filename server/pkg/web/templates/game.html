@@ -1,7 +1,44 @@
 {{template "game" .}}
 
 {{define "card-table"}}
+
+	<div id="bidding">
+		<div id="bidding-0" class="joining joining-open" style="left:332px; top:457px; display:none;">
+            <form id="bidding-0-form">
+                <h6>Pick your bid</h6>
+                <div><small id="bid-buttons"></small></div>
+            </form>
+        </div>
+        <div id="bid-0" class="joining joining-filled" style="left:332px; top:457px; display:none;">
+            <h5></h5>
+        </div>
+
+       
+        <div id="bid-1" class="joining joining-filled" style="left:50px; top:260px; display:none;">
+            <h5></h5>
+        </div>
+
+       
+        <div id="bid-2" class="joining joining-filled" style="left:332px; top:90px; display:none;">
+            <h5></h5>
+        </div>
+
+        <div id="bid-3" class="joining joining-filled" style="left:627px; top:264px; display:none;">
+            <h5></h5>
+        </div>
+	</div>
+
+	<div id="calling">
+	</div>
+
+	<div id="playing">
+	</div>
+
+	<div id="completed">
+	</div>
+
 {{end}}
+
 
 {{define "scripts"}}
 <script src="/static/scripts/kaiser.js"></script>
@@ -37,7 +74,40 @@
 
 	function repaintBidding(gameState) {
 		// TODO
-	}
+		$("#bidding").show();
+		$("#calling").hide();
+		$("#playing").hide();
+		$("#completed").hide();
+		//turn off all panels that show bids
+		for (let pos = 0; pos < 4; pos++) {
+                 $("#bidding-" + pos).hide();
+                 $("#bid-" + pos).hide();
+        }
+        //show bids that have been placed
+        console.log("showing placed bids");
+        if(gameState.BiddingInfo.BidsPlaced != null) {
+	        for(let i = 0;  i < gameState.BiddingInfo.BidsPlaced.length; i++) {
+	        	let panel = kaiser.panelForPos(gameState, gameState.BiddingInfo.LeadBidPosition + i);
+	        	$("#bid-" + panel + " h5").text(gameState.BiddingInfo.BidsPlaced[i].Human);
+	        	$("#bid-" + panel).show();
+	        }
+    	}
+        //show bidding panel when your turn to bid
+        if(gameState.PlayerPosition == gameState.BiddingInfo.PositionToPlay){
+        	let panel = kaiser.panelForPos(gameState, gameState.PlayerPosition);
+        	$("#bid-buttons").clear();
+        	if(gameState.BiddingInfo.AvailableBids != null) {
+	        	for(let i = 0;  i < gameState.BiddingInfo.AvailableBids.length; i++) {
+	        		$("#bid-buttons").append(
+	        			//create button tag
+	        			$('<button/>').text(gameState.BiddingInfo.AvailableBids[i].Human).click(function () { alert('hi'); })
+	        		);
+	        	}
+        	}
+        	$("#bidding-" + panel).show();
+        }
+    }
+
 
 	function repaintCalling(gameState) {
 		// TODO
