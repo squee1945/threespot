@@ -51,6 +51,10 @@
     server.init();
 
     function repaint(joinState) {
+        if (joinState.State === "BIDDING") {
+            location.href = "/game/" + id;
+            return;
+        }
         for (let pos = 0; pos < 4; pos++) {
             if (joinState.PlayerNames[pos] === "") {
                 $("#joining-" + pos).show();
@@ -68,10 +72,6 @@
             event.preventDefault();
             event.stopPropagation();
             server.joinGame(id, pos, function(joinState) {
-                if (joinState.State === "BIDDING") {
-                    location.href = "/game/" + id;
-                    return;
-                }
                 repaint(joinState);
             });
         });
