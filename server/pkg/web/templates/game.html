@@ -1,10 +1,10 @@
 {{template "game" .}}
 
 {{define "card-table"}}
-    <div id="bidding-0" class="joining bidding" style="left:116px; top:300px; display:none;">
+    <div id="bidding-0" class="joining bidding" style="left:116px; top:245px; display:none;">
         <form id="bidding-0-form">
             <h5>Pick your bid</h5>
-            <div><small id="bid-buttons"></small></div>
+            <div id="bid-buttons"></div>
         </form>
     </div>
     <div id="calling-0" class="joining bidding" style="left:116px; top:300px; display:none;">
@@ -268,7 +268,7 @@
             $("#last-trick").hide();
             return
         }
-        
+
         $("#last-trick").show();
 
         let cardPosition = [

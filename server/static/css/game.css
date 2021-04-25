@@ -148,11 +148,14 @@ footer a:hover {
 
 .bidding {
 	width: 550px;
+	height: 128px;
 	background: #DDCC00;
 }
 
 .bidding button {
 	width: auto;
+	height: 30px;
+	font-size: 24px;
 	text-align: center;
 	font-weight: bold;
 	margin-right: 2px;
