@@ -122,3 +122,120 @@ footer a:hover {
 
 .joining-filled {
 }
+
+.name-plate {
+	position: absolute;
+	font-weight: bold;
+}
+
+.info-plate {
+	position: absolute;
+	font-weight: bold;
+	font-size: smaller;
+}
+
+.info-plate ul {
+	list-style-type: none;
+  	margin: 0;
+  	padding: 0;
+}
+
+.trump-plate {
+	position: absolute;
+	font-weight: bold;
+	font-size: 48px;
+}
+
+.bidding {
+	width: 550px;
+	background: #DDCC00;
+}
+
+.bidding button {
+	width: auto;
+	text-align: center;
+	font-weight: bold;
+	margin-right: 2px;
+}
+
+.other-bid {
+	font-size: 24px;
+	font-weight: bold;
+	text-align: center;
+	background: #DDCC00;
+}
+
+#last-trick {
+	border: 1px solid black;
+	background: #DDCC00;
+	font-size: 11px;
+	font-weight: bold;
+	padding: 3px;
+}
+
+#trick-tally th {
+	border-bottom: 1px solid black;
+}
+
+#trick-tally td {
+	font-size: 18px;
+}
+
+#score {
+	border: 1px solid black;
+	background: #DDCC00;
+	font-size: 11px;
+	font-weight: bold;
+	padding: 3px;
+}
+
+#score th {
+	border-bottom: 1px solid black;
+}
+
+#score td {
+	font-size: 18px;
+	text-align: right;
+}
+
+.to-bid {
+	background-color: white;
+}
+
+#trump-buttons button {
+	font-size: 24px;
+	font-weight: bold;
+	height: 34px;
+}
+
+.lead-card {
+	border: 2px solid red;
+}
+
+#score-detail {
+	border: 2px solid black;
+	background-color: white;
+	z-index: 1000;
+	font-size: 18px;
+	font-weight: bold;
+	padding: 4px;
+}
+
+#score-detail th {
+	border-bottom: 1px solid black;
+}
+
+#score-detail td {
+	text-align: right;
+}
+
+#score-detail tbody {
+  display:block;
+  overflow:auto;
+  height:320px;
+  width:100%;
+}
+
+#score-detail thead tr {
+  display:block;
+}

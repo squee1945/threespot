@@ -22,6 +22,7 @@ type Game interface {
 	PlayerPos(player Player) (int, error)
 	DealerPos() int
 	PosToPlay() (int, error)
+	Tally() Tally
 
 	CurrentBidding() BiddingRound
 	CurrentTrick() Trick
@@ -186,6 +187,10 @@ func (g *game) PosToPlay() (int, error) {
 		return pos, nil
 	}
 	return 0, fmt.Errorf("no one plays in %s state", g.State())
+}
+
+func (g *game) Tally() Tally {
+	return g.currentTally
 }
 
 func (g *game) Score() Score {

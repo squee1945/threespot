@@ -45,7 +45,7 @@ func (s *ApiServer) PlayCard(w http.ResponseWriter, r *http.Request) {
 
 	newG, err := g.PlayCard(ctx, player, card)
 	if err != nil {
-		sendServerError(w, "playing card: %v", err)
+		sendUserError(w, "playing card: %v", err)
 		return
 	}
 

@@ -108,7 +108,8 @@ var cards = (function() {
         height: opt.cardSize.height,
         "background-image": 'url(' + opt.cardsUrl + ')',
         position: 'absolute',
-        cursor: 'pointer'
+        cursor: 'pointer',
+        display: 'none'
       }).addClass('card').data('card', this).appendTo($(table));
       this.showCard();
       this.moveToFront();
@@ -118,12 +119,26 @@ var cards = (function() {
       return this.name;
     },
 
-    moveTo: function(x, y, speed, callback) {
+    props: function(x, y) {
       var props = {
         top: y - (opt.cardSize.height / 2),
         left: x - (opt.cardSize.width / 2)
       };
-      $(this.el).animate(props, speed || opt.animationSpeed, callback);
+      return props;
+    },
+
+    moveTo: function(x, y, speed, callback) {
+      $(this.el).animate(this.props(x, y), speed || opt.animationSpeed, callback);
+    },
+
+    setPosition: function(x, y) {
+      $(this.el).css(this.props(x, y));
+    },
+
+    scale: function(percentage) {
+      $(this.el).css({
+        transform: 'scale(' + percentage + ')'
+      });
     },
 
     rotate: function(angle) {
@@ -133,6 +148,10 @@ var cards = (function() {
         .css('-ms-transform', 'rotate(' + angle + 'deg)')
         .css('transform', 'rotate(' + angle + 'deg)')
         .css('-o-transform', 'rotate(' + angle + 'deg)');
+    },
+
+    makeVisible: function() {
+      $(this.el).css('display', '');
     },
 
     showCard: function() {

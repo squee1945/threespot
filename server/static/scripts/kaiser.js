@@ -50,18 +50,18 @@ var kaiser = (function() {
         return _state;
     }
 
-    function panelForPos(gameState, pos) {
-        for (let i = 0; i < 4; i++) {
-            if ((gameSate.playerPosition + 4 + i) % 4 == pos) {
-                return i;
-            }
-        }
-    }
+    // function panelForPos(gameState, pos) {
+    //     for (let i = 0; i < 4; i++) {
+    //         if ((gameSate.playerPosition + 4 + i) % 4 == pos) {
+    //             return i;
+    //         }
+    //     }
+    // }
 
     return {
         init: init,
         state: state,
-        pnaelForPos: panelForPos,
+        // pnaelForPos: panelForPos,
     };
 })();
 

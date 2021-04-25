@@ -17,30 +17,39 @@ type BidInfo struct {
 type JoiningInfo struct{}
 
 type BiddingInfo struct {
-	PositionToPlay  int
-	DealerPosition  int      // last bidder
-	PlayerHand      []string // own hand
-	LeadBidPosition int
-	BidsPlaced      []BidInfo
-	AvailableBids   []BidInfo
-	LastTrick       []string
+	PositionToPlay        int
+	DealerPosition        int      // last bidder
+	PlayerHand            []string // own hand
+	LeadBidPosition       int
+	BidsPlaced            []BidInfo
+	AvailableBids         []BidInfo
+	LastTrick             []string
+	LastTrickLeadPosition int
 }
 
 type CallingInfo struct {
-	PositionToPlay int // who's current turn
-	DealerPosition int
-	WinningBid     BidInfo
+	PositionToPlay        int // who's current turn
+	DealerPosition        int
+	WinningBid            BidInfo
+	LeadBidPosition       int
+	BidsPlaced            []BidInfo
+	PlayerHand            []string // own hand
+	LastTrick             []string
+	LastTrickLeadPosition int
 }
 
 type PlayingInfo struct {
-	PositionToPlay int
-	DealerPosition int
-	WinningBid     BidInfo
-	WinningBidPos  int
-	Trump          string
-	PlayerHand     []string
-	Trick          []string
-	LastTrick      []string
+	PositionToPlay        int
+	DealerPosition        int
+	WinningBid            BidInfo
+	WinningBidPosition    int
+	Trump                 string
+	PlayerHand            []string
+	Trick                 []string
+	TrickLeadPosition     int
+	LastTrick             []string
+	LastTrickLeadPosition int
+	TrickTally            []int
 }
 
 type CompletedInfo struct {
@@ -195,6 +204,7 @@ func buildBiddingInfo(g game.Game, player game.Player, playerPos int) (*BiddingI
 	}
 	if g.LastTrick() != nil {
 		info.LastTrick = cardsToStrings(g.LastTrick().Cards())
+		info.LastTrickLeadPosition = g.LastTrick().LeadPos()
 	}
 	return info, nil
 }
@@ -208,11 +218,22 @@ func buildCallingInfo(g game.Game, player game.Player, playerPos int) (*CallingI
 	if err != nil {
 		return nil, err
 	}
+	playerHand, err := g.PlayerHand(player)
+	if err != nil {
+		return nil, err
+	}
 
 	info := &CallingInfo{
-		PositionToPlay: positionToPlay,
-		DealerPosition: g.DealerPos(),
-		WinningBid:     bidToBidInfo(winningBid),
+		PositionToPlay:  positionToPlay,
+		DealerPosition:  g.DealerPos(),
+		WinningBid:      bidToBidInfo(winningBid),
+		LeadBidPosition: g.CurrentBidding().LeadPos(),
+		BidsPlaced:      bidsToBidInfos(g.CurrentBidding().Bids()),
+		PlayerHand:      cardsToStrings(playerHand.Cards()),
+	}
+	if g.LastTrick() != nil {
+		info.LastTrick = cardsToStrings(g.LastTrick().Cards())
+		info.LastTrickLeadPosition = g.LastTrick().LeadPos()
 	}
 	return info, nil
 }
@@ -230,20 +251,24 @@ func buildPlayingInfo(g game.Game, player game.Player, playerPos int) (*PlayingI
 	if err != nil {
 		return nil, err
 	}
+	tally02, tally13 := g.Tally().Points()
 
 	info := &PlayingInfo{
-		PositionToPlay: positionToPlay,
-		DealerPosition: g.DealerPos(),
-		WinningBid:     bidToBidInfo(winningBid),
-		WinningBidPos:  winningBidPos,
-		Trump:          g.CurrentTrick().Trump().Encoded(),
-		PlayerHand:     cardsToStrings(playerHand.Cards()),
+		PositionToPlay:     positionToPlay,
+		DealerPosition:     g.DealerPos(),
+		WinningBid:         bidToBidInfo(winningBid),
+		WinningBidPosition: winningBidPos,
+		TrickLeadPosition:  g.CurrentTrick().LeadPos(),
+		Trump:              g.CurrentTrick().Trump().Encoded(),
+		PlayerHand:         cardsToStrings(playerHand.Cards()),
+		TrickTally:         []int{tally02, tally13},
 	}
 	if g.CurrentTrick() != nil {
 		info.Trick = cardsToStrings(g.CurrentTrick().Cards())
 	}
 	if g.LastTrick() != nil {
 		info.LastTrick = cardsToStrings(g.LastTrick().Cards())
+		info.LastTrickLeadPosition = g.LastTrick().LeadPos()
 	}
 	return info, nil
 }

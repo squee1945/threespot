@@ -1,6 +1,6 @@
 runtime: go111
 
-main: cmd
+main: github.com/squee1945/threespot/server/cmd
 
 automatic_scaling:
   max_concurrent_requests: 80
