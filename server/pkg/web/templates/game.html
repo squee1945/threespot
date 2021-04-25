@@ -124,80 +124,6 @@
         showScore(gameState);
     }
 
-    function makeCard(serverCard) {
-        let rankStr = serverCard.substr(0, 1);
-        let rank = 0;
-        switch(rankStr) {
-            case "A":
-                rank = 1;
-                break;
-            case "K":
-                rank = 13;
-                break;
-            case "Q":
-                rank = 12;
-                break;
-            case "J":
-                rank = 11;
-                break;
-            case "T":
-                rank = 10;
-                break;
-            default:
-                rank = parseInt(rankStr, 10);
-        }
-        let suit = serverCard.substr(1, 1).toLowerCase();
-        return new cards.Card(suit, rank, table);
-    }
-
-    function makeServerCard(card) {
-        let suit = card.suit.toUpperCase();
-        let rank = card.rank;
-        switch (card.rank) {
-            case 1:
-            case 14:
-                rank = "A";
-                break;
-            case 13:
-                rank = "K";
-                break;
-            case 12:
-                rank = "Q";
-                break;
-            case 11:
-                rank = "J";
-                break;
-            case 10:
-                rank = "T";
-                break;
-        }
-        return "" + rank + suit;
-    }
-
-    function makeOpponentCard() {
-        return new cards.Card('rj', 0, table);
-    }
-
-    function rotate(gameState, pos) {
-        // Returns the rotated position, such that the local player is index 0.
-        return (pos - gameState.PlayerPosition + 4) % 4;
-    }
-
-    function suitHuman(suit) {
-        switch (suit) {
-            case "H":
-                return "<span style='font-color:red;'>&hearts;</span>";
-            case "S": 
-                return "&spades;";
-            case "D":
-                return "<span style='font-color:red;'>&diams;</span>";
-            case "C":
-                return "&clubs;";
-            default:
-                return "No Trump";
-        }
-    }
-
     function repaintCards(gameState, playerHand) {
         $(".player-card").remove();
         let playerCards = [];
@@ -255,7 +181,7 @@
 
         if (winningBid) {
             rot = rotate(gameState, winningBidPosition);
-            $("#info-"+rot+ " ul").append($("<li/>").addClass("info-item").text("Bid " + winningBid.Code));
+            $("#info-"+rot+ " ul").append($("<li/>").addClass("info-item").text("Bid " + winningBid.Human));
         }
 
         rot = rotate(gameState, currentPlayerPosition);
@@ -379,6 +305,7 @@
             ["C", suitHuman("C")]
         ];
 
+        $("#trump-buttons").empty();
         trumps.forEach((trump) => {
             $("#trump-buttons").append(
                 $("<button/>").val(trump[0]).html(trump[1]).click(() => { 
@@ -458,6 +385,80 @@
 
     function repaintCompleted(gameState) {
         // TODO
+    }
+
+    function makeCard(serverCard) {
+        let rankStr = serverCard.substr(0, 1);
+        let rank = 0;
+        switch(rankStr) {
+            case "A":
+                rank = 1;
+                break;
+            case "K":
+                rank = 13;
+                break;
+            case "Q":
+                rank = 12;
+                break;
+            case "J":
+                rank = 11;
+                break;
+            case "T":
+                rank = 10;
+                break;
+            default:
+                rank = parseInt(rankStr, 10);
+        }
+        let suit = serverCard.substr(1, 1).toLowerCase();
+        return new cards.Card(suit, rank, table);
+    }
+
+    function makeServerCard(card) {
+        let suit = card.suit.toUpperCase();
+        let rank = card.rank;
+        switch (card.rank) {
+            case 1:
+            case 14:
+                rank = "A";
+                break;
+            case 13:
+                rank = "K";
+                break;
+            case 12:
+                rank = "Q";
+                break;
+            case 11:
+                rank = "J";
+                break;
+            case 10:
+                rank = "T";
+                break;
+        }
+        return "" + rank + suit;
+    }
+
+    function makeOpponentCard() {
+        return new cards.Card('rj', 0, table);
+    }
+
+    function rotate(gameState, pos) {
+        // Returns the rotated position, such that the local player is index 0.
+        return (pos - gameState.PlayerPosition + 4) % 4;
+    }
+
+    function suitHuman(suit) {
+        switch (suit) {
+            case "H":
+                return "<span style='font-color:red;'>&hearts;</span>";
+            case "S": 
+                return "&spades;";
+            case "D":
+                return "<span style='font-color:red;'>&diams;</span>";
+            case "C":
+                return "&clubs;";
+            default:
+                return "No Trump";
+        }
     }
 
     kaiser.init(id, {repaint: repaint}); // This starts polling and updating the game board.
