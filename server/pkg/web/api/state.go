@@ -93,7 +93,7 @@ func (s *ApiServer) GameState(w http.ResponseWriter, r *http.Request) {
 	// Check If-None-Modified against a cache entry.
 	if etag := r.Header.Get("If-None-Match"); etag != "" {
 		current := s.getGameStateVersion(ctx, id)
-		if current != "" && current == etag {
+		if current != "" && strings.Contains(etag, current) {
 			w.WriteHeader(http.StatusNotModified)
 			return
 		}

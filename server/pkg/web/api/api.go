@@ -71,7 +71,9 @@ func (s *ApiServer) sendGameState(ctx context.Context, w http.ResponseWriter, g 
 		sendServerError(w, "building game state: %v", err)
 		return
 	}
-	log.Printf("Sending %#v\n", state)
+	if os.Getenv("DEBUG") != "" {
+		log.Printf("Sending %#v\n", state)
+	}
 	w.Header().Set("Etag", fmt.Sprintf("%q", state.Version))
 	if err := sendResponse(w, state); err != nil {
 		sendServerError(w, "sending response: %v", err)
