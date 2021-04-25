@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/squee1945/threespot/server/pkg/game"
@@ -71,7 +72,7 @@ func (s *ApiServer) sendGameState(ctx context.Context, w http.ResponseWriter, g 
 		return
 	}
 	log.Printf("Sending %#v\n", state)
-	w.Header().Set("Etag", state.Version)
+	w.Header().Set("Etag", fmt.Sprintf("%q", state.Version))
 	if err := sendResponse(w, state); err != nil {
 		sendServerError(w, "sending response: %v", err)
 	}
@@ -80,8 +81,10 @@ func (s *ApiServer) sendGameState(ctx context.Context, w http.ResponseWriter, g 
 func (s *ApiServer) sendJoinState(ctx context.Context, w http.ResponseWriter, g game.Game) {
 	s.setGameStateVersion(ctx, g.ID(), g.Version())
 	state := BuildJoinState(g)
-	log.Printf("Sending %#v\n", state)
-	w.Header().Set("Etag", state.Version)
+	if os.Getenv("DEBUG") != "" {
+		log.Printf("Sending %#v\n", state)
+	}
+	w.Header().Set("Etag", fmt.Sprintf("%q", state.Version))
 	if err := sendResponse(w, state); err != nil {
 		sendServerError(w, "sending response: %v", err)
 	}
