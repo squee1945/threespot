@@ -32,11 +32,12 @@
     <div id="info-2" class="info-plate" style="left:449px; top:44px;"><ul></ul></div>
     <div id="info-3" class="info-plate" style="left:707px; top:300px;"><ul></ul></div>
 
-    <div id="trump" class="trump-plate" style="left:379px; top:193px; display:none; text-align:center;"><ul></ul></div>
+    <div id="trump"></div>
+    <div id="no-trump">No Trump</div>
 
     <div id="last-trick" class="shadow">
         Last trick
-        <div id="trick-tally" style="position:absolute; left:163px; top:4px;">
+        <div id="trick-tally" style="position:absolute; right:2px; top:2px;">
             Trick tally
             <table>
             <thead>
@@ -53,7 +54,12 @@
             </tbody>
             </table>    
         </div>
-        <div style="position:absolute; left:2px; bottom:2px;" style="font-color: blue;"><small>Blue is<br>card led.</small></div>
+        <div style="position:absolute; right:2px; bottom:2px;">
+            <small>
+                <span style="color:red;">Red</span> is card led.
+                <span style="color:blue;">Blue</span> is winner.
+            </small>
+        </div>
     </div>
 
     <div id="score" class="shadow">
@@ -72,7 +78,9 @@
         </tr>
         </tbody>
         </table>
-        <div id="show-score-details" style="position:absolute; bottom:2px; right:2px;"><a href="#" onclick="$('#score-detail').show(); return false;">Details</a></div>    
+        <div id="show-score-details" style="position:absolute; bottom:2px; right:2px;">
+            <a href="#" onclick="$('#score-detail').show(); return false;"><small>Details</small></a>
+        </div>    
     </div>
 
     <div id="score-detail" class="shadow">
@@ -133,9 +141,10 @@
         $(".player-card").remove();
         let playerCards = [];
         if (playerHand) {
+            let left = 150 + ((8 - playerHand.length) * 32);
             playerHand.forEach((serverCard, i) => {
                 let c = makeCard(serverCard);
-                c.setPosition(150 + (i * 71), 440);
+                c.setPosition(left + (i * 71), 440);
                 c.makeVisible();
                 $(c.el).addClass("player-card");
                 playerCards.push(c);
@@ -172,7 +181,7 @@
         }
         bidsPlaced.forEach((bid, i) => {
             let rot = rotate(gameState, leadBidPosition + i);
-            $("#bid-" + rot).text(bid.Human).show();
+            $("#bid-" + rot).text(shortNoTrump(bid.Human)).show();
         });
     }
 
@@ -190,7 +199,57 @@
         $("#info-"+rot+ " ul").append($("<li/>").addClass("info-item").text("To play"));
     }
 
-    function showLastTrick(gameState, lastTrick, lastTrickLeadPosition, trickTally) {
+    function showCurrentTrick(gameState, trick, trickLeadPosition, lastTrick, lastTrickLeadPosition, lastTrickWinningPosition) {
+        let cardPosition = [
+            [393, 295],
+            [309, 225],
+            [393, 150],
+            [475, 225]
+        ];
+
+        showCurrent = function() {
+            $(".trick-card").remove();
+            if (trick) {
+                trick.forEach((card, i) => {
+                    let rot = rotate(gameState, trickLeadPosition + i);
+                    let c = makeCard(card);
+                    c.setPosition(cardPosition[rot][0], cardPosition[rot][1]);
+                    $(c.el).addClass("trick-card");
+                    if (i==0) {
+                        $(c.el).addClass("lead-card");
+                    }
+                    c.makeVisible();
+                });
+            }
+        }
+
+        // if no current trick and there is a last trick, then show last trick for N seconds before proceeding.
+        if (lastTrick && !trick) {
+            $(".trick-card").remove();
+            let winningRot = rotate(gameState, lastTrickWinningPosition);
+            // Use a for loop (not forEach) to force synchronous execution before the sleep.
+            for (let i = 0; i < lastTrick.length; i++) {
+                let card = lastTrick[i];
+                let rot = rotate(gameState, lastTrickLeadPosition + i);
+                let c = makeCard(card);
+                c.setPosition(cardPosition[rot][0], cardPosition[rot][1]);
+                $(c.el).addClass("trick-card");
+                if (i==0) {
+                    $(c.el).addClass("lead-card");
+                }
+                if (rot==winningRot) {
+                    $(c.el).removeClass("lead-card");
+                    $(c.el).addClass("winning-card");
+                }
+                c.makeVisible();
+            }
+            setTimeout(showCurrent, 3000);
+        } else {
+            showCurrent();
+        }
+    }
+
+    function showLastTrick(gameState, lastTrick, lastTrickLeadPosition, lastTrickWinningPosition, trickTally) {
         $(".last-trick-card").remove();
         if (!lastTrick) {
             $("#last-trick").hide();
@@ -206,6 +265,7 @@
             [140, 70]
         ];
 
+        let winningRot = rotate(gameState, lastTrickWinningPosition);
         lastTrick.forEach((card, i) => {
             let rot = rotate(gameState, lastTrickLeadPosition + i);
             let c = makeCard(card);
@@ -215,11 +275,15 @@
             if (i==0) {
                 $(c.el).addClass("lead-card");
             }
+            if (rot==winningRot) {
+                $(c.el).removeClass("lead-card");
+                $(c.el).addClass("winning-card");
+            }
             c.makeVisible();
         });
 
         // Add trick counts
-        $("#trick-tally-02-names").html(gameState.PlayerNames[0].substr(0, 10)+"<br>"+gameState.PlayerNames[1].substr(0, 10));
+        $("#trick-tally-02-names").html(gameState.PlayerNames[0].substr(0, 10)+"<br>"+gameState.PlayerNames[2].substr(0, 10));
         $("#trick-tally-13-names").html(gameState.PlayerNames[1].substr(0, 10)+"<br>"+gameState.PlayerNames[3].substr(0, 10));
         if (trickTally) {
             $("#trick-tally-02-tally").text(trickTally[0]);
@@ -228,7 +292,7 @@
     }
 
     function showScore(gameState) {
-        let team02 = gameState.PlayerNames[0].substr(0, 10)+"<br>"+gameState.PlayerNames[1].substr(0, 10);
+        let team02 = gameState.PlayerNames[0].substr(0, 10)+"<br>"+gameState.PlayerNames[2].substr(0, 10);
         let team13 = gameState.PlayerNames[1].substr(0, 10)+"<br>"+gameState.PlayerNames[3].substr(0, 10);
         $("#score-02-names").html(team02);
         $("#score-13-names").html(team13);
@@ -251,10 +315,10 @@
 
     function repaintBidding(gameState) {
         $(".trick-card").remove();
+        $("#bidding").hide();
         $("#bids").show();
         //turn off all panels that show bids
         for (let pos = 0; pos < 4; pos++) {
-                 $("#bidding-" + pos).hide();
                  $("#bid-" + pos).removeClass("to-bid").hide();
         }
 
@@ -269,7 +333,7 @@
             if(gameState.BiddingInfo.AvailableBids != null) {
                 gameState.BiddingInfo.AvailableBids.forEach((bid) => {
                     $("#bid-buttons").append(
-                        $("<button/>").val(bid.Code).text(bid.Human).click(() => { 
+                        $("<button/>").val(bid.Code).text(shortNoTrump(bid.Human)).click(() => { 
                             $("#bid-buttons button").prop("disabled", true);
                             server.placeBid(id, bid.Code, (gameState) => {
                                 repaint(gameState);
@@ -285,7 +349,15 @@
             $("#bid-" + rot).text("Bidding").addClass("to-bid").show();
         }
 
-        showLastTrick(gameState, gameState.BiddingInfo.LastTrick, gameState.BiddingInfo.LastTrickLeadPosition);
+        showCurrentTrick(
+            gameState, 
+            null, 
+            0, 
+            gameState.BiddingInfo.LastTrick, 
+            gameState.BiddingInfo.LastTrickLeadPosition, 
+            gameState.BiddingInfo.LastTrickWinningPosition);
+
+        showLastTrick(gameState, gameState.BiddingInfo.LastTrick, gameState.BiddingInfo.LastTrickLeadPosition, gameState.BiddingInfo.LastTrickWinningPosition);
     }
 
 
@@ -298,7 +370,7 @@
 
         // Update bidding card to show winning bid.
         let rot = rotate(gameState, gameState.CallingInfo.PositionToPlay);
-        $("#bid-" + rot).html(gameState.CallingInfo.WinningBid.Human + "<br><small>(Calling trump)</small>").css("background", "white");
+        $("#bid-" + rot).html(gameState.CallingInfo.WinningBid.Human + "<br><small>(Calling trump)</small>").addClass("calling");
 
         let trumps = [
             ["H", suitHuman("H")],
@@ -313,6 +385,7 @@
                 $("<button/>").val(trump[0]).html(trump[1]).click(() => { 
                     $("#trump-buttons button").prop("disabled", true);
                     server.callTrump(id, trump[0], (gameState) => {
+                        $(".other-bid .calling").removeClass("calling");
                         repaint(gameState);
                     });
                 })
@@ -325,14 +398,22 @@
             $("#calling h5").text("Pick your trump (your bid: " + gameState.CallingInfo.WinningBid.Human + ")");
         }
 
-        showLastTrick(gameState, gameState.CallingInfo.LastTrick, gameState.CallingInfo.LastTrickLeadPosition);
+        showLastTrick(gameState, gameState.CallingInfo.LastTrick, gameState.CallingInfo.LastTrickLeadPosition, gameState.CallingInfo.LastTrickWinningPosition);
     }
 
     function repaintPlaying(gameState) {
         $("#bidding").hide();
         $("#calling").hide();
         $("#bids").hide();
-        $("#trump").html(suitHuman(gameState.PlayingInfo.Trump)).show();
+
+        if (gameState.PlayingInfo.Trump == "N") {
+            $("#trump").hide();
+            $("#no-trump").show();
+        } else {
+            $("#trump").html(suitHuman(gameState.PlayingInfo.Trump)).show();
+            $("#no-trump").hide();
+        }
+
         showInfos(gameState, gameState.PlayingInfo.DealerPosition, gameState.PlayingInfo.PositionToPlay, gameState.PlayingInfo.WinningBid, gameState.PlayingInfo.WinningBidPosition);
         let playerCards = repaintCards(gameState, gameState.PlayingInfo.PlayerHand);
 
@@ -359,30 +440,23 @@
 
                     server.playCard(id, makeServerCard(card), (gameState) => {
                         repaint(gameState);
-                    })
+                    });
                 });
         });
 
-        // Show current trick
-        $(".trick-card").remove();
-        if (gameState.PlayingInfo.Trick) {
-            let cardPosition = [
-                [393, 295],
-                [309, 225],
-                [393, 150],
-                [475, 225]
-            ];
+        showCurrentTrick(
+            gameState, 
+            gameState.PlayingInfo.Trick, 
+            gameState.PlayingInfo.TrickLeadPosition, 
+            gameState.PlayingInfo.LastTrick, 
+            gameState.PlayingInfo.LastTrickLeadPosition, 
+            gameState.PlayingInfo.LastTrickWinningPosition);
 
-            gameState.PlayingInfo.Trick.forEach((card, i) => {
-                let rot = rotate(gameState, gameState.PlayingInfo.TrickLeadPosition + i);
-                let c = makeCard(card);
-                c.setPosition(cardPosition[rot][0], cardPosition[rot][1]);
-                $(c.el).addClass("trick-card");
-                c.makeVisible();
-            });
-        }
-
-        showLastTrick(gameState, gameState.PlayingInfo.LastTrick, gameState.PlayingInfo.LastTrickLeadPosition, gameState.PlayingInfo.TrickTally);
+        showLastTrick(gameState, 
+            gameState.PlayingInfo.LastTrick, 
+            gameState.PlayingInfo.LastTrickLeadPosition, 
+            gameState.PlayingInfo.LastTrickWinningPosition, 
+            gameState.PlayingInfo.TrickTally);
     }
 
     function repaintCompleted(gameState) {
@@ -461,6 +535,21 @@
             default:
                 return "No Trump";
         }
+    }
+
+    function shortNoTrump(label) {
+        if (!label.endsWith(" Trump")) {
+            return label;
+        }
+        return label.substr(0, label.length - " Trump".length)
+    }
+
+    function sleep(milliseconds) {
+      const date = Date.now();
+      let currentDate = null;
+      do {
+        currentDate = Date.now();
+      } while (currentDate - date < milliseconds);
     }
 
     kaiser.init(id, {repaint: repaint}); // This starts polling and updating the game board.

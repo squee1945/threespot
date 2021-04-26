@@ -119,13 +119,6 @@ footer a:hover {
     text-align: left;
 }
 
-.joining-open {
-
-}
-
-.joining-filled {
-}
-
 .name-plate {
     position: absolute;
     font-weight: bold;
@@ -143,10 +136,24 @@ footer a:hover {
     padding: 0;
 }
 
-.trump-plate {
+#trump {
     position: absolute;
+    left: 379px; 
+    top: 193px;
+    display: none;
+    text-align: center;
     font-weight: bold;
     font-size: 48px;
+}
+
+#no-trump {
+    position: absolute;
+    left: 340px; 
+    top: 218px;
+    display: none;
+    text-align: center;
+    font-weight: bold;
+    font-size: 28px;
 }
 
 .other-bid {
@@ -160,6 +167,12 @@ footer a:hover {
     background: #DDCC00;
 }
 
+.calling {
+    background: white;
+    font-size: 18px;
+    line-height: 20px;
+}
+
 .to-bid {
     background-color: white;
 }
@@ -169,7 +182,7 @@ footer a:hover {
     left: 116px; 
     top: 245px; 
     width: 550px;
-    height: 128px;
+    height: 142px;
     background: #DDCC00;
     display: none;
 }
@@ -187,7 +200,7 @@ footer a:hover {
 
 #bidding button {
     width: 100px;
-    height: 30px;
+    height: 36px;
     font-size: 24px;
     text-align: center;
     font-weight: bold;
@@ -236,6 +249,15 @@ footer a:hover {
 }
 
 .lead-card {
+    border: 3px solid red;
+    border-radius:12px;
+    -webkit-border-radius:12px;
+    -moz-border-radius:12px;
+    -ms-border-radius:12px;
+    -o-border-radius:12px;
+}
+
+.winning-card {
     border: 3px solid blue;
     border-radius:12px;
     -webkit-border-radius:12px;
@@ -296,7 +318,7 @@ footer a:hover {
     height: 400px;
     display: none;
     background-color: white;
-    z-index: 1000;
+    z-index: 2000000000;
     font-size: 18px;
     font-weight: bold;
     padding: 4px;

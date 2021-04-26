@@ -17,39 +17,42 @@ type BidInfo struct {
 type JoiningInfo struct{}
 
 type BiddingInfo struct {
-	PositionToPlay        int
-	DealerPosition        int      // last bidder
-	PlayerHand            []string // own hand
-	LeadBidPosition       int
-	BidsPlaced            []BidInfo
-	AvailableBids         []BidInfo
-	LastTrick             []string
-	LastTrickLeadPosition int
+	PositionToPlay           int
+	DealerPosition           int      // last bidder
+	PlayerHand               []string // own hand
+	LeadBidPosition          int
+	BidsPlaced               []BidInfo
+	AvailableBids            []BidInfo
+	LastTrick                []string
+	LastTrickLeadPosition    int
+	LastTrickWinningPosition int
 }
 
 type CallingInfo struct {
-	PositionToPlay        int // who's current turn
-	DealerPosition        int
-	WinningBid            BidInfo
-	LeadBidPosition       int
-	BidsPlaced            []BidInfo
-	PlayerHand            []string // own hand
-	LastTrick             []string
-	LastTrickLeadPosition int
+	PositionToPlay           int // who's current turn
+	DealerPosition           int
+	WinningBid               BidInfo
+	LeadBidPosition          int
+	BidsPlaced               []BidInfo
+	PlayerHand               []string // own hand
+	LastTrick                []string
+	LastTrickLeadPosition    int
+	LastTrickWinningPosition int
 }
 
 type PlayingInfo struct {
-	PositionToPlay        int
-	DealerPosition        int
-	WinningBid            BidInfo
-	WinningBidPosition    int
-	Trump                 string
-	PlayerHand            []string
-	Trick                 []string
-	TrickLeadPosition     int
-	LastTrick             []string
-	LastTrickLeadPosition int
-	TrickTally            []int
+	PositionToPlay           int
+	DealerPosition           int
+	WinningBid               BidInfo
+	WinningBidPosition       int
+	Trump                    string
+	PlayerHand               []string
+	Trick                    []string
+	TrickLeadPosition        int
+	LastTrick                []string
+	LastTrickLeadPosition    int
+	LastTrickWinningPosition int
+	TrickTally               []int
 }
 
 type CompletedInfo struct {
@@ -193,6 +196,10 @@ func buildBiddingInfo(g game.Game, player game.Player, playerPos int) (*BiddingI
 	if err != nil {
 		return nil, err
 	}
+	lastTrickWinningPos, err := g.LastTrick().WinningPos()
+	if err != nil {
+		return nil, err
+	}
 
 	info := &BiddingInfo{
 		PositionToPlay:  positionToPlay,
@@ -205,6 +212,7 @@ func buildBiddingInfo(g game.Game, player game.Player, playerPos int) (*BiddingI
 	if g.LastTrick() != nil {
 		info.LastTrick = cardsToStrings(g.LastTrick().Cards())
 		info.LastTrickLeadPosition = g.LastTrick().LeadPos()
+		info.LastTrickWinningPosition = lastTrickWinningPos
 	}
 	return info, nil
 }
@@ -222,6 +230,10 @@ func buildCallingInfo(g game.Game, player game.Player, playerPos int) (*CallingI
 	if err != nil {
 		return nil, err
 	}
+	lastTrickWinningPos, err := g.LastTrick().WinningPos()
+	if err != nil {
+		return nil, err
+	}
 
 	info := &CallingInfo{
 		PositionToPlay:  positionToPlay,
@@ -234,6 +246,7 @@ func buildCallingInfo(g game.Game, player game.Player, playerPos int) (*CallingI
 	if g.LastTrick() != nil {
 		info.LastTrick = cardsToStrings(g.LastTrick().Cards())
 		info.LastTrickLeadPosition = g.LastTrick().LeadPos()
+		info.LastTrickWinningPosition = lastTrickWinningPos
 	}
 	return info, nil
 }
@@ -248,6 +261,10 @@ func buildPlayingInfo(g game.Game, player game.Player, playerPos int) (*PlayingI
 		return nil, err
 	}
 	playerHand, err := g.PlayerHand(player)
+	if err != nil {
+		return nil, err
+	}
+	lastTrickWinningPos, err := g.LastTrick().WinningPos()
 	if err != nil {
 		return nil, err
 	}
@@ -269,6 +286,7 @@ func buildPlayingInfo(g game.Game, player game.Player, playerPos int) (*PlayingI
 	if g.LastTrick() != nil {
 		info.LastTrick = cardsToStrings(g.LastTrick().Cards())
 		info.LastTrickLeadPosition = g.LastTrick().LeadPos()
+		info.LastTrickWinningPosition = lastTrickWinningPos
 	}
 	return info, nil
 }
