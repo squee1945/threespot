@@ -115,9 +115,10 @@
     var deck = new cards.Deck();
     deck.addCards(cards.all);
     deck.render({immediate:true});
-    // TODO: if no bids, show dealing animation.
 
     function repaint(gameState) {
+        $("#trump").hide();
+        $("#no-trump").hide();
         switch (gameState.State) {
             case "BIDDING":
                 repaintBidding(gameState);
@@ -137,12 +138,12 @@
         showScore(gameState);
     }
 
-    function repaintCards(gameState, playerHand) {
+    function repaintCards(gameState) {
         $(".player-card").remove();
         let playerCards = [];
-        if (playerHand) {
-            let left = 150 + ((8 - playerHand.length) * 32);
-            playerHand.forEach((serverCard, i) => {
+        if (gameState.PlayerHand) {
+            let left = 150 + ((8 - gameState.PlayerHand.length) * 32);
+            gameState.PlayerHand.forEach((serverCard, i) => {
                 let c = makeCard(serverCard);
                 c.setPosition(left + (i * 71), 440);
                 c.makeVisible();
@@ -169,13 +170,16 @@
 
         gameState.PlayerNames.forEach((name, i) => {
             let rot = rotate(gameState, i);
-            $("#name-" + rot).text(name.substr(0, 10)).show();
+            $("#name-" + rot).text(shortName(name)).show();
         });
 
         return playerCards;
     }
 
-    function showBids(gameState, bidsPlaced, leadBidPosition) {
+    function showBids(gameState) {
+        let bidsPlaced = gameState.BidsPlaced;
+        let leadBidPosition = gameState.LeadBidPosition;
+
         if (!bidsPlaced) {
             return;
         }
@@ -185,7 +189,12 @@
         });
     }
 
-    function showInfos(gameState, dealerPosition, currentPlayerPosition, winningBid, winningBidPosition) {
+    function showInfos(gameState) {
+        let dealerPosition = gameState.DealerPosition;
+        let positionToPlay = gameState.PositionToPlay;
+        let winningBid = gameState.WinningBid;
+        let winningBidPosition = gameState.WinningBidPosition;
+
         $(".info-item").remove();
         let rot = rotate(gameState, dealerPosition);
         $("#info-"+rot+ " ul").append($("<li/>").addClass("info-item").text("Dealer"));
@@ -195,11 +204,17 @@
             $("#info-"+rot+ " ul").append($("<li/>").addClass("info-item").text("Bid " + winningBid.Human));
         }
 
-        rot = rotate(gameState, currentPlayerPosition);
+        rot = rotate(gameState, positionToPlay);
         $("#info-"+rot+ " ul").append($("<li/>").addClass("info-item").text("To play"));
     }
 
-    function showCurrentTrick(gameState, trick, trickLeadPosition, lastTrick, lastTrickLeadPosition, lastTrickWinningPosition) {
+    function showCurrentTrick(gameState) {
+        let trick = gameState.Trick;
+        let trickLeadPosition = gameState.TrickLeadPosition;
+        let lastTrick = gameState.LastTrick;
+        let lastTrickLeadPosition = gameState.LastTrickLeadPosition;
+        let lastTrickWinningPosition = gameState.LastTrickWinningPosition;
+        let bidsPlaced = gameState.BidsPlaced;
         let cardPosition = [
             [393, 295],
             [309, 225],
@@ -224,12 +239,10 @@
         }
 
         // if no current trick and there is a last trick, then show last trick for N seconds before proceeding.
-        if (lastTrick && !trick) {
+        if (lastTrick && !trick && !bidsPlaced) {
             $(".trick-card").remove();
             let winningRot = rotate(gameState, lastTrickWinningPosition);
-            // Use a for loop (not forEach) to force synchronous execution before the sleep.
-            for (let i = 0; i < lastTrick.length; i++) {
-                let card = lastTrick[i];
+            lastTrick.forEach((card, i) => {
                 let rot = rotate(gameState, lastTrickLeadPosition + i);
                 let c = makeCard(card);
                 c.setPosition(cardPosition[rot][0], cardPosition[rot][1]);
@@ -242,14 +255,19 @@
                     $(c.el).addClass("winning-card");
                 }
                 c.makeVisible();
-            }
+            });
             setTimeout(showCurrent, 3000);
         } else {
             showCurrent();
         }
     }
 
-    function showLastTrick(gameState, lastTrick, lastTrickLeadPosition, lastTrickWinningPosition, trickTally) {
+    function showLastTrick(gameState) {
+        let lastTrick = gameState.LastTrick;
+        let lastTrickLeadPosition = gameState.LastTrickLeadPosition;
+        let lastTrickWinningPosition = gameState.LastTrickWinningPosition;
+        let trickTally = gameState.TrickTally;
+
         $(".last-trick-card").remove();
         if (!lastTrick) {
             $("#last-trick").hide();
@@ -283,8 +301,8 @@
         });
 
         // Add trick counts
-        $("#trick-tally-02-names").html(gameState.PlayerNames[0].substr(0, 10)+"<br>"+gameState.PlayerNames[2].substr(0, 10));
-        $("#trick-tally-13-names").html(gameState.PlayerNames[1].substr(0, 10)+"<br>"+gameState.PlayerNames[3].substr(0, 10));
+        $("#trick-tally-02-names").html(team02(gameState));
+        $("#trick-tally-13-names").html(team13(gameState));
         if (trickTally) {
             $("#trick-tally-02-tally").text(trickTally[0]);
             $("#trick-tally-13-tally").text(trickTally[1]);
@@ -292,12 +310,12 @@
     }
 
     function showScore(gameState) {
-        let team02 = gameState.PlayerNames[0].substr(0, 10)+"<br>"+gameState.PlayerNames[2].substr(0, 10);
-        let team13 = gameState.PlayerNames[1].substr(0, 10)+"<br>"+gameState.PlayerNames[3].substr(0, 10);
-        $("#score-02-names").html(team02);
-        $("#score-13-names").html(team13);
-        $("#score-detail-02-names").html(team02);
-        $("#score-detail-13-names").html(team13);
+        let t02 = team02(gameState);
+        let t13 = team13(gameState);
+        $("#score-02-names").html(t02);
+        $("#score-13-names").html(t13);
+        $("#score-detail-02-names").html(t02);
+        $("#score-detail-13-names").html(t13);
 
         $("#score-02-score").text(gameState.CurrentScore[0]);
         $("#score-13-score").text(gameState.CurrentScore[1]);
@@ -317,21 +335,21 @@
         $(".trick-card").remove();
         $("#bidding").hide();
         $("#bids").show();
-        //turn off all panels that show bids
+        // Turn off all panels that show bids.
         for (let pos = 0; pos < 4; pos++) {
                  $("#bid-" + pos).removeClass("to-bid").hide();
         }
 
-        //show bids that have been placed
-        showBids(gameState, gameState.BiddingInfo.BidsPlaced, gameState.BiddingInfo.LeadBidPosition);
-        showInfos(gameState, gameState.BiddingInfo.DealerPosition, gameState.BiddingInfo.PositionToPlay);
-        repaintCards(gameState, gameState.BiddingInfo.PlayerHand);
+        // Show bids that have been placed.
+        showBids(gameState);
+        showInfos(gameState);
+        repaintCards(gameState);
 
-        //show bidding panel when your turn to bid
-        if(gameState.PlayerPosition == gameState.BiddingInfo.PositionToPlay){
+        // Show bidding panel when your turn to bid.
+        if(gameState.PlayerPosition == gameState.PositionToPlay){
             $("#bid-buttons").empty();
-            if(gameState.BiddingInfo.AvailableBids != null) {
-                gameState.BiddingInfo.AvailableBids.forEach((bid) => {
+            if(gameState.AvailableBids != null) {
+                gameState.AvailableBids.forEach((bid) => {
                     $("#bid-buttons").append(
                         $("<button/>").val(bid.Code).text(shortNoTrump(bid.Human)).click(() => { 
                             $("#bid-buttons button").prop("disabled", true);
@@ -345,32 +363,24 @@
             $("#bidding").show();
         } else {
             // Show the player making a bid.
-            let rot = rotate(gameState, gameState.BiddingInfo.PositionToPlay);
+            let rot = rotate(gameState, gameState.PositionToPlay);
             $("#bid-" + rot).text("Bidding").addClass("to-bid").show();
         }
 
-        showCurrentTrick(
-            gameState, 
-            null, 
-            0, 
-            gameState.BiddingInfo.LastTrick, 
-            gameState.BiddingInfo.LastTrickLeadPosition, 
-            gameState.BiddingInfo.LastTrickWinningPosition);
-
-        showLastTrick(gameState, gameState.BiddingInfo.LastTrick, gameState.BiddingInfo.LastTrickLeadPosition, gameState.BiddingInfo.LastTrickWinningPosition);
+        showCurrentTrick(gameState);
+        showLastTrick(gameState);
     }
-
 
     function repaintCalling(gameState) {
         $("#bidding").hide();
         $("#bids").show();
-        showBids(gameState, gameState.CallingInfo.BidsPlaced, gameState.CallingInfo.LeadBidPosition);
-        showInfos(gameState, gameState.CallingInfo.DealerPosition, gameState.CallingInfo.PositionToPlay);
-        repaintCards(gameState, gameState.CallingInfo.PlayerHand);
+        showBids(gameState);
+        showInfos(gameState);
+        repaintCards(gameState);
 
         // Update bidding card to show winning bid.
-        let rot = rotate(gameState, gameState.CallingInfo.PositionToPlay);
-        $("#bid-" + rot).html(gameState.CallingInfo.WinningBid.Human + "<br><small>(Calling trump)</small>").addClass("calling");
+        let rot = rotate(gameState, gameState.PositionToPlay);
+        $("#bid-" + rot).html(gameState.WinningBid.Human + "<br><small>(Calling trump)</small>").addClass("calling");
 
         let trumps = [
             ["H", suitHuman("H")],
@@ -392,13 +402,13 @@
             );
         });
 
-        if (gameState.PlayerPosition == gameState.CallingInfo.PositionToPlay) {
+        if (gameState.PlayerPosition == gameState.PositionToPlay) {
             $("#bid-0").hide();
             $("#calling").show();
-            $("#calling h5").text("Pick your trump (your bid: " + gameState.CallingInfo.WinningBid.Human + ")");
+            $("#calling h5").text("Pick your trump (your bid: " + gameState.WinningBid.Human + ")");
         }
 
-        showLastTrick(gameState, gameState.CallingInfo.LastTrick, gameState.CallingInfo.LastTrickLeadPosition, gameState.CallingInfo.LastTrickWinningPosition);
+        showLastTrick(gameState);
     }
 
     function repaintPlaying(gameState) {
@@ -406,16 +416,16 @@
         $("#calling").hide();
         $("#bids").hide();
 
-        if (gameState.PlayingInfo.Trump == "N") {
+        if (gameState.Trump == "N") {
             $("#trump").hide();
             $("#no-trump").show();
         } else {
-            $("#trump").html(suitHuman(gameState.PlayingInfo.Trump)).show();
+            $("#trump").html(suitHuman(gameState.Trump)).show();
             $("#no-trump").hide();
         }
 
-        showInfos(gameState, gameState.PlayingInfo.DealerPosition, gameState.PlayingInfo.PositionToPlay, gameState.PlayingInfo.WinningBid, gameState.PlayingInfo.WinningBidPosition);
-        let playerCards = repaintCards(gameState, gameState.PlayingInfo.PlayerHand);
+        showInfos(gameState);
+        let playerCards = repaintCards(gameState);
 
         // Add event handlers to cards.
         playerCards.forEach((card) => {
@@ -429,7 +439,7 @@
                 })
             .click(
                 (event) => {
-                    if (gameState.PlayingInfo.PositionToPlay != gameState.PlayerPosition) {
+                    if (gameState.PositionToPlay != gameState.PlayerPosition) {
                         alert("Not your turn!");
                         return;
                     }
@@ -444,19 +454,8 @@
                 });
         });
 
-        showCurrentTrick(
-            gameState, 
-            gameState.PlayingInfo.Trick, 
-            gameState.PlayingInfo.TrickLeadPosition, 
-            gameState.PlayingInfo.LastTrick, 
-            gameState.PlayingInfo.LastTrickLeadPosition, 
-            gameState.PlayingInfo.LastTrickWinningPosition);
-
-        showLastTrick(gameState, 
-            gameState.PlayingInfo.LastTrick, 
-            gameState.PlayingInfo.LastTrickLeadPosition, 
-            gameState.PlayingInfo.LastTrickWinningPosition, 
-            gameState.PlayingInfo.TrickTally);
+        showCurrentTrick(gameState);
+        showLastTrick(gameState);
     }
 
     function repaintCompleted(gameState) {
@@ -544,12 +543,19 @@
         return label.substr(0, label.length - " Trump".length)
     }
 
-    function sleep(milliseconds) {
-      const date = Date.now();
-      let currentDate = null;
-      do {
-        currentDate = Date.now();
-      } while (currentDate - date < milliseconds);
+    function team02(gameState) {
+        return shortName(gameState.PlayerNames[0])+"<br>"+shortName(gameState.PlayerNames[2])
+    }
+
+    function team13(gameState) {
+        return shortName(gameState.PlayerNames[1])+"<br>"+shortName(gameState.PlayerNames[3])
+    }
+
+    function shortName(name) {
+        if (!name) {
+            return name;
+        }
+        return name.substr(0, 10);
     }
 
     kaiser.init(id, {repaint: repaint}); // This starts polling and updating the game board.

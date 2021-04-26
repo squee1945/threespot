@@ -14,52 +14,6 @@ type BidInfo struct {
 	Human string
 }
 
-type JoiningInfo struct{}
-
-type BiddingInfo struct {
-	PositionToPlay           int
-	DealerPosition           int      // last bidder
-	PlayerHand               []string // own hand
-	LeadBidPosition          int
-	BidsPlaced               []BidInfo
-	AvailableBids            []BidInfo
-	LastTrick                []string
-	LastTrickLeadPosition    int
-	LastTrickWinningPosition int
-}
-
-type CallingInfo struct {
-	PositionToPlay           int // who's current turn
-	DealerPosition           int
-	WinningBid               BidInfo
-	LeadBidPosition          int
-	BidsPlaced               []BidInfo
-	PlayerHand               []string // own hand
-	LastTrick                []string
-	LastTrickLeadPosition    int
-	LastTrickWinningPosition int
-}
-
-type PlayingInfo struct {
-	PositionToPlay           int
-	DealerPosition           int
-	WinningBid               BidInfo
-	WinningBidPosition       int
-	Trump                    string
-	PlayerHand               []string
-	Trick                    []string
-	TrickLeadPosition        int
-	LastTrick                []string
-	LastTrickLeadPosition    int
-	LastTrickWinningPosition int
-	TrickTally               []int
-}
-
-type CompletedInfo struct {
-	WinningTeam int // 0 is players 0/2, 1 is players 1/3
-	LastTrick   []string
-}
-
 type GameStateResponse struct {
 	ID      string
 	Version string
@@ -71,11 +25,25 @@ type GameStateResponse struct {
 	CurrentScore   []int
 	ToWin          int
 
-	JoiningInfo   *JoiningInfo   `json:omitempty`
-	BiddingInfo   *BiddingInfo   `json:omitempty`
-	CallingInfo   *CallingInfo   `json:omitempty`
-	PlayingInfo   *PlayingInfo   `json:omitempty`
-	CompletedInfo *CompletedInfo `json:omitempty`
+	DealerPosition           int // last bidder
+	PlayerHand               []string
+	Trick                    []string
+	TrickLeadPosition        int
+	LastTrick                []string
+	LastTrickLeadPosition    int
+	LastTrickWinningPosition int
+
+	PositionToPlay  int
+	LeadBidPosition int
+	BidsPlaced      []BidInfo
+
+	AvailableBids      []BidInfo
+	WinningBid         BidInfo
+	WinningBidPosition int
+	Trump              string
+	TrickTally         []int
+
+	WinningTeam int // 0 is players 0/2, 1 is players 1/3
 }
 
 func (s *ApiServer) GameState(w http.ResponseWriter, r *http.Request) {
@@ -129,6 +97,14 @@ func BuildGameState(g game.Game, player game.Player) (*GameStateResponse, error)
 		}
 		playerNames = append(playerNames, p.Name())
 	}
+	playerHand, err := g.PlayerHand(player)
+	if err != nil {
+		return nil, err
+	}
+	positionToPlay, err := g.PosToPlay()
+	if err != nil {
+		return nil, err
+	}
 
 	state := &GameStateResponse{
 		ID:             g.ID(),
@@ -139,169 +115,64 @@ func BuildGameState(g game.Game, player game.Player) (*GameStateResponse, error)
 		Score:          g.Score().Scores(),
 		CurrentScore:   g.Score().CurrentScore(),
 		ToWin:          g.Score().ToWin(),
+		DealerPosition: g.DealerPos(),
+		PlayerHand:     cardsToStrings(playerHand.Cards()),
+		PositionToPlay: positionToPlay,
 	}
-	switch g.State() {
-	case game.JoiningState:
-		info, err := buildJoiningInfo(g, player)
-		if err != nil {
-			return nil, err
-		}
-		state.JoiningInfo = info
-	case game.BiddingState:
-		info, err := buildBiddingInfo(g, player, playerPos)
-		if err != nil {
-			return nil, err
-		}
-		state.BiddingInfo = info
-	case game.CallingState:
-		info, err := buildCallingInfo(g, player, playerPos)
-		if err != nil {
-			return nil, err
-		}
-		state.CallingInfo = info
-	case game.PlayingState:
-		info, err := buildPlayingInfo(g, player, playerPos)
-		if err != nil {
-			return nil, err
-		}
-		state.PlayingInfo = info
-	case game.CompletedState:
-		info, err := buildCompletedInfo(g, player)
-		if err != nil {
-			return nil, err
-		}
-		state.CompletedInfo = info
-	}
-	return state, nil
-}
 
-func buildJoiningInfo(g game.Game, player game.Player) (*JoiningInfo, error) {
-	return &JoiningInfo{}, nil
-}
-
-func buildBiddingInfo(g game.Game, player game.Player, playerPos int) (*BiddingInfo, error) {
-	positionToPlay, err := g.PosToPlay()
-	if err != nil {
-		return nil, err
+	if g.CurrentTrick() != nil {
+		state.Trick = cardsToStrings(g.CurrentTrick().Cards())
+		state.TrickLeadPosition = g.CurrentTrick().LeadPos()
+		state.Trump = g.CurrentTrick().Trump().Encoded()
 	}
-	var availableBids []BidInfo
-	if playerPos == positionToPlay {
+
+	if g.LastTrick() != nil {
+		lastTrickWinningPos, err := g.LastTrick().WinningPos()
+		if err != nil {
+			return nil, err
+		}
+		state.LastTrick = cardsToStrings(g.LastTrick().Cards())
+		state.LastTrickLeadPosition = g.LastTrick().LeadPos()
+		state.LastTrickWinningPosition = lastTrickWinningPos
+	}
+
+	if g.CurrentBidding != nil {
+		state.LeadBidPosition = g.CurrentBidding().LeadPos()
+		if g.State() != game.PlayingState {
+			state.BidsPlaced = bidsToBidInfos(g.CurrentBidding().Bids())
+		}
+		if g.State() == game.CallingState || g.State() == game.PlayingState {
+			winningBid, _, err := g.CurrentBidding().WinningBidAndPos()
+			if err != nil {
+				return nil, err
+			}
+			state.WinningBid = bidToBidInfo(winningBid)
+		}
+	}
+
+	if g.Tally != nil {
+		tally02, tally13 := g.Tally().Points()
+		state.TrickTally = []int{tally02, tally13}
+	}
+
+	if g.State() == game.BiddingState && playerPos == positionToPlay {
 		available, err := g.AvailableBids(player)
 		if err != nil {
 			return nil, err
 		}
-		availableBids = bidsToBidInfos(available)
-	}
-	playerHand, err := g.PlayerHand(player)
-	if err != nil {
-		return nil, err
-	}
-	lastTrickWinningPos, err := g.LastTrick().WinningPos()
-	if err != nil {
-		return nil, err
+		state.AvailableBids = bidsToBidInfos(available)
 	}
 
-	info := &BiddingInfo{
-		PositionToPlay:  positionToPlay,
-		DealerPosition:  g.DealerPos(),
-		PlayerHand:      cardsToStrings(playerHand.Cards()),
-		LeadBidPosition: g.CurrentBidding().LeadPos(),
-		BidsPlaced:      bidsToBidInfos(g.CurrentBidding().Bids()),
-		AvailableBids:   availableBids,
-	}
-	if g.LastTrick() != nil {
-		info.LastTrick = cardsToStrings(g.LastTrick().Cards())
-		info.LastTrickLeadPosition = g.LastTrick().LeadPos()
-		info.LastTrickWinningPosition = lastTrickWinningPos
-	}
-	return info, nil
-}
-
-func buildCallingInfo(g game.Game, player game.Player, playerPos int) (*CallingInfo, error) {
-	positionToPlay, err := g.PosToPlay()
-	if err != nil {
-		return nil, err
-	}
-	winningBid, _, err := g.CurrentBidding().WinningBidAndPos()
-	if err != nil {
-		return nil, err
-	}
-	playerHand, err := g.PlayerHand(player)
-	if err != nil {
-		return nil, err
-	}
-	lastTrickWinningPos, err := g.LastTrick().WinningPos()
-	if err != nil {
-		return nil, err
+	if g.State() == game.CompletedState {
+		score := g.Score().CurrentScore()
+		winner := 0
+		if score[1] > score[0] {
+			winner = 2
+		}
+		state.WinningTeam = winner
 	}
 
-	info := &CallingInfo{
-		PositionToPlay:  positionToPlay,
-		DealerPosition:  g.DealerPos(),
-		WinningBid:      bidToBidInfo(winningBid),
-		LeadBidPosition: g.CurrentBidding().LeadPos(),
-		BidsPlaced:      bidsToBidInfos(g.CurrentBidding().Bids()),
-		PlayerHand:      cardsToStrings(playerHand.Cards()),
-	}
-	if g.LastTrick() != nil {
-		info.LastTrick = cardsToStrings(g.LastTrick().Cards())
-		info.LastTrickLeadPosition = g.LastTrick().LeadPos()
-		info.LastTrickWinningPosition = lastTrickWinningPos
-	}
-	return info, nil
-}
-
-func buildPlayingInfo(g game.Game, player game.Player, playerPos int) (*PlayingInfo, error) {
-	positionToPlay, err := g.PosToPlay()
-	if err != nil {
-		return nil, err
-	}
-	winningBid, winningBidPos, err := g.CurrentBidding().WinningBidAndPos()
-	if err != nil {
-		return nil, err
-	}
-	playerHand, err := g.PlayerHand(player)
-	if err != nil {
-		return nil, err
-	}
-	lastTrickWinningPos, err := g.LastTrick().WinningPos()
-	if err != nil {
-		return nil, err
-	}
-	tally02, tally13 := g.Tally().Points()
-
-	info := &PlayingInfo{
-		PositionToPlay:     positionToPlay,
-		DealerPosition:     g.DealerPos(),
-		WinningBid:         bidToBidInfo(winningBid),
-		WinningBidPosition: winningBidPos,
-		TrickLeadPosition:  g.CurrentTrick().LeadPos(),
-		Trump:              g.CurrentTrick().Trump().Encoded(),
-		PlayerHand:         cardsToStrings(playerHand.Cards()),
-		TrickTally:         []int{tally02, tally13},
-	}
-	if g.CurrentTrick() != nil {
-		info.Trick = cardsToStrings(g.CurrentTrick().Cards())
-	}
-	if g.LastTrick() != nil {
-		info.LastTrick = cardsToStrings(g.LastTrick().Cards())
-		info.LastTrickLeadPosition = g.LastTrick().LeadPos()
-		info.LastTrickWinningPosition = lastTrickWinningPos
-	}
-	return info, nil
-}
-
-func buildCompletedInfo(g game.Game, player game.Player) (*CompletedInfo, error) {
-	score := g.Score().CurrentScore()
-	winner := 0
-	if score[1] > score[0] {
-		winner = 2
-	}
-	info := &CompletedInfo{WinningTeam: winner}
-	if g.LastTrick() != nil {
-		info.LastTrick = cardsToStrings(g.LastTrick().Cards())
-	}
-	return info, nil
+	return state, nil
 }
 
 func bidToBidInfo(b game.Bid) BidInfo {
