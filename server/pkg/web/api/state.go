@@ -84,11 +84,6 @@ func (s *ApiServer) GameState(w http.ResponseWriter, r *http.Request) {
 }
 
 func BuildGameState(g game.Game, player game.Player) (*GameStateResponse, error) {
-	playerPos, err := g.PlayerPos(player)
-	if err != nil {
-		return nil, err
-	}
-
 	var playerNames []string
 	for _, p := range g.Players() {
 		if p == nil {
@@ -97,16 +92,33 @@ func BuildGameState(g game.Game, player game.Player) (*GameStateResponse, error)
 		}
 		playerNames = append(playerNames, p.Name())
 	}
+
+	state := &GameStateResponse{
+		ID:          g.ID(),
+		Version:     g.Version(),
+		State:       string(g.State()),
+		PlayerNames: playerNames,
+	}
+	if g.State() == game.JoiningState {
+		return state, nil
+	}
+
+	playerPos, err := g.PlayerPos(player)
+	if err != nil {
+		return nil, err
+	}
+
 	playerHand, err := g.PlayerHand(player)
 	if err != nil {
 		return nil, err
 	}
+
 	positionToPlay, err := g.PosToPlay()
 	if err != nil {
 		return nil, err
 	}
 
-	state := &GameStateResponse{
+	state = &GameStateResponse{
 		ID:             g.ID(),
 		Version:        g.Version(),
 		State:          string(g.State()),
