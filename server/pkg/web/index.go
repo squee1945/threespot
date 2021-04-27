@@ -26,22 +26,54 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 		playerID = util.SetPlayerID(w)
 	}
 
-	var args indexArgs
-	if player, err := game.GetPlayer(ctx, s.playerStore, playerID); err != nil {
+	player, err := game.GetPlayer(ctx, s.playerStore, playerID)
+	if err != nil {
 		if err != game.ErrNotFound {
 			sendServerError(w, "looking up player: %v", err)
 			return
 		}
-		args.Welcome = "Welcome to Online Kaiser! You must enter a name to play."
-	} else {
-		args.Welcome = "Welcome back " + player.Name()
-		args.Registered = true
+		args := indexArgs{
+			Welcome: "Welcome to Online Kaiser! You must enter a name to play.",
+		}
+		s.render("index.html", w, args)
+		return
 	}
 
+	args := indexArgs{
+		Welcome:    "Welcome back " + player.Name(),
+		Registered: true,
+	}
+
+	games, err := game.GetCurrentGames(ctx, s.gameStore, s.playerStore, playerID, 10)
+	if err != nil {
+		sendServerError(w, "lookup up current games: %v", err)
+		return
+	}
+	for _, g := range games {
+		gi := gameInfo{
+			ID:    g.ID(),
+			Score: g.Score().CurrentScore(),
+		}
+		for _, player := range g.Players() {
+			name := "?"
+			if player != nil {
+				name = player.Name()
+			}
+			gi.PlayerNames = append(gi.PlayerNames, name)
+		}
+		args.CurrentGames = append(args.CurrentGames, gi)
+	}
 	s.render("index.html", w, args)
 }
 
 type indexArgs struct {
-	Welcome    string
-	Registered bool
+	Welcome      string
+	Registered   bool
+	CurrentGames []gameInfo
+}
+
+type gameInfo struct {
+	ID          string
+	PlayerNames []string
+	Score       []int
 }

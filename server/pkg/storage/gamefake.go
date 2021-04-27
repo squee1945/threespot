@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"errors"
 )
 
 type fakeGameStore struct {
@@ -41,6 +42,10 @@ func (s *fakeGameStore) Get(ctx context.Context, id string) (*Game, error) {
 		return nil, ErrNotFound
 	}
 	return g, nil
+}
+
+func (s *fakeGameStore) GetCurrentGames(ctx context.Context, playerID string, count int) ([]*Game, error) {
+	return nil, errors.New("Not implemented")
 }
 
 func (s *fakeGameStore) Set(ctx context.Context, id string, g *Game) error {

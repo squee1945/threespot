@@ -15,13 +15,13 @@
 		</div>
 	  	<div class="row">
 	    	<div class="col-4">
-	      		<p>Create a new game</p>
+	      		<h2>Create a new game</h2>
 		      	<form id="new-game">
 		    		<button type="submit" class="btn btn-primary btn-sm">Create game</button>
 		      	</form>
 	    	</div>
 	    	<div class="col-8">
-	      		<p>Join an existing game</p>
+	      		<h2>Join an existing game</h2>
 		      	<form id="existing-game">
 		      		<div class="mb-3">
 		    			<label for="game-code" class="form-label" required>Game Code</label>
@@ -29,7 +29,21 @@
 		  			</div>
 		    		<button type="submit" class="btn btn-primary btn-sm">Join game</button>
 		      	</form>
-		      	TODO: list past games
+		      	{{if .CurrentGames}}
+			      	<br><br>
+			      	<h2>In-progress games</h2>
+			      	<table class="game-list">
+			      	{{range .CurrentGames}}
+			      		<tr>
+			      			<td><a href="/game/{{.ID}}">Rejoin<br>{{.ID}}</a></td>
+			      			<td>
+			      			<b>{{index .Score 0}}</b> {{index .PlayerNames 0}} / {{index .PlayerNames 2}}<br>
+			      			<b>{{index .Score 1}}</b> {{index .PlayerNames 1}} / {{index .PlayerNames 3}}<br>
+			      			</td>
+			      		</tr>
+			      	{{end}}
+				    </table>
+			    {{end}}
 	    	</div>
 	  	</div>
   	{{else}}

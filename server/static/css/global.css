@@ -1,0 +1,22 @@
+table.game-list {
+	cell-padding: 0px;
+	cell-spacing: 0px;
+	border: 1px solid black;
+	width: 100%;
+}
+
+.game-list td {
+	border-bottom: 1px solid black;
+	vertical-align: top;
+	padding-left: 4px;
+	padding-right: 4px;
+}
+
+.game-list a {
+	font-size: 10px;
+	text-align: right;
+}
+
+table.game-list td:last-child {
+    width: 100%;
+}

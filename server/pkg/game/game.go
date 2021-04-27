@@ -116,6 +116,22 @@ func GetGame(ctx context.Context, gameStore storage.GameStore, playerStore stora
 	return g, nil
 }
 
+func GetCurrentGames(ctx context.Context, gameStore storage.GameStore, playerStore storage.PlayerStore, playerID string, count int) ([]Game, error) {
+	gss, err := gameStore.GetCurrentGames(ctx, playerID, count)
+	if err != nil {
+		return nil, err
+	}
+	var games []Game
+	for _, gs := range gss {
+		g, err := gameFromStorage(ctx, gameStore, playerStore, gs.Key.StringID(), gs)
+		if err != nil {
+			return nil, err
+		}
+		games = append(games, g)
+	}
+	return games, nil
+}
+
 func (g *game) ID() string {
 	return g.id
 }

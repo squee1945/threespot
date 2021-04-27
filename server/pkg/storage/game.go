@@ -7,7 +7,10 @@ import (
 	"google.golang.org/appengine/datastore"
 )
 
+const GameEntity = "KaiserGame"
+
 type Game struct {
+	Key       *datastore.Key
 	PlayerIDs []string // Organizing player is 0-index; clockwise afterwards (e.g., 0 and 2 are partners).
 	Created   time.Time
 	Updated   time.Time
@@ -23,11 +26,25 @@ type Game struct {
 	CurrentTally     string `datastore:",noindex"` // The running tally for the current hand.
 }
 
+func (x *Game) LoadKey(k *datastore.Key) error {
+	x.Key = k
+	return nil
+}
+
+func (x *Game) Load(ps []datastore.Property) error {
+	return datastore.LoadStruct(x, ps)
+}
+
+func (x *Game) Save() ([]datastore.Property, error) {
+	return datastore.SaveStruct(x)
+}
+
 type GameStore interface {
 	Create(ctx context.Context, id, organizingPlayerID string) (*Game, error)
 	Get(ctx context.Context, id string) (*Game, error)
 	Set(ctx context.Context, id string, g *Game) error
 	AddPlayer(ctx context.Context, id, playerID string, pos int) (*Game, error)
+	GetCurrentGames(ctx context.Context, playerID string, count int) ([]*Game, error)
 }
 
 type datastoreGameStore struct{}
@@ -85,6 +102,30 @@ func (s *datastoreGameStore) Get(ctx context.Context, id string) (*Game, error) 
 
 }
 
+func (s *datastoreGameStore) GetCurrentGames(ctx context.Context, playerID string, count int) ([]*Game, error) {
+	query := datastore.NewQuery(GameEntity).
+		Filter("PlayerIDs =", playerID).
+		Filter("Complete = ", false).
+		Order("-Updated").
+		Limit(count)
+
+	var games []*Game
+	it := query.Run(ctx)
+	for {
+		var game Game
+		key, err := it.Next(&game)
+		if err == datastore.Done {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		game.Key = key
+		games = append(games, &game)
+	}
+	return games, nil
+}
+
 func (s *datastoreGameStore) Set(ctx context.Context, id string, gs *Game) error {
 	k := gameKey(ctx, id)
 	gs.Updated = time.Now().UTC()
@@ -133,5 +174,5 @@ func (s *datastoreGameStore) AddPlayer(ctx context.Context, id, playerID string,
 }
 
 func gameKey(ctx context.Context, id string) *datastore.Key {
-	return datastore.NewKey(ctx, "KaiserGame", id, 0, nil)
+	return datastore.NewKey(ctx, GameEntity, id, 0, nil)
 }
