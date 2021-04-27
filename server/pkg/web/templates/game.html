@@ -78,6 +78,9 @@
         </tr>
         </tbody>
         </table>
+        <div style="position:absolute; bottom:2px; left:2px;">
+            <small class="show-score-towin"></small>
+        </div>    
         <div id="show-score-details" style="position:absolute; bottom:2px; right:2px;">
             <a href="#" onclick="$('#score-detail').show(); return false;"><small>Details</small></a>
         </div>    
@@ -94,6 +97,9 @@
         </thead>
         <tbody id="score-detail-scores"></tbody>
         </table>
+        <div style="position:absolute; bottom:2px; left:2px;">
+            <small class="show-score-towin"></small>
+        </div>    
         <div id="hide-score-details" style="position:absolute; top:2px; right:2px;"><a href="#" onclick="$('#score-detail').hide(); return false;">Close</a></div>    
     </div>
 
@@ -329,6 +335,8 @@
                 $("#score-detail-scores").append(tr);
             });
         }
+
+        $(".show-score-towin").text("" + gameState.ToWin + " to win");
     }
 
     function repaintBidding(gameState) {
