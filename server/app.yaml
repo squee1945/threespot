@@ -13,3 +13,4 @@ handlers:
   upload: static/images/favicon.png
 - url: .*
   script: auto
+  secure: always
