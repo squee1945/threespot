@@ -1,0 +1,19 @@
+{{template "game" .}}
+
+{{define "card-table"}}
+{{end}}
+
+
+{{define "scripts"}}
+<script>
+    // Show a stack of cards in the middle of the table to make it look like a card game.
+    let table = "#card-table";
+    cards.init({
+        table: table 
+        // cardsUrl:"/static/images/cards.png",     
+    }); 
+
+    let c = new cards.Card('KH', 100, 100);
+    c.makeVisible();
+</script>
+{{end}}

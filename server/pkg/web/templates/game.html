@@ -17,9 +17,9 @@
 
     <div id="bids">
     <div id="bid-0" class="other-bid shadow" style="left:309px; top:303px; display:none;"></div>      
-    <div id="bid-1" class="other-bid shadow" style="left:98px; top:173px; display:none;"></div> 
+    <div id="bid-1" class="other-bid shadow" style="left:98px; top:180px; display:none;"></div> 
     <div id="bid-2" class="other-bid shadow" style="left:327px; top:120px; display:none;"></div>
-    <div id="bid-3" class="other-bid shadow" style="left:559px; top:173px; display:none;"></div>
+    <div id="bid-3" class="other-bid shadow" style="left:559px; top:180px; display:none;"></div>
     </div>
 
     <div id="name-0" class="name-plate" style="left:696px; top:393px; display:none;"></div>
@@ -112,15 +112,10 @@
     var id = "{{.ID}}";
     server.init();
 
-    // Show a stack of cards in the middle of the table to make it look like a card game.
-    var table = "#card-table";
+    let table = "#card-table";
     cards.init({
-        table:table, 
-        cardsUrl:"/static/images/cards.png",     
+        table: table 
     }); 
-    var deck = new cards.Deck();
-    deck.addCards(cards.all);
-    deck.render({immediate:true});
 
     function repaint(gameState) {
         $("#trump").hide();
@@ -148,27 +143,25 @@
         $(".player-card").remove();
         let playerCards = [];
         if (gameState.PlayerHand) {
-            let left = 150 + ((8 - gameState.PlayerHand.length) * 32);
-            gameState.PlayerHand.forEach((serverCard, i) => {
-                let c = makeCard(serverCard);
-                c.setPosition(left + (i * 71), 440);
-                c.makeVisible();
+            let left = 115 + ((8 - gameState.PlayerHand.length) * 32);
+            gameState.PlayerHand.forEach((card, i) => {
+                let c = new cards.Card(card, left + (i * 71), 395);
                 $(c.el).addClass("player-card");
+                c.makeVisible();
                 playerCards.push(c);
             });
         }
 
         let stackPositions = [
-            [50, 220],
-            [390, 60],
-            [730, 220]
+            [13, 175],
+            [353, 15],
+            [693, 175]
         ];
 
         stackPositions.forEach(function(stack, i) {
             for (let i = 0; i < 8; i++) {
-                let c = makeOpponentCard();
-                c.setPosition(stack[0] + i, stack[1] + i);
-                c.scale(.7);
+                let c = new cards.Card('JOK', stack[0] + i, stack[1] + i);
+                c.scale(.9);
                 c.hideCard();
                 c.makeVisible();
             }
@@ -233,8 +226,7 @@
             if (trick) {
                 trick.forEach((card, i) => {
                     let rot = rotate(gameState, trickLeadPosition + i);
-                    let c = makeCard(card);
-                    c.setPosition(cardPosition[rot][0], cardPosition[rot][1]);
+                    let c = new cards.Card(card, cardPosition[rot][0], cardPosition[rot][1]);
                     $(c.el).addClass("trick-card");
                     if (i==0) {
                         $(c.el).addClass("lead-card");
@@ -250,8 +242,7 @@
             let winningRot = rotate(gameState, lastTrickWinningPosition);
             lastTrick.forEach((card, i) => {
                 let rot = rotate(gameState, lastTrickLeadPosition + i);
-                let c = makeCard(card);
-                c.setPosition(cardPosition[rot][0], cardPosition[rot][1]);
+                let c = new cards.Card(card, cardPosition[rot][0], cardPosition[rot][1]);
                 $(c.el).addClass("trick-card");
                 if (i==0) {
                     $(c.el).addClass("lead-card");
@@ -292,8 +283,7 @@
         let winningRot = rotate(gameState, lastTrickWinningPosition);
         lastTrick.forEach((card, i) => {
             let rot = rotate(gameState, lastTrickLeadPosition + i);
-            let c = makeCard(card);
-            c.setPosition(cardPosition[rot][0], cardPosition[rot][1]);
+            let c = new cards.Card(card, cardPosition[rot][0], cardPosition[rot][1]);
             c.scale(.6);
             $(c.el).addClass("last-trick-card");
             if (i==0) {
@@ -456,7 +446,7 @@
 
                     // TODO: animate card to center
 
-                    server.playCard(id, makeServerCard(card), (gameState) => {
+                    server.playCard(id, card.code, (gameState) => {
                         repaint(gameState);
                     });
                 });
@@ -468,60 +458,6 @@
 
     function repaintCompleted(gameState) {
         // TODO
-    }
-
-    function makeCard(serverCard) {
-        let rankStr = serverCard.substr(0, 1);
-        let rank = 0;
-        switch(rankStr) {
-            case "A":
-                rank = 1;
-                break;
-            case "K":
-                rank = 13;
-                break;
-            case "Q":
-                rank = 12;
-                break;
-            case "J":
-                rank = 11;
-                break;
-            case "T":
-                rank = 10;
-                break;
-            default:
-                rank = parseInt(rankStr, 10);
-        }
-        let suit = serverCard.substr(1, 1).toLowerCase();
-        return new cards.Card(suit, rank, table);
-    }
-
-    function makeServerCard(card) {
-        let suit = card.suit.toUpperCase();
-        let rank = card.rank;
-        switch (card.rank) {
-            case 1:
-            case 14:
-                rank = "A";
-                break;
-            case 13:
-                rank = "K";
-                break;
-            case 12:
-                rank = "Q";
-                break;
-            case 11:
-                rank = "J";
-                break;
-            case 10:
-                rank = "T";
-                break;
-        }
-        return "" + rank + suit;
-    }
-
-    function makeOpponentCard() {
-        return new cards.Card('rj', 0, table);
     }
 
     function rotate(gameState, pos) {

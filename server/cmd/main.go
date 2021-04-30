@@ -24,7 +24,7 @@ func main() {
 	http.HandleFunc("/", server.Index)
 	http.HandleFunc("/join/", server.Join)
 	http.HandleFunc("/game/", server.Game)
-	// http.HandleFunc("/debug", server.Debug)
+	http.HandleFunc("/card-debug", server.CardDebug)
 	// http.HandleFunc("/debug/", server.Debug)
 	http.HandleFunc("/clear-cookie", server.ClearCookie)
 
