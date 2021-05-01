@@ -197,10 +197,9 @@ func TestPlayerPos(t *testing.T) {
 
 func TestPosToPlay(t *testing.T) {
 	testCases := []struct {
-		name    string
-		gs      *storage.Game
-		want    int
-		wantErr bool
+		name string
+		gs   *storage.Game
+		want int
 	}{
 		{
 			name: "bidding pos",
@@ -232,7 +231,7 @@ func TestPosToPlay(t *testing.T) {
 			gs: &storage.Game{
 				PlayerIDs: []string{"ABE", "", "CAL", ""},
 			},
-			wantErr: true,
+			want: -1,
 		},
 		{
 			name: "completed pos",
@@ -240,7 +239,7 @@ func TestPosToPlay(t *testing.T) {
 				PlayerIDs: []string{"ABE", "BOB", "CAL", "DON"},
 				Complete:  true,
 			},
-			wantErr: true,
+			want: -1,
 		},
 	}
 
@@ -249,15 +248,8 @@ func TestPosToPlay(t *testing.T) {
 			g, _, _ := buildGame(t, tc.gs)
 
 			pos, err := g.PosToPlay()
-
-			if tc.wantErr && err == nil {
-				t.Fatal("missing expected error")
-			}
-			if !tc.wantErr && err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if tc.wantErr {
-				return
+			if err != nil {
+				t.Fatal(err)
 			}
 
 			if got, want := pos, tc.want; got != want {

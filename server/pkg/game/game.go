@@ -202,7 +202,7 @@ func (g *game) PosToPlay() (int, error) {
 		}
 		return pos, nil
 	}
-	return 0, fmt.Errorf("no one plays in %s state", g.State())
+	return -1, nil
 }
 
 func (g *game) Tally() Tally {

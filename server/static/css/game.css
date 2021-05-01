@@ -136,10 +136,36 @@ footer a:hover {
     padding: 0;
 }
 
+li.to-play {
+    font-weight: bold;
+    background-color: white;
+    padding: 4px;
+    font-size: 14px;
+    border: 2px solid black;   
+    border-radius:12px; 
+    box-shadow:black 0px 0px 2px; 
+}
+
+li.your-turn {
+    animation: pulse 3s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    background-color: white;
+  }
+  50% {
+    background-color: #CC0000;
+  }
+  100% {
+    background-color: white;
+  }
+}
+
 #trump {
     position: absolute;
     left: 379px; 
-    top: 193px;
+    top: 205px;
     display: none;
     text-align: center;
     font-weight: bold;
@@ -236,6 +262,25 @@ footer a:hover {
     margin-right: 2px;
 }
 
+#called {
+    position: absolute;
+    left: 192px;
+    top: 184px;
+    width: 400px;
+    height: 80px;
+    background: #DDCC00;
+    display: none;
+    text-align:center;
+    line-height: 80px;
+    z-index: 2000000000;
+}
+
+#called h5 {
+    padding: 0px;
+    margin: 0px;
+    font-size: 40px;
+}
+
 #last-trick {
     position: absolute; 
     left: 10px; 
@@ -249,21 +294,25 @@ footer a:hover {
 }
 
 .lead-card {
+    padding: 0px;
     border: 3px solid red;
-    border-radius:12px;
-    -webkit-border-radius:12px;
-    -moz-border-radius:12px;
-    -ms-border-radius:12px;
-    -o-border-radius:12px;
+    border-radius:8px;
+    -webkit-border-radius:8px;
+    -moz-border-radius:8px;
+    -ms-border-radius:8px;
+    -o-border-radius:8px;
+    background-clip: border-box;
 }
 
 .winning-card {
+    padding: 0px;
     border: 3px solid blue;
-    border-radius:12px;
-    -webkit-border-radius:12px;
-    -moz-border-radius:12px;
-    -ms-border-radius:12px;
-    -o-border-radius:12px;
+    border-radius:8px;
+    -webkit-border-radius:8px;
+    -moz-border-radius:8px;
+    -ms-border-radius:8px;
+    -o-border-radius:8px;
+    background-clip: border-box;
 }
 
 #trick-tally table {
@@ -318,7 +367,7 @@ footer a:hover {
     height: 400px;
     display: none;
     background-color: white;
-    z-index: 2000000000;
+    z-index: 2000000001;
     font-size: 18px;
     font-weight: bold;
     padding: 4px;
@@ -350,7 +399,15 @@ footer a:hover {
 }
 
 #score-detail tbody {
-    height: 320px; 
+    height: 290px; 
     overflow-y: auto;
     overflow-x: hidden; 
+}
+
+.winner {
+    border-radius:8px; 
+    background: green;
+    color: white;
+    padding: 5px;
+    margin: 5px;
 }

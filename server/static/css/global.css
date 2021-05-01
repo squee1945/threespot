@@ -20,3 +20,7 @@ table.game-list {
 table.game-list td:last-child {
     width: 100%;
 }
+
+img.preload {
+    display:none;
+}
