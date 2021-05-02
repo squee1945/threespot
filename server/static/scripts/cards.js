@@ -44,6 +44,8 @@ var cards = (function() {
       }).addClass('card').data('card', this).appendTo($(opt.table));
       this.showCard();
       this.moveToFront();
+      this.angle = 0;
+      this.percentage = 1.0;
     },
 
     showCard: function() {
@@ -71,8 +73,24 @@ var cards = (function() {
       $(this.el).css('display', 'none');
     },
 
+    transform: function() {
+      let t = 'scale(' + this.percentage + ') rotate('+ this.angle +'deg)';
+      $(this.el).css({
+        '-webkit-transform': t,
+        '-moz-transform': t,
+        '-ms-transform': t,
+        'transform': t
+      });
+    },
+
     scale: function(percentage) {
-      $(this.el).css('transform', 'scale(' + percentage + ')');
+      this.percentage = percentage;
+      this.transform();
+    },
+
+    rotate: function(angle) {
+      this.angle = angle;
+      this.transform();
     }
   };
 

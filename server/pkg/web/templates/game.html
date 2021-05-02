@@ -236,12 +236,19 @@
             [438, 180]
         ];
 
+        let cardHash = (card) => hash(id + (gameState.Score? gameState.Score.length: 0) + card);
+        let left = (rot, h) => cardPosition[rot][0] + (h%10)-5;
+        let top = (rot, h) => cardPosition[rot][1] + (h%10)-5;
+        let angle = (rot, h) => (h%16)-8;
+
         showCurrent = function() {
             $(".trick-card").remove();
             if (trick) {
                 trick.forEach((card, i) => {
                     let rot = rotate(gameState, trickLeadPosition + i);
-                    let c = new cards.Card(card, cardPosition[rot][0], cardPosition[rot][1]);
+                    let h = cardHash(card);
+                    let c = new cards.Card(card, left(rot, h), top(rot, h));
+                    c.rotate(angle(rot, h));
                     $(c.el).addClass("trick-card");
                     if (i==0) {
                         $(c.el).addClass("lead-card");
@@ -257,7 +264,9 @@
             let winningRot = rotate(gameState, lastTrickWinningPosition);
             lastTrick.forEach((card, i) => {
                 let rot = rotate(gameState, lastTrickLeadPosition + i);
-                let c = new cards.Card(card, cardPosition[rot][0], cardPosition[rot][1]);
+                let h = cardHash(card);
+                let c = new cards.Card(card, left(rot, h), top(rot, h));
+                c.rotate(angle(rot, h));
                 $(c.el).addClass("trick-card");
                 if (i==0) {
                     $(c.el).addClass("lead-card");
@@ -554,6 +563,19 @@
             return name;
         }
         return name.substr(0, 10);
+    }
+
+    function hash(s) {
+        var h = 0;
+        if (!s) {
+            return h;
+        }
+        for (let i = 0; i < s.length; i++) {
+            let ch = s.charCodeAt(i);
+            h = ((h<<5)-h)+ch;
+            h = h & h;
+        }
+        return h;
     }
 
     kaiser.init(id, {repaint: repaint}); // This starts polling and updating the game board.
