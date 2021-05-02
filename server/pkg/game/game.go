@@ -18,6 +18,7 @@ type Game interface {
 	State() GameState
 	Players() []Player
 	PlayerHand(player Player) (Hand, error)
+	HandCounts() []int
 	Score() Score
 	PlayerPos(player Player) (int, error)
 	DealerPos() int
@@ -241,6 +242,19 @@ func (g *game) PlayerHand(player Player) (Hand, error) {
 		return nil, err
 	}
 	return g.currentHands.Hand(pos)
+}
+
+func (g *game) HandCounts() []int {
+	def := []int{8, 8, 8, 8}
+	var counts []int
+	for pos := 0; pos < 4; pos++ {
+		hand, err := g.currentHands.Hand(pos)
+		if err != nil {
+			return def
+		}
+		counts = append(counts, len(hand.Cards()))
+	}
+	return counts
 }
 
 func (g *game) AddPlayer(ctx context.Context, player Player, pos int) (Game, error) {

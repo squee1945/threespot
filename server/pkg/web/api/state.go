@@ -27,6 +27,7 @@ type GameStateResponse struct {
 
 	DealerPosition           int // last bidder
 	PlayerHand               []string
+	HandCounts               []int
 	Trick                    []string
 	TrickLeadPosition        int
 	LastTrick                []string
@@ -129,6 +130,7 @@ func BuildGameState(g game.Game, player game.Player) (*GameStateResponse, error)
 		ToWin:          g.Score().ToWin(),
 		DealerPosition: g.DealerPos(),
 		PlayerHand:     cardsToStrings(playerHand.Cards()),
+		HandCounts:     g.HandCounts(),
 		PositionToPlay: positionToPlay,
 	}
 

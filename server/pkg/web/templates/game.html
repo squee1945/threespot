@@ -162,9 +162,12 @@
             [693, 175]
         ];
 
+        $(".opponent-card").remove();
         stackPositions.forEach(function(stack, i) {
-            for (let i = 0; i < 8; i++) {
+        	let count = gameState.HandCounts[i+1];
+            for (let i = 0; i < count; i++) {
                 let c = new cards.Card('JOK', stack[0] + i, stack[1] + i);
+                $(c.el).addClass("opponent-card");
                 c.scale(.9);
                 c.hideCard();
                 c.makeVisible();
@@ -438,8 +441,8 @@
         $("#calling").hide();
         $("#bids").hide();
 
-    	// Special case: if playing, and trick tally is 0 and no cards played, then show what was bid.
-    	if (!gameState.Trick && gameState.TrickTally && gameState.TrickTally[0] == 0 && gameState.TrickTally[1] == 0) {
+    	// Special case: if playing, no cards played and player hand has 8 cards, then show what was bid.
+    	if (!gameState.Trick && gameState.PlayerHand.length == 8) {
     		$("#called h5").html(suitHuman(gameState.Trump) + " called!");
     		let elem = $("#called");
     		elem.show();
