@@ -148,7 +148,7 @@ func BuildGameState(g game.Game, player game.Player) (*GameStateResponse, error)
 		state.LastTrickWinningPosition = lastTrickWinningPos
 	}
 
-	if g.CurrentBidding != nil {
+	if g.CurrentBidding() != nil {
 		state.LeadBidPosition = g.CurrentBidding().LeadPos()
 		if g.State() != game.PlayingState {
 			state.BidsPlaced = bidsToBidInfos(g.CurrentBidding().Bids())
@@ -162,7 +162,7 @@ func BuildGameState(g game.Game, player game.Player) (*GameStateResponse, error)
 		}
 	}
 
-	if g.Tally != nil {
+	if g.Tally() != nil {
 		tally02, tally13 := g.Tally().Points()
 		state.TrickTally = []int{tally02, tally13}
 	}
