@@ -20,8 +20,8 @@
     </div>
 
     <div id="bids">
-    <div id="bid-0" class="other-bid shadow" style="left:309px; top:303px; display:none;"></div>      
-    <div id="bid-1" class="other-bid shadow" style="left:98px; top:180px; display:none;"></div> 
+    <div id="bid-0" class="other-bid shadow" style="left:327px; top:303px; display:none;"></div>
+    <div id="bid-1" class="other-bid shadow" style="left:98px; top:180px; display:none;"></div>
     <div id="bid-2" class="other-bid shadow" style="left:327px; top:120px; display:none;"></div>
     <div id="bid-3" class="other-bid shadow" style="left:559px; top:180px; display:none;"></div>
     </div>
@@ -60,8 +60,8 @@
         </div>
         <div style="position:absolute; right:2px; bottom:2px;">
             <small>
-                <span style="color:red;">Red</span> is card led.
-                <span style="color:blue;">Blue</span> is winner.
+                <span style="color:red;">Red</span> was led.
+                <span style="color:blue;">Blue</span> was winner.
             </small>
         </div>
     </div>
@@ -157,22 +157,23 @@
         }
 
         let stackPositions = [
+            [0, 0],
             [13, 175],
             [353, 15],
             [693, 175]
         ];
 
         $(".opponent-card").remove();
-        stackPositions.forEach(function(stack, i) {
-        	let count = gameState.HandCounts[i+1];
-            for (let i = 0; i < count; i++) {
-                let c = new cards.Card('JOK', stack[0] + i, stack[1] + i);
+        for (let stack = 1; stack < 4; stack++) {
+            let rot = (gameState.PlayerPosition + stack + 4) % 4;
+            for (let i = 0; i < gameState.HandCounts[rot]; i++) {
+                let c = new cards.Card('JOK', stackPositions[stack][0] + i, stackPositions[stack][1] + i);
                 $(c.el).addClass("opponent-card");
                 c.scale(.9);
                 c.hideCard();
                 c.makeVisible();
             }
-        });
+        }
 
         gameState.PlayerNames.forEach((name, i) => {
             let rot = rotate(gameState, i);
@@ -205,7 +206,7 @@
         let rot = rotate(gameState, dealerPosition);
         $("#info-"+rot+ " ul").append($("<li/>").addClass("info-item").text("Dealer"));
 
-        if (winningBid.Human) {
+        if (winningBid.Human && gameState.State != "CALLING") {
             rot = rotate(gameState, winningBidPosition);
             let msg = "Bid " + winningBid.Human + " " + suitHuman(gameState.Trump);
             $("#info-"+rot+ " ul").append($("<li/>").addClass("info-item").html(msg));
@@ -214,9 +215,9 @@
         rot = rotate(gameState, positionToPlay);
         let li = $("<li/>").addClass("info-item").addClass("to-play");
         if (positionToPlay == gameState.PlayerPosition) {
-        	li.addClass("your-turn").text("Your turn!");
+            li.addClass("your-turn").text("Your turn!");
         } else {
-        	li.text("To play");
+            li.text("To play");
         }
         $("#info-"+rot+ " ul").append(li);
     }
@@ -328,14 +329,14 @@
         $("#score-detail-13-names").html(t13);
 
         if (gameState.State == "COMPLETED") {
-        	let winner = $("#score-detail-02-names");
-        	let loser = $("#score-detail-13-names");
-        	if (gameState.WinningTeam == 1) {
-        		winner = $("#score-detail-13-names");
-        		loser = $("#score-detail-02-names");
-        	}
-        	winner.html("<div class='winner'>WINNER!<br>" + winner.html() + "</div>");
-        	loser.html("<br>" + loser.html());
+            let winner = $("#score-detail-02-names");
+            let loser = $("#score-detail-13-names");
+            if (gameState.WinningTeam == 1) {
+                winner = $("#score-detail-13-names");
+                loser = $("#score-detail-02-names");
+            }
+            winner.html("<div class='winner'>WINNER!<br>" + winner.html() + "</div>");
+            loser.html("<br>" + loser.html());
         }
 
         $("#score-02-score").text(gameState.CurrentScore[0]);
@@ -375,7 +376,7 @@
                 gameState.AvailableBids.forEach((bid) => {
                     $("#bid-buttons").append(
                         $("<button/>").val(bid.Code).text(shortNoTrump(bid.Human)).click((event) => {
-	                        event.preventDefault(); 
+                            event.preventDefault(); 
                             $("#bid-buttons button").prop("disabled", true);
                             server.placeBid(id, bid.Code, (gameState) => {
                                 repaint(gameState);
@@ -417,7 +418,7 @@
         trumps.forEach((trump) => {
             $("#trump-buttons").append(
                 $("<button/>").val(trump[0]).html(trump[1]).click((event) => { 
-                	event.preventDefault();
+                    event.preventDefault();
                     $("#trump-buttons button").prop("disabled", true);
                     server.callTrump(id, trump[0], (gameState) => {
                         $(".other-bid .calling").removeClass("calling");
@@ -441,13 +442,16 @@
         $("#calling").hide();
         $("#bids").hide();
 
-    	// Special case: if playing, no cards played and player hand has 8 cards, then show what was bid.
-    	if (!gameState.Trick && gameState.PlayerHand.length == 8) {
-    		$("#called h5").html(suitHuman(gameState.Trump) + " called!");
-    		let elem = $("#called");
-    		elem.show();
-    		setTimeout(() => elem.hide(), 3000);
-    	}
+        // Special case: if playing, no cards played and player hand has 8 cards, then show what was bid.
+        let justCalled = false;
+        if (!gameState.Trick && gameState.PlayerHand.length == 8) {
+            justCalled = true;
+            $(".trick-card").remove();
+            $("#called h5").html(suitHuman(gameState.Trump) + " called!");
+            let elem = $("#called");
+            elem.show();
+            setTimeout(() => elem.hide(), 3000);
+        }
 
         if (gameState.Trump == "N") {
             $("#trump").hide();
@@ -465,14 +469,14 @@
             $(card.el)
             .hover(
                 (event) => {
-                    $(event.target).animate({top: "350px"}, "fast");
+                    $(event.target).animate({top: "380px"}, "fast");
                 }, 
                 (event) => {
                     $(event.target).animate({top: "395px"}, "fast");
                 })
             .click(
                 (event) => {
-                	event.preventDefault();
+                    event.preventDefault();
                     if (gameState.PositionToPlay != gameState.PlayerPosition) {
                         alert("Not your turn!");
                         return;
@@ -480,15 +484,15 @@
                     // Disable card clicks.
                     $(".player-card").click((event)=>{event.preventDefault();});
 
-                    // TODO: animate card to center
-
                     server.playCard(id, card.code, (gameState) => {
                         repaint(gameState);
                     });
                 });
         });
 
-        showCurrentTrick(gameState);
+        if (!justCalled) {
+            showCurrentTrick(gameState);
+        }
         showLastTrick(gameState);
     }
 

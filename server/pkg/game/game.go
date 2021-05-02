@@ -443,7 +443,7 @@ func (g *game) PlayCard(ctx context.Context, player Player, card deck.Card) (Gam
 
 			// If the score is a winning (note: bid out, etc.), complete the game.
 			// TODO: need better stuff here: consider bid-out, stealing the 5, etc.
-			if g.score.CurrentScore()[0] > g.score.ToWin() || g.score.CurrentScore()[1] > g.score.ToWin() {
+			if g.score.CurrentScore()[0] >= g.score.ToWin() || g.score.CurrentScore()[1] >= g.score.ToWin() {
 				g.complete = true
 			} else {
 				// Else deal a new hand and go to bidding round.

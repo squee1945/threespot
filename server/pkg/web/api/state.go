@@ -181,7 +181,7 @@ func BuildGameState(g game.Game, player game.Player) (*GameStateResponse, error)
 		score := g.Score().CurrentScore()
 		winner := 0
 		if score[1] > score[0] {
-			winner = 2
+			winner = 1
 		}
 		state.WinningTeam = winner
 	}
