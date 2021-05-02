@@ -21,6 +21,8 @@ type Cache interface {
 	// Set sets a value for a key. Use timeout=0 for "forever".
 	// Of course, since this is a "cache", nothing is guaranted and the item may disappear at any time.
 	Set(ctx context.Context, key, value string, timeout time.Duration) error
+	// Clear clears the cache key.
+	Clear(ctx context.Context, key string) error
 }
 
 type memcacheCache struct{}
@@ -51,6 +53,13 @@ func (c *memcacheCache) Set(ctx context.Context, key, value string, timeout time
 	}
 	if err := memcache.Set(ctx, item); err != nil {
 		return fmt.Errorf("memcache.Set(): %v", err)
+	}
+	return nil
+}
+
+func (c *memcacheCache) Clear(ctx context.Context, key string) error {
+	if err := memcache.Delete(ctx, key); err != nil {
+		return fmt.Errorf("memcache.Delete(): %v", err)
 	}
 	return nil
 }

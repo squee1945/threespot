@@ -56,13 +56,9 @@ func (s *ApiServer) JoinGameState(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	player := s.lookupPlayer(ctx, w, r)
-	if player == nil {
-		return
-	}
-
 	g := s.lookupGame(ctx, w, id)
 	if g == nil {
+		sendResponse(w, struct{}{})
 		return
 	}
 

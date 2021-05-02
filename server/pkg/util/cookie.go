@@ -26,6 +26,7 @@ func SetPlayerID(w http.ResponseWriter) string {
 		Name:    playerCookie,
 		Value:   pid,
 		Expires: time.Now().Add(cookieTTL),
+		Path:    "/",
 	}
 	http.SetCookie(w, &cookie)
 	return pid

@@ -68,9 +68,15 @@ func (s *Server) Game(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.render("game.html", w, gameArgs{ID: id})
+	args := gameArgs{
+		ID:      id,
+		Address: util.Address(r, id),
+	}
+
+	s.render("game.html", w, args)
 }
 
 type gameArgs struct {
-	ID string
+	ID      string
+	Address string
 }

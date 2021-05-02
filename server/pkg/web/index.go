@@ -10,7 +10,8 @@ import (
 
 func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
-		http.NotFound(w, r)
+		// Assume the rest of the url is the game id, and redirect to '/game/XXX'
+		http.Redirect(w, r, "/game"+r.URL.Path, 302)
 		return
 	}
 

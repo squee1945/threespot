@@ -34,6 +34,7 @@ type Game interface {
 	PlaceBid(ctx context.Context, player Player, bid Bid) (Game, error)
 	CallTrump(ctx context.Context, player Player, trump deck.Suit) (Game, error)
 	PlayCard(ctx context.Context, player Player, card deck.Card) (Game, error)
+	UpdateVersion(ctx context.Context) (Game, error)
 }
 
 var (
@@ -458,6 +459,10 @@ func (g *game) PlayCard(ctx context.Context, player Player, card deck.Card) (Gam
 		}
 	}
 
+	return g.save(ctx)
+}
+
+func (g *game) UpdateVersion(ctx context.Context) (Game, error) {
 	return g.save(ctx)
 }
 

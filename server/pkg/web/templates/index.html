@@ -10,7 +10,7 @@
 	{{if .Registered}}
 	  	<div class="row">
 	    	<div class="col">
-	    		<p>Start a new game, or choose one of your active games from the right.</p>
+	    		<p>Start a new game, enter a code from a friend, or choose one of your in-progress games.</p>
 	    	</div>
 		</div>
 	  	<div class="row">
@@ -49,7 +49,7 @@
   	{{else}}
 	  	<div class="row">
 	    	<div class="col">
-	    		<p>Enter a name to get started.</p>
+	    		<p>Enter your first name to get started.</p>
 		      	<form id="set-user">
 		      		<div class="mb-3">
 		    			<label for="username" class="form-label" required>Name</label>
@@ -70,7 +70,7 @@
 	    event.preventDefault();
 	    event.stopPropagation();
 
-	    server.updateUser($("#username").val(), (user) => {
+	    server.updateUser({"Name": $("#username").val()}, (user) => {
 	    	$("#username").text(user.Name);
 	        location.href = "/";
 	    });

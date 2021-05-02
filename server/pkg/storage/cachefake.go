@@ -51,3 +51,10 @@ func (c *fakeCache) Set(ctx context.Context, key, value string, timeout time.Dur
 	c.entries[key] = entry
 	return nil
 }
+
+func (c *fakeCache) Clear(ctx context.Context, key string) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	delete(c.entries, key)
+	return nil
+}

@@ -12,6 +12,7 @@ import (
 
 type UpdateUserRequest struct {
 	Name string
+	ID   string // optional game ID; name may be changed in the context of the game; if so, we have to update the game version.
 }
 
 type UpdateUserResponse struct {
@@ -61,6 +62,18 @@ func (s *ApiServer) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		sendServerError(w, "setting player name: %v", err)
 		return
+	}
+
+	if req.ID != "" {
+		g := s.lookupGame(ctx, w, req.ID)
+		if g == nil {
+			return
+		}
+		s.clearGameStateVersion(ctx, req.ID)
+		if _, err := g.UpdateVersion(ctx); err != nil {
+			sendServerError(w, "updating game version: %v", err)
+			return
+		}
 	}
 
 	if err := sendResponse(w, UpdateUserResponse{Name: player.Name()}); err != nil {

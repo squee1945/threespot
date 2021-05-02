@@ -159,3 +159,14 @@ func (s *ApiServer) getGameStateVersion(ctx context.Context, id string) string {
 	}
 	return version
 }
+
+func (s *ApiServer) clearGameStateVersion(ctx context.Context, id string) {
+	if id == "" {
+		log.Printf("ID must not be empty string. Not clearing cache.")
+	}
+	key := id + "-version"
+	if err := s.cache.Clear(ctx, key); err != nil {
+		log.Printf("Failed to clear cache. Suppressing error: %v", err)
+	}
+	return
+}

@@ -2,6 +2,7 @@ package util
 
 import (
 	"math/rand"
+	"net/http"
 	"time"
 )
 
@@ -15,4 +16,8 @@ func RandString(n int) string {
 		b[i] = letters[rand.Intn(len(letters))]
 	}
 	return string(b)
+}
+
+func Address(r *http.Request, id string) string {
+	return "https://" + r.Host + "/" + id
 }

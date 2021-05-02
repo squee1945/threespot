@@ -1,6 +1,7 @@
 package web
 
 import (
+	"html/template"
 	"net/http"
 	"strings"
 
@@ -17,24 +18,16 @@ func (s *Server) Join(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id := r.URL.Path[len("/join/"):]
-	args := joinArgs{ID: id}
+	args := joinArgs{ID: id, Address: util.Address(r, id)}
 
 	playerID, err := util.PlayerID(r)
 	if err != nil {
-		if err != http.ErrNoCookie {
-			sendServerError(w, "looking up player ID in cookie: %v", err)
+		if err == http.ErrNoCookie {
+			playerID = util.SetPlayerID(w)
+			http.Redirect(w, r, r.URL.Path, 302)
 			return
-		}
-		playerID = util.SetPlayerID(w)
-	}
-
-	args.Registered = true
-	_, err = game.GetPlayer(ctx, s.playerStore, playerID)
-	if err != nil {
-		if err == game.ErrNotFound {
-			args.Registered = false
 		} else {
-			sendServerError(w, "getting player: %v", err)
+			sendServerError(w, "looking up player ID in cookie: %v", err)
 			return
 		}
 	}
@@ -55,11 +48,29 @@ func (s *Server) Join(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	p, err := game.GetPlayer(ctx, s.playerStore, playerID)
+	if err != nil {
+		if err != game.ErrNotFound {
+			sendServerError(w, "getting player: %v", err)
+			return
+		}
+	}
+
+	args.HasName = "false"
+	if p != nil {
+		args.PlayerName = p.Name()
+		if args.PlayerName != "" {
+			args.HasName = "true"
+		}
+	}
+
 	s.render("join.html", w, args)
 }
 
 type joinArgs struct {
 	ID         string
 	Players    []game.Player
-	Registered bool
+	PlayerName string
+	HasName    template.JS // "true" or "false"
+	Address    string
 }

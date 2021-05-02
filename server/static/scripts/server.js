@@ -51,10 +51,7 @@ var server = (function() {
         }
     }
 
-    function updateUser(name, done) {
-        let data = {
-            Name: name,
-        };
+    function updateUser(data, done) {
         $.ajax({
             url: "/api/user",
             type: "POST",
