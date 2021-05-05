@@ -7,6 +7,11 @@ import (
 	"strings"
 )
 
+const (
+	// NoWinner means there is currently no winner.
+	NoWinner int = -1
+)
+
 // Score keeps track of the game store.
 type Score interface {
 	// ToWin is the score to win; either 52 or 62.
@@ -25,13 +30,21 @@ type Score interface {
 	// CurrentScore return a pair (points02, points13) representing the current score.
 	CurrentScore() []int
 
-	// addTally adds a tally to the score. An error is returned if the tally is not done.
-	addTally(BiddingRound, Tally) error
+	// Winner returns 0 if team02 has won, 1 if team13 has one, and NoWinner otherwise.
+	Winner() int
+
+	// setWinner sets the winning team; use 0 for team02, 1 for team13.
+	setWinner(int)
+
+	// addTally adds a tally to the score, returning true if the game has been won.
+	// An error is returned if the tally is not done.
+	addTally(BiddingRound, Tally) (bool, error)
 }
 
 type score struct {
 	scores [][]int
 	toWin  int
+	winner int
 }
 
 var _ Score = (*score)(nil) // Ensure interface is implemented.
@@ -39,6 +52,7 @@ var _ Score = (*score)(nil) // Ensure interface is implemented.
 // NewScoreFromEncoded builds a score sheet form the Encoded() representation.
 func NewScoreFromEncoded(encoded string) (Score, error) {
 	// "toWin-p02|p13||p02|p03||"
+	// If there is a winning team, it will be encoded like this: "toWin||winningTeam-p02|p13||p02|p03"
 	if encoded == "" {
 		encoded = "52-"
 	}
@@ -50,11 +64,26 @@ func NewScoreFromEncoded(encoded string) (Score, error) {
 	if len(topParts) != 2 {
 		return nil, fmt.Errorf("toWin score not encoded in %q correctly", encoded)
 	}
-	toWin, err := strconv.Atoi(topParts[0])
+	var toWinStr string
+	var winner int
+	if strings.Contains(topParts[0], "||") {
+		winningParts := strings.SplitN(topParts[0], "||", 2)
+		toWinStr = winningParts[0]
+		var err error
+		winner, err = strconv.Atoi(winningParts[1])
+		if err != nil {
+			return nil, fmt.Errorf("parsing winning team %q: %v", winningParts[1], err)
+		}
+	} else {
+		toWinStr = topParts[0]
+		winner = NoWinner
+	}
+	toWin, err := strconv.Atoi(toWinStr)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parsing toWin %q: %v", toWinStr, err)
 	}
 	score.toWin = toWin
+	score.winner = winner
 
 	if topParts[1] == "" {
 		return score, nil
@@ -83,7 +112,7 @@ func NewScoreFromEncoded(encoded string) (Score, error) {
 
 // NewScore creates an empty score sheet.
 func NewScore() Score {
-	return &score{toWin: 52}
+	return &score{toWin: 52, winner: NoWinner}
 }
 
 func (s *score) Encoded() string {
@@ -91,7 +120,11 @@ func (s *score) Encoded() string {
 	for _, r := range s.scores {
 		pairs = append(pairs, fmt.Sprintf("%d|%d", r[0], r[1]))
 	}
-	res := fmt.Sprintf("%d-%s", s.toWin, strings.Join(pairs, "||"))
+	winningPart := strconv.Itoa(s.toWin)
+	if s.winner != NoWinner {
+		winningPart += "||" + strconv.Itoa(s.winner)
+	}
+	res := fmt.Sprintf("%s-%s", winningPart, strings.Join(pairs, "||"))
 	return res
 }
 
@@ -101,6 +134,16 @@ func (s *score) ToWin() int {
 
 func (s *score) setTopScore62() {
 	s.toWin = 62
+}
+
+// Returns 0 if team02 won, 1 if team13 won, and NoWinner if no one has won.
+func (s *score) Winner() int {
+	return s.winner
+}
+
+// team02 is 0, team13 is 1.
+func (s *score) setWinner(winner int) {
+	s.winner = winner
 }
 
 func (s *score) Scores() [][]int {
@@ -114,14 +157,14 @@ func (s *score) CurrentScore() []int {
 	return s.scores[len(s.scores)-1]
 }
 
-func (s *score) addTally(br BiddingRound, tally Tally) error {
+func (s *score) addTally(br BiddingRound, tally Tally) (bool, error) {
 	if !tally.IsDone() {
-		return errors.New("tally is not done")
+		return false, errors.New("tally is not done")
 	}
 
 	bid, pos, err := br.WinningBidAndPos()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	last02, last13 := 0, 0
@@ -132,7 +175,7 @@ func (s *score) addTally(br BiddingRound, tally Tally) error {
 
 	bidValue, err := bid.Value()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	multiplier := 1
@@ -140,23 +183,23 @@ func (s *score) addTally(br BiddingRound, tally Tally) error {
 		multiplier = 2
 	}
 
-	madeBid := false
 	points02, points13 := tally.Points()
+	madeBid02, madeBid13 := false, false
 	sc := make([]int, 2)
 	if pos == 0 || pos == 2 {
-		// Team02 made the bid.
 		if points02 >= bidValue {
+			// Team02 made the bid.
 			sc[0] = last02 + (points02 * multiplier)
-			madeBid = true
+			madeBid02 = true
 		} else {
 			sc[0] = last02 - (bidValue * multiplier)
 		}
 		sc[1] = last13 + points13
 	} else {
-		// Team13 made the bid.
 		if points13 >= bidValue {
+			// Team13 made the bid.
 			sc[1] = last13 + (points13 * multiplier)
-			madeBid = true
+			madeBid13 = true
 		} else {
 			sc[1] = last13 - (bidValue * multiplier)
 		}
@@ -164,9 +207,16 @@ func (s *score) addTally(br BiddingRound, tally Tally) error {
 	}
 	s.scores = append(s.scores, sc)
 
-	if multiplier == 2 && madeBid {
+	if multiplier == 2 && (madeBid02 || madeBid13) {
 		s.setTopScore62()
 	}
 
-	return nil
+	// Check to see if there is a winner.
+	if sc[0] >= s.ToWin() && madeBid02 {
+		s.setWinner(0)
+	} else if sc[1] >= s.ToWin() && madeBid13 {
+		s.setWinner(1)
+	}
+
+	return s.Winner() != NoWinner, nil
 }

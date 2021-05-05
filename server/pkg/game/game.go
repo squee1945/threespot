@@ -438,13 +438,12 @@ func (g *game) PlayCard(ctx context.Context, player Player, card deck.Card) (Gam
 			if g.score == nil {
 				g.score = NewScore()
 			}
-			if err := g.score.addTally(g.currentBidding, g.currentTally); err != nil {
+			hasWinner, err := g.score.addTally(g.currentBidding, g.currentTally)
+			if err != nil {
 				return nil, err
 			}
 
-			// If the score is a winning (note: bid out, etc.), complete the game.
-			// TODO: need better stuff here: consider bid-out, stealing the 5, etc.
-			if g.score.CurrentScore()[0] >= g.score.ToWin() || g.score.CurrentScore()[1] >= g.score.ToWin() {
+			if hasWinner {
 				g.complete = true
 			} else {
 				// Else deal a new hand and go to bidding round.
@@ -452,6 +451,7 @@ func (g *game) PlayCard(ctx context.Context, player Player, card deck.Card) (Gam
 					return nil, err
 				}
 			}
+
 		} else {
 			if err := g.startTrick(g.currentTrick.Trump(), winningPos); err != nil {
 				return nil, err

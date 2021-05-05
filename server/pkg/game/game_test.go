@@ -868,12 +868,12 @@ func TestPlayCard(t *testing.T) {
 			want: &storage.Game{
 				Complete:         true,
 				PlayerIDs:        pids,
-				CurrentHands:     "+++",             // Hands are empty.
-				CurrentDealerPos: 3,                 // Dealer position does not update.
-				CurrentBidding:   "0|P|P|7|P",       // Bidding does not clear.
-				CurrentTrick:     "3|H|AD|AH|AS|AC", // Trick does not clear.
-				CurrentTally:     "8|10|0",          // Tally does not clear.
-				Score:            "52-50|0||60|0",   // Score added from tally.
+				CurrentHands:     "+++",              // Hands are empty.
+				CurrentDealerPos: 3,                  // Dealer position does not update.
+				CurrentBidding:   "0|P|P|7|P",        // Bidding does not clear.
+				CurrentTrick:     "3|H|AD|AH|AS|AC",  // Trick does not clear.
+				CurrentTally:     "8|10|0",           // Tally does not clear.
+				Score:            "52||0-50|0||60|0", // Score added from tally.
 				LastTrick:        "3|H|AD|AH|AS|AC",
 			},
 			wantState: CompletedState,
