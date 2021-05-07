@@ -14,6 +14,13 @@ type BidInfo struct {
 	Human string
 }
 
+type ScoreEntry struct {
+	Score02 int
+	Note02  string
+	Score13 int
+	Note13  string
+}
+
 type GameStateResponse struct {
 	ID      string
 	Version string
@@ -21,9 +28,10 @@ type GameStateResponse struct {
 
 	PlayerPosition int // player's original position
 	PlayerNames    []string
-	Score          [][]int
+	Score          []ScoreEntry
 	CurrentScore   []int
 	ToWin          int
+	WinningTeam    int // 0 is players 0/2, 1 is players 1/3; -1 is neither.
 
 	DealerPosition           int // last bidder
 	PlayerHand               []string
@@ -43,8 +51,6 @@ type GameStateResponse struct {
 	WinningBidPosition int
 	Trump              string
 	TrickTally         []int
-
-	WinningTeam int // 0 is players 0/2, 1 is players 1/3
 }
 
 func (s *ApiServer) GameState(w http.ResponseWriter, r *http.Request) {
@@ -119,15 +125,34 @@ func BuildGameState(g game.Game, player game.Player) (*GameStateResponse, error)
 		return nil, err
 	}
 
+	var scores []ScoreEntry
+	for _, round := range g.Score().Scores() {
+		score := ScoreEntry{Score02: round[0], Score13: round[1]}
+		scores = append(scores, score)
+	}
+	for _, note := range g.Score().Notes() {
+		if note.Index >= len(scores) {
+			continue
+		}
+		if note.Team == 0 {
+			scores[note.Index].Note02 = note.Note
+			continue
+		}
+		if note.Team == 1 {
+			scores[note.Index].Note13 = note.Note
+		}
+	}
+
 	state = &GameStateResponse{
 		ID:             g.ID(),
 		Version:        g.Version(),
 		State:          string(g.State()),
 		PlayerPosition: playerPos,
 		PlayerNames:    playerNames,
-		Score:          g.Score().Scores(),
+		Score:          scores,
 		CurrentScore:   g.Score().CurrentScore(),
 		ToWin:          g.Score().ToWin(),
+		WinningTeam:    g.Score().Winner(),
 		DealerPosition: g.DealerPos(),
 		PlayerHand:     cardsToStrings(playerHand.Cards()),
 		HandCounts:     g.HandCounts(),
@@ -175,15 +200,6 @@ func BuildGameState(g game.Game, player game.Player) (*GameStateResponse, error)
 			return nil, err
 		}
 		state.AvailableBids = bidsToBidInfos(available)
-	}
-
-	if g.State() == game.CompletedState {
-		score := g.Score().CurrentScore()
-		winner := 0
-		if score[1] > score[0] {
-			winner = 1
-		}
-		state.WinningTeam = winner
 	}
 
 	return state, nil

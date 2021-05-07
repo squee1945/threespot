@@ -24,3 +24,7 @@ table.game-list td:last-child {
 img.preload {
     display:none;
 }
+
+li {
+	font-size: 11px;
+}

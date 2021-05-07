@@ -105,7 +105,6 @@ func TestNewScoreFromEncoded(t *testing.T) {
 			if tc.wantErr {
 				return
 			}
-
 			score := scoreS.(*score)
 
 			if got, want := score.toWin, tc.wantToWin; got != want {
@@ -125,6 +124,186 @@ func TestNewScoreFromEncoded(t *testing.T) {
 			}
 			if got, want := score.Encoded(), encoded; got != want {
 				t.Errorf("re-encoding does not match got=%q want=%q", got, want)
+			}
+		})
+	}
+}
+
+func TestNewScoreFromEncodedWithNotes(t *testing.T) {
+	testCases := []struct {
+		name      string
+		encoded   string
+		wantNotes []ScoreNote
+		wantErr   bool
+	}{
+		{
+			name:    "toWin only",
+			encoded: "52-",
+		},
+		{
+			name:    "scores-only",
+			encoded: "52-0|1||2|3||4|5||6|7",
+		},
+		{
+			name:    "notes",
+			encoded: "52-0|1||2|3||4|5||6|7**0|0|note-1||1|1|note-2",
+			wantNotes: []ScoreNote{
+				ScoreNote{Team: 0, Index: 0, Note: "note-1"},
+				ScoreNote{Team: 1, Index: 1, Note: "note-2"},
+			},
+		},
+		{
+			name:    "score index out of range",
+			encoded: "52-0|1**0|10|note-1",
+			wantErr: true,
+		},
+		{
+			name:    "invalid index",
+			encoded: "52-0|1**0|not-an-int|note-1",
+			wantErr: true,
+		},
+		{
+			name:    "team out of range",
+			encoded: "52-0|1**2|0|note-1",
+			wantErr: true,
+		},
+		{
+			name:    "invalid team",
+			encoded: "52-0|1**not-an-int|0|note-1",
+			wantErr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			score, err := NewScoreFromEncoded(tc.encoded)
+
+			if tc.wantErr && err == nil {
+				t.Fatal("missing expected error")
+			}
+			if !tc.wantErr && err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if tc.wantErr {
+				return
+			}
+
+			if diff := cmp.Diff(score.Notes(), tc.wantNotes); diff != "" {
+				t.Errorf("score.Notes() mismatch (-want +got):\n%s", diff)
+			}
+
+			// Re-encode the score and make sure it matches.
+			encoded := tc.encoded
+			if got, want := score.Encoded(), encoded; got != want {
+				t.Errorf("re-encoding does not match got=%q want=%q", got, want)
+			}
+		})
+	}
+}
+
+func TestAttachNote(t *testing.T) {
+	testCases := []struct {
+		name      string
+		encoded   string
+		team      int
+		index     int
+		note      string
+		wantNotes []ScoreNote
+		wantErr   bool
+	}{
+		{
+			name:    "first note",
+			encoded: "52-0|1",
+			team:    0,
+			index:   0,
+			note:    "note 1",
+			wantNotes: []ScoreNote{
+				ScoreNote{Team: 0, Index: 0, Note: "note 1"},
+			},
+		},
+		{
+			name:    "second note",
+			encoded: "52-0|1**0|0|note 1",
+			team:    1,
+			index:   0,
+			note:    "note 2",
+			wantNotes: []ScoreNote{
+				ScoreNote{Team: 0, Index: 0, Note: "note 1"},
+				ScoreNote{Team: 1, Index: 0, Note: "note 2"},
+			},
+		},
+		{
+			name:    "invalid char 1",
+			encoded: "52-0|1",
+			team:    0,
+			index:   0,
+			note:    "a*note",
+			wantErr: true,
+		},
+		{
+			name:    "invalid char 2",
+			encoded: "52-0|1",
+			team:    0,
+			index:   0,
+			note:    "a|note",
+			wantErr: true,
+		},
+		{
+			name:    "invalid char 3",
+			encoded: "52-0|1",
+			team:    0,
+			index:   0,
+			note:    "a-note",
+			wantErr: true,
+		},
+		{
+			name:    "invalid team",
+			encoded: "52-0|1",
+			team:    2,
+			index:   0,
+			note:    "a note",
+			wantErr: true,
+		},
+		{
+			name:    "out of range",
+			encoded: "52-0|1",
+			team:    0,
+			index:   1,
+			note:    "a note",
+			wantErr: true,
+		},
+		{
+			name:    "cannot overwrite",
+			encoded: "52-0|1**0|0|note 1",
+			team:    0,
+			index:   0,
+			note:    "cannot overwrite",
+			wantErr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			scoreS, err := NewScoreFromEncoded(tc.encoded)
+			if err != nil {
+				t.Fatal(err)
+			}
+			score := scoreS.(*score)
+
+			err = score.attachNote(tc.team, tc.index, tc.note)
+
+			if tc.wantErr && err == nil {
+				t.Fatal("missing expected error")
+			}
+			if !tc.wantErr && err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if tc.wantErr {
+				return
+			}
+
+			if diff := cmp.Diff(score.Notes(), tc.wantNotes); diff != "" {
+				t.Errorf("score.Notes() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
