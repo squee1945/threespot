@@ -320,10 +320,10 @@ func (s *score) addTally(br BiddingRound, tally Tally) (bool, error) {
 	}
 
 	// Check to see if there is a winner.
-	if sc[0] >= s.ToWin() && madeBid02 {
+	if madeBid02 && (last02+(bidValue*multiplier) >= s.ToWin()) {
 		s.setWinner(0)
 		note02 = "bid out"
-	} else if sc[1] >= s.ToWin() && madeBid13 {
+	} else if madeBid13 && (last13+(bidValue*multiplier) >= s.ToWin()) {
 		s.setWinner(1)
 		note13 = "bid out"
 	}

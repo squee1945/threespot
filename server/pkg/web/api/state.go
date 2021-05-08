@@ -181,11 +181,12 @@ func BuildGameState(g game.Game, player game.Player) (*GameStateResponse, error)
 			state.BidsPlaced = bidsToBidInfos(g.CurrentBidding().Bids())
 		}
 		if g.State() == game.CallingState || g.State() == game.PlayingState {
-			winningBid, _, err := g.CurrentBidding().WinningBidAndPos()
+			winningBid, winningPos, err := g.CurrentBidding().WinningBidAndPos()
 			if err != nil {
 				return nil, err
 			}
 			state.WinningBid = bidToBidInfo(winningBid)
+			state.WinningBidPosition = winningPos
 		}
 	}
 

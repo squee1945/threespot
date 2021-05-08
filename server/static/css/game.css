@@ -155,6 +155,10 @@ footer a:hover {
     padding: 0;
 }
 
+.info-plate li {
+    margin-top: 4px;
+}
+
 li.to-play {
     font-weight: bold;
     background-color: white;

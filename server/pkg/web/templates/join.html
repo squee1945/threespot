@@ -46,7 +46,7 @@
             <h5 id="change-name-header"></h5>
             <form>
                 <input id="change-name-value" type="text" value="{{.PlayerName}}" maxlength="10"></input>
-                <small><button id="change-name-button">Save</button></small>
+                <small><button id="change-name-button">Save</button></small><span id="save-result"></span>
             </form>
         </div>
 
@@ -103,8 +103,8 @@
             return;
         }
         server.updateUser({"Name": name, "ID": id}, () => {
-            location.href = "/join/" + id;
-            return;
+            $("#save-result").text("Saved!");
+            setTimeout(() => $("#save-result").text(""), 3000);
         });
     }
 

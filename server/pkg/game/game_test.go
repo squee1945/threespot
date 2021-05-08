@@ -841,12 +841,12 @@ func TestPlayCard(t *testing.T) {
 			card: "AC",
 			want: &storage.Game{
 				PlayerIDs:        pids,
-				CurrentHands:     "",         // New shuffle
-				CurrentDealerPos: 0,          // Dealer position moves to the left.
-				CurrentBidding:   "1|",       // Bidding resets, starting with position to left of dealer.
-				CurrentTrick:     "",         // New hand.
-				CurrentTally:     "0|0|0",    // Tally resets.
-				Score:            "52-10|-7", // Score added from tally.
+				CurrentHands:     "",                           // New shuffle
+				CurrentDealerPos: 0,                            // Dealer position moves to the left.
+				CurrentBidding:   "1|",                         // Bidding resets, starting with position to left of dealer.
+				CurrentTrick:     "",                           // New hand.
+				CurrentTally:     "0|0|0",                      // Tally resets.
+				Score:            "52-10|-7**1|0|missed 7 bid", // Score added from tally.
 				LastTrick:        "3|H|AD|AH|AS|AC",
 			},
 			wantState:   BiddingState,
@@ -868,12 +868,12 @@ func TestPlayCard(t *testing.T) {
 			want: &storage.Game{
 				Complete:         true,
 				PlayerIDs:        pids,
-				CurrentHands:     "+++",              // Hands are empty.
-				CurrentDealerPos: 3,                  // Dealer position does not update.
-				CurrentBidding:   "0|P|P|7|P",        // Bidding does not clear.
-				CurrentTrick:     "3|H|AD|AH|AS|AC",  // Trick does not clear.
-				CurrentTally:     "8|10|0",           // Tally does not clear.
-				Score:            "52||0-50|0||60|0", // Score added from tally.
+				CurrentHands:     "+++",                           // Hands are empty.
+				CurrentDealerPos: 3,                               // Dealer position does not update.
+				CurrentBidding:   "0|P|P|7|P",                     // Bidding does not clear.
+				CurrentTrick:     "3|H|AD|AH|AS|AC",               // Trick does not clear.
+				CurrentTally:     "8|10|0",                        // Tally does not clear.
+				Score:            "52||0-50|0||60|0**0|1|bid out", // Score added from tally.
 				LastTrick:        "3|H|AD|AH|AS|AC",
 			},
 			wantState: CompletedState,

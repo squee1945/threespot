@@ -21,9 +21,9 @@
 
     <div id="bids">
     <div id="bid-0" class="other-bid shadow" style="left:327px; top:303px; display:none;"></div>
-    <div id="bid-1" class="other-bid shadow" style="left:98px; top:180px; display:none;"></div>
-    <div id="bid-2" class="other-bid shadow" style="left:327px; top:120px; display:none;"></div>
-    <div id="bid-3" class="other-bid shadow" style="left:559px; top:180px; display:none;"></div>
+    <div id="bid-1" class="other-bid shadow" style="left:98px; top:207px; display:none;"></div>
+    <div id="bid-2" class="other-bid shadow" style="left:327px; top:126px; display:none;"></div>
+    <div id="bid-3" class="other-bid shadow" style="left:559px; top:207px; display:none;"></div>
     </div>
 
     <div id="name-0" class="name-plate" style="left:696px; top:393px; display:none;"></div>
@@ -167,7 +167,7 @@
         for (let stack = 1; stack < 4; stack++) {
             let rot = (gameState.PlayerPosition + stack + 4) % 4;
             for (let i = 0; i < gameState.HandCounts[rot]; i++) {
-                let c = new cards.Card('JOK', stackPositions[stack][0] + i, stackPositions[stack][1] + i);
+                let c = new cards.Card('JOK', stackPositions[stack][0] + (i*2), stackPositions[stack][1] + (i*2));
                 $(c.el).addClass("opponent-card");
                 c.scale(.9);
                 c.hideCard();
@@ -208,7 +208,11 @@
 
         if (winningBid.Human && gameState.State != "CALLING") {
             rot = rotate(gameState, winningBidPosition);
-            let msg = "Bid " + winningBid.Human + " " + suitHuman(gameState.Trump);
+            console.log("winningBidPosition: " + winningBidPosition)
+            let msg = "Bid " + winningBid.Human;
+            if (gameState.Trump != "N") {
+                msg += " " + suitHuman(gameState.Trump);
+            }
             $("#info-"+rot+ " ul").append($("<li/>").addClass("info-item").html(msg));
         }
 
@@ -230,10 +234,10 @@
         let lastTrickWinningPosition = gameState.LastTrickWinningPosition;
         let bidsPlaced = gameState.BidsPlaced;
         let cardPosition = [
-            [359, 258],
-            [279, 180],
-            [359, 117],
-            [438, 180]
+            [359, 273],
+            [279, 195],
+            [359, 132],
+            [438, 195]
         ];
 
         let cardHash = (card) => hash(id + (gameState.Score? gameState.Score.length: 0) + card);
@@ -241,8 +245,8 @@
         let top = (rot, h) => cardPosition[rot][1] + (h%10)-5;
         let angle = (rot, h) => (h%16)-8;
 
-        showCurrent = function() {
-            $(".trick-card").remove();
+        showCurrent = function(cardsToRemove) {
+            $("."+cardsToRemove).remove();
             if (trick) {
                 trick.forEach((card, i) => {
                     let rot = rotate(gameState, trickLeadPosition + i);
@@ -268,6 +272,8 @@
                 let c = new cards.Card(card, left(rot, h), top(rot, h));
                 c.rotate(angle(rot, h));
                 $(c.el).addClass("trick-card");
+                // Add an alternate class name so that we can remove these cards specifically after the timeout.
+                $(c.el).addClass("trick-card-delay");
                 if (i==0) {
                     $(c.el).addClass("lead-card");
                 }
@@ -277,9 +283,9 @@
                 }
                 c.makeVisible();
             });
-            setTimeout(showCurrent, 3000);
+            setTimeout(() => showCurrent("trick-card-delay"), 3000);
         } else {
-            showCurrent();
+            showCurrent("trick-card");
         }
     }
 

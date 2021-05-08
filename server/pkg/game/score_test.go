@@ -572,6 +572,18 @@ func TestEndOfGameScoreAddTally(t *testing.T) {
 			tally:        buildTally(t, 8, 3, 7), // team13 ends with 64, past the extended ToWin, so they win.
 			wantWinner13: true,
 		},
+		{
+			name:        "team02 bids and goes past 52 but their bid itself was not a bid out, no winner",
+			team02Score: 44,
+			bid:         "0|7|P|P|P",             // A 7 bid only gets to 51 - so this would not be a bid out.
+			tally:       buildTally(t, 8, 10, 0), // 10 points gets to 54, but there was not a bid out, so no winner.
+		},
+		{
+			name:        "team13 bids and goes past 52 but their bid itself was not a bid out, no winner",
+			team13Score: 44,
+			bid:         "0|P|7|P|P",             // A 7 bid only gets to 51 - so this would not be a bid out.
+			tally:       buildTally(t, 8, 0, 10), // 10 points gets to 54, but there was not a bid out, so no winner.
+		},
 	}
 
 	for _, tc := range testCases {
