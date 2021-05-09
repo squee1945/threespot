@@ -23,7 +23,7 @@ func TestNewGame(t *testing.T) {
 	playerStore := storage.NewFakePlayerStore()
 	id := "ABC123"
 	organizer := buildPlayer(t, playerStore, "PLAYERID")
-	g, err := NewGame(ctx, gameStore, playerStore, id, organizer)
+	g, err := NewGame(ctx, gameStore, playerStore, id, organizer, NewRules())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,7 +39,7 @@ func TestNewGame(t *testing.T) {
 	}
 
 	// Duplicate must raise error.
-	_, err = NewGame(ctx, gameStore, playerStore, id, organizer)
+	_, err = NewGame(ctx, gameStore, playerStore, id, organizer, NewRules())
 	if err == nil {
 		t.Errorf("missing expected error")
 	}
@@ -51,7 +51,7 @@ func TestGetGame(t *testing.T) {
 	playerStore := storage.NewFakePlayerStore()
 	id := "ABC123"
 	organizer := buildPlayer(t, playerStore, "PLAYERID")
-	_, err := NewGame(ctx, gameStore, playerStore, id, organizer)
+	_, err := NewGame(ctx, gameStore, playerStore, id, organizer, NewRules())
 	if err != nil {
 		t.Fatal(err)
 	}

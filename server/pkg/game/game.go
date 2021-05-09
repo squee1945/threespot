@@ -35,6 +35,8 @@ type Game interface {
 	CallTrump(ctx context.Context, player Player, trump deck.Suit) (Game, error)
 	PlayCard(ctx context.Context, player Player, card deck.Card) (Game, error)
 	UpdateVersion(ctx context.Context) (Game, error)
+
+	Rules() Rules
 }
 
 var (
@@ -85,13 +87,18 @@ type game struct {
 	currentTrick     Trick        // Cards played for current trick.
 	lastTrick        Trick        // Last trick played.
 	currentTally     Tally        // The running tally for the current hand.
+
+	rules Rules
 }
 
 var _ Game = (*game)(nil) // Ensure interface is implemented.
 
 // NewGame creates a new game, storing it in the GameStore.
-func NewGame(ctx context.Context, gameStore storage.GameStore, playerStore storage.PlayerStore, id string, organizer Player) (Game, error) {
-	gs, err := gameStore.Create(ctx, id, organizer.ID())
+func NewGame(ctx context.Context, gameStore storage.GameStore, playerStore storage.PlayerStore, id string, organizer Player, rules Rules) (Game, error) {
+	sr := storage.Rules{
+		PassCard: rules.PassCard(),
+	}
+	gs, err := gameStore.Create(ctx, id, organizer.ID(), sr)
 	if err != nil {
 		return nil, err
 	}
@@ -256,6 +263,10 @@ func (g *game) HandCounts() []int {
 		counts = append(counts, len(hand.Cards()))
 	}
 	return counts
+}
+
+func (g *game) Rules() Rules {
+	return g.rules
 }
 
 func (g *game) AddPlayer(ctx context.Context, player Player, pos int) (Game, error) {
@@ -623,6 +634,7 @@ func gameFromStorage(ctx context.Context, gameStore storage.GameStore, playerSto
 		currentTrick:     trick,
 		lastTrick:        lastTrick,
 		currentTally:     tally,
+		rules:            rulesFromStorage(gs.Rules),
 	}
 	return g, nil
 }

@@ -21,7 +21,7 @@ func (s *ApiServer) NewGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id := util.RandString(7)
-	g, err := game.NewGame(ctx, s.gameStore, s.playerStore, id, player)
+	g, err := game.NewGame(ctx, s.gameStore, s.playerStore, id, player, game.NewRules())
 	if err != nil {
 		sendServerError(w, "creating game: %v", err)
 		return

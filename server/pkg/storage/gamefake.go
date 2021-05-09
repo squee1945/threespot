@@ -22,7 +22,7 @@ func NewFakeGameStore(games map[string]*Game) GameStore {
 	return f
 }
 
-func (s *fakeGameStore) Create(ctx context.Context, id, organizingPlayerID string) (*Game, error) {
+func (s *fakeGameStore) Create(ctx context.Context, id, organizingPlayerID string, rules Rules) (*Game, error) {
 	for k := range s.games {
 		if k == id {
 			return nil, ErrNotUnique
@@ -30,6 +30,7 @@ func (s *fakeGameStore) Create(ctx context.Context, id, organizingPlayerID strin
 	}
 	g := &Game{
 		PlayerIDs: make([]string, 4),
+		Rules:     rules,
 	}
 	g.PlayerIDs[0] = organizingPlayerID
 	s.games[id] = g

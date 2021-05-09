@@ -24,6 +24,12 @@ type Game struct {
 	CurrentTrick     string `datastore:",noindex"` // Cards played for current trick; 0-index is the lead player (i.e., the order the cards were played).
 	LastTrick        string `datastore:",noindex"` // Cards played for the previous trick.
 	CurrentTally     string `datastore:",noindex"` // The running tally for the current hand.
+
+	Rules Rules
+}
+
+type Rules struct {
+	PassCard bool `datastore:",noindex"` // Players pass one card before bidding.
 }
 
 func (x *Game) LoadKey(k *datastore.Key) error {
@@ -40,7 +46,7 @@ func (x *Game) Save() ([]datastore.Property, error) {
 }
 
 type GameStore interface {
-	Create(ctx context.Context, id, organizingPlayerID string) (*Game, error)
+	Create(ctx context.Context, id, organizingPlayerID string, rules Rules) (*Game, error)
 	Get(ctx context.Context, id string) (*Game, error)
 	Set(ctx context.Context, id string, g *Game) error
 	AddPlayer(ctx context.Context, id, playerID string, pos int) (*Game, error)
@@ -55,7 +61,7 @@ func NewDatastoreGameStore() GameStore {
 	return &datastoreGameStore{}
 }
 
-func (s *datastoreGameStore) Create(ctx context.Context, id, organizingPlayerID string) (*Game, error) {
+func (s *datastoreGameStore) Create(ctx context.Context, id, organizingPlayerID string, rules Rules) (*Game, error) {
 	k := gameKey(ctx, id)
 	gs := &Game{}
 	err := datastore.RunInTransaction(ctx, func(tc context.Context) error {
@@ -75,6 +81,7 @@ func (s *datastoreGameStore) Create(ctx context.Context, id, organizingPlayerID 
 		gs.PlayerIDs[0] = organizingPlayerID
 		gs.Created = time.Now().UTC()
 		gs.Updated = gs.Created
+		gs.Rules = rules
 
 		if _, err := datastore.Put(ctx, k, gs); err != nil {
 			return err
