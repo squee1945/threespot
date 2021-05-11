@@ -21,6 +21,10 @@ type ScoreEntry struct {
 	Note13  string
 }
 
+type Rules struct {
+	PassCard bool
+}
+
 type GameStateResponse struct {
 	ID      string
 	Version string
@@ -42,15 +46,22 @@ type GameStateResponse struct {
 	LastTrickLeadPosition    int
 	LastTrickWinningPosition int
 
-	PositionToPlay  int
+	PositionToPlay int
+
 	LeadBidPosition int
 	BidsPlaced      []BidInfo
+
+	LeadPassPosition int
+	CardsPassed      []bool
+	CardReceived     string
 
 	AvailableBids      []BidInfo
 	WinningBid         BidInfo
 	WinningBidPosition int
 	Trump              string
 	TrickTally         []int
+
+	Rules Rules
 }
 
 func (s *ApiServer) GameState(w http.ResponseWriter, r *http.Request) {
@@ -100,11 +111,16 @@ func BuildGameState(g game.Game, player game.Player) (*GameStateResponse, error)
 		playerNames = append(playerNames, p.Name())
 	}
 
+	rules := Rules{
+		PassCard: g.Rules().PassCard(),
+	}
+
 	state := &GameStateResponse{
 		ID:          g.ID(),
 		Version:     g.Version(),
 		State:       string(g.State()),
 		PlayerNames: playerNames,
+		Rules:       rules,
 	}
 	if g.State() == game.JoiningState {
 		return state, nil
@@ -157,6 +173,7 @@ func BuildGameState(g game.Game, player game.Player) (*GameStateResponse, error)
 		PlayerHand:     cardsToStrings(playerHand.Cards()),
 		HandCounts:     g.HandCounts(),
 		PositionToPlay: positionToPlay,
+		Rules:          rules,
 	}
 
 	if g.CurrentTrick() != nil {
@@ -173,6 +190,24 @@ func BuildGameState(g game.Game, player game.Player) (*GameStateResponse, error)
 		state.LastTrick = cardsToStrings(g.LastTrick().Cards())
 		state.LastTrickLeadPosition = g.LastTrick().LeadPos()
 		state.LastTrickWinningPosition = lastTrickWinningPos
+	}
+
+	if g.PassedCards() != nil {
+		state.LeadPassPosition = g.PassedCards().LeadPos()
+		passed := []bool{false, false, false, false}
+		for i := 0; i < g.PassedCards().NumPassed(); i++ {
+			passed[i] = true
+		}
+		state.CardsPassed = passed
+
+		if g.PassedCards().NumPassed() == 4 && len(playerHand.Cards()) == 8 {
+			partner := (playerPos + 2) % 4
+			card, err := g.PassedCards().FromPlayer(partner)
+			if err != nil {
+				return nil, err
+			}
+			state.CardReceived = card.Encoded()
+		}
 	}
 
 	if g.CurrentBidding() != nil {

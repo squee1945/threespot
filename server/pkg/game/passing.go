@@ -29,6 +29,9 @@ type PassingRound interface {
 	// NumPassed returns the number of cards passed.
 	NumPassed() int
 
+	// FromPlayer returns the card that was passed from a given player. May only be called when passing IsDone.
+	FromPlayer(playerPos int) (deck.Card, error)
+
 	// Encoded returns the passed cards encoded into a single string.
 	Encoded() string
 }
@@ -119,6 +122,19 @@ func (r *passingRound) Cards() []deck.Card {
 
 func (r *passingRound) NumPassed() int {
 	return len(r.cards)
+}
+
+func (r *passingRound) FromPlayer(playerPos int) (deck.Card, error) {
+	if !r.IsDone() {
+		return nil, errors.New("passing is not complete")
+	}
+	for i, card := range r.cards {
+		if (r.leadPos+i)%4 == playerPos {
+			return card, nil
+		}
+	}
+	// Should not happen.
+	return nil, errors.New("unexpectedly reached end of passed cards")
 }
 
 func (r *passingRound) Encoded() string {

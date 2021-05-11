@@ -63,11 +63,12 @@ var server = (function() {
         .fail(alertFailure);
     }
 
-    function newGame(done) {
+    function newGame(data, done) {
         $.ajax({
             url: "/api/new",
             type: "POST",
             dataType: "json",
+            data: JSON.stringify(data),
             contentType: "application/json",
         })
         .done(done)
@@ -122,6 +123,22 @@ var server = (function() {
         .fail(alertFailure);
     }
 
+    function passCard(id, card, done) {
+        var data = {
+            ID: id,
+            Card: card,
+        }
+        $.ajax({
+            url: "/api/pass",
+            type: "POST",
+            dataType: "json",
+            contentType: "json",
+            data: JSON.stringify(data),
+        })
+        .done(done)
+        .fail(alertFailure);
+    }
+
     function callTrump(id, suit, done) {
         var data = {
             ID: id,
@@ -145,6 +162,7 @@ var server = (function() {
         updateUser: updateUser,
         newGame: newGame,
         joinGame: joinGame,
+        passCard: passCard,
         placeBid: placeBid,
         playCard: playCard,
         callTrump: callTrump,

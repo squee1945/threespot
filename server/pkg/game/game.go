@@ -211,6 +211,8 @@ func (g *game) DealerPos() int {
 
 func (g *game) PosToPlay() (int, error) {
 	switch g.State() {
+	case PassingState:
+		return g.passedCards.CurrentTurnPos()
 	case BiddingState:
 		return g.currentBidding.CurrentTurnPos()
 	case CallingState:

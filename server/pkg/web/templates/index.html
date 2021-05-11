@@ -16,7 +16,11 @@
 	  	<div class="row">
 	    	<div class="col-6">
 	      		<h2>Create a new game</h2>
-	      		<ul>
+	      		<h3>Rules</h3>
+	      		<ul class="rules">
+	      			<li class="optional-rule"><input type="checkbox" id="rule-pass-card"> Pass a card
+	      				<p>Before bidding players pass one card to their partner.</p>
+	      			</li>
 	      			<li>Minimum bid: 7</li>
 	      			<li>Double up, double down for No Trump</li>
 	      			<li>No Kaiser bid</li>
@@ -96,7 +100,12 @@
 	    event.preventDefault();
 	    event.stopPropagation();
 
-	    server.newGame(function(gameState) {
+	    let passCard = false;
+	    if ($("#rule-pass-card").is(':checked')) {
+	    	passCard = true;
+	    }
+
+	    server.newGame({'PassCard': passCard}, function(gameState) {
 	    	location.href = "/join/" + gameState.ID;
 	    });
 	});

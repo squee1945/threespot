@@ -215,6 +215,62 @@ func TestCurrentTurnPos(t *testing.T) {
 	}
 }
 
+func TestFromPlayer(t *testing.T) {
+	testCases := []struct {
+		name    string
+		encoded string
+		pos     int
+		want    string
+		wantErr bool
+	}{
+		{
+			name:    "not done",
+			encoded: "0|",
+			wantErr: true,
+		},
+		{
+			name:    "first pos",
+			encoded: "2|8H|8S|8D|8C",
+			pos:     2,
+			want:    "8H",
+		},
+		{
+			name:    "last pos",
+			encoded: "2|8H|8S|8D|8C",
+			pos:     1,
+			want:    "8C",
+		},
+		{
+			name:    "zero index",
+			encoded: "0|8H|8S|8D|8C",
+			pos:     2,
+			want:    "8D",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			r := buildPassingRound(t, tc.encoded)
+
+			card, err := r.FromPlayer(tc.pos)
+
+			if tc.wantErr && err == nil {
+				t.Fatal("missing expected error")
+			}
+			if !tc.wantErr && err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if tc.wantErr {
+				return
+			}
+
+			if got, want := card.Encoded(), tc.want; got != want {
+				t.Errorf("FromPlayer()=%s want=%s", got, want)
+			}
+		})
+	}
+}
+
 func buildPassingRound(t *testing.T, encoded string) PassingRound {
 	r, err := NewPassingRoundFromEncoded(encoded)
 	if err != nil {
