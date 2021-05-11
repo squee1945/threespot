@@ -274,6 +274,11 @@ func (s *score) addTally(br BiddingRound, tally Tally) (bool, error) {
 		multiplier = 2
 	}
 
+	noteTrump := strconv.Itoa(bidValue)
+	if bid.IsNoTrump() {
+		noteTrump += "N"
+	}
+
 	note02, note13 := "", ""
 	points02, points13 := tally.Points()
 	madeBid02, madeBid13 := false, false
@@ -283,16 +288,11 @@ func (s *score) addTally(br BiddingRound, tally Tally) (bool, error) {
 			// Team02 made the bid.
 			sc[0] = last02 + (points02 * multiplier)
 			madeBid02 = true
-			note02 = fmt.Sprintf("made %d bid", bidValue)
-			if bid.IsNoTrump() {
-				note02 = fmt.Sprintf("made %dN bid", bidValue)
-			}
+			note02 = fmt.Sprintf("made %s bid", noteTrump)
 		} else {
+			// Team02 missed the bid.
 			sc[0] = last02 - (bidValue * multiplier)
-			note02 = fmt.Sprintf("missed %d bid", bidValue)
-			if bid.IsNoTrump() {
-				note02 = fmt.Sprintf("missed %dN bid", bidValue)
-			}
+			note02 = fmt.Sprintf("miss %s bid", noteTrump)
 		}
 		sc[1] = last13 + points13
 	} else {
@@ -300,16 +300,11 @@ func (s *score) addTally(br BiddingRound, tally Tally) (bool, error) {
 			// Team13 made the bid.
 			sc[1] = last13 + (points13 * multiplier)
 			madeBid13 = true
-			note13 = fmt.Sprintf("made %d bid", bidValue)
-			if bid.IsNoTrump() {
-				note13 = fmt.Sprintf("made %dN bid", bidValue)
-			}
+			note13 = fmt.Sprintf("made %s bid", noteTrump)
 		} else {
+			// Team13 missed the bid.
 			sc[1] = last13 - (bidValue * multiplier)
-			note13 = fmt.Sprintf("missed %d bid", bidValue)
-			if bid.IsNoTrump() {
-				note13 = fmt.Sprintf("missed %dN bid", bidValue)
-			}
+			note13 = fmt.Sprintf("miss %s bid", noteTrump)
 		}
 		sc[0] = last02 + points02
 	}
@@ -322,10 +317,10 @@ func (s *score) addTally(br BiddingRound, tally Tally) (bool, error) {
 	// Check to see if there is a winner.
 	if madeBid02 && (last02+(bidValue*multiplier) >= s.ToWin()) {
 		s.setWinner(0)
-		note02 = "bid out"
+		note02 = "bid out " + noteTrump
 	} else if madeBid13 && (last13+(bidValue*multiplier) >= s.ToWin()) {
 		s.setWinner(1)
-		note13 = "bid out"
+		note13 = "bid out " + noteTrump
 	}
 
 	if note02 != "" {

@@ -502,6 +502,128 @@ func TestAddPlayer(t *testing.T) {
 	}
 }
 
+func TestPassCard(t *testing.T) {
+	pids := []string{"ABE", "BOB", "CAL", "DON"}
+	testCases := []struct {
+		name      string
+		gs        *storage.Game
+		pid       string
+		card      string
+		want      *storage.Game
+		wantState GameState
+		wantErr   error
+	}{
+		{
+			name: "error if rules do not allow passing",
+			gs: &storage.Game{
+				PlayerIDs:    pids,
+				CurrentHands: "AH+AS+AD+AC",
+				PassedCards:  "0|",
+			},
+			pid:     "ABE",
+			card:    "8H",
+			wantErr: ErrPassingNotAllowed,
+		},
+		{
+			name: "not passing",
+			gs: &storage.Game{
+				PlayerIDs:    pids,
+				CurrentHands: "AH+AS+AD+AC",
+				PassedCards:  "0|8C|9C|TC|JC",
+				Rules:        storage.Rules{PassCard: true},
+			},
+			pid:     "ABE",
+			card:    "8H",
+			wantErr: ErrNotPassing,
+		},
+		{
+			name: "unavailable card",
+			gs: &storage.Game{
+				PlayerIDs:    pids,
+				CurrentHands: "AH+AS+AD+AC",
+				PassedCards:  "0|8H",
+				Rules:        storage.Rules{PassCard: true},
+			},
+			pid:     "BOB",
+			card:    "5H",
+			wantErr: ErrMissingCard,
+		},
+		{
+			name: "valid card",
+			gs: &storage.Game{
+				PlayerIDs:    pids,
+				CurrentHands: "AH+AS|8S+AD|8S+AC|8C",
+				PassedCards:  "0|8H",
+				Rules:        storage.Rules{PassCard: true},
+			},
+			pid:  "BOB",
+			card: "8S",
+			want: &storage.Game{
+				PlayerIDs:      pids,
+				Score:          "52-",
+				PassedCards:    "0|8H|8S",
+				CurrentBidding: "0|",
+				CurrentHands:   "AH+AS+AD|8S+AC|8C",
+				CurrentTally:   "0|0|0",
+				Rules:          storage.Rules{PassCard: true},
+			},
+			wantState: PassingState,
+		},
+		{
+			name: "last passed card, move to bidding state",
+			gs: &storage.Game{
+				PlayerIDs:        pids,
+				CurrentHands:     "AH+AS+AD+AC|8C",
+				CurrentDealerPos: 3,
+				PassedCards:      "0|8H|8S|8D",
+				Rules:            storage.Rules{PassCard: true},
+			},
+			pid:  "DON",
+			card: "8C",
+			want: &storage.Game{
+				PlayerIDs:        pids,
+				Score:            "52-",
+				CurrentDealerPos: 3,
+				PassedCards:      "0|8H|8S|8D|8C",
+				CurrentHands:     "AH|8D+AS|8C+AD|8H+AC|8S", // Partners get the passed cards.
+				CurrentBidding:   "0|",
+				CurrentTally:     "0|0|0",
+				Rules:            storage.Rules{PassCard: true},
+			},
+			wantState: BiddingState,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.Background()
+			g, _, playerStore := buildGame(t, tc.gs)
+			player := getPlayer(t, playerStore, tc.pid)
+			card := buildCard(t, tc.card)
+
+			gotGame, err := g.PassCard(ctx, player, card)
+
+			if tc.wantErr != nil && tc.wantErr != err {
+				t.Fatalf("incorrect error got=%v want=%v", err, tc.wantErr)
+			}
+			if tc.wantErr == nil && err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if tc.wantErr != nil {
+				return
+			}
+
+			if got, want := gotGame.State(), tc.wantState; got != want {
+				t.Errorf("State()=%s want=%s", got, want)
+			}
+			gotGameStorage := storageFromGame(gotGame.(*game))
+			if diff := cmp.Diff(tc.want, gotGameStorage, ignoreDates); diff != "" {
+				t.Errorf("game storage mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestPlaceBid(t *testing.T) {
 	pids := []string{"ABE", "BOB", "CAL", "DON"}
 	testCases := []struct {
@@ -548,6 +670,7 @@ func TestPlaceBid(t *testing.T) {
 				CurrentBidding: "0|8|8N",
 				CurrentTally:   "0|0|0",
 				CurrentHands:   "AH+AS+AD+AC",
+				PassedCards:    "0|",
 			},
 			wantState: BiddingState,
 		},
@@ -568,7 +691,7 @@ func TestPlaceBid(t *testing.T) {
 				CurrentBidding:   "0|8|P|P|8",
 				CurrentTally:     "0|0|0",
 				CurrentHands:     "AH+AS+AD+AC",
-			},
+				PassedCards:      "0|"},
 			wantState: CallingState,
 		},
 		{
@@ -587,6 +710,7 @@ func TestPlaceBid(t *testing.T) {
 				CurrentTrick:   "1|N",
 				CurrentTally:   "0|0|0",
 				CurrentHands:   "AH+AS+AD+AC",
+				PassedCards:    "0|",
 			},
 			wantState: PlayingState,
 		},
@@ -680,6 +804,7 @@ func TestCallTrump(t *testing.T) {
 				CurrentTrick:   "3|S",
 				CurrentTally:   "0|0|0",
 				CurrentHands:   "AH+AS+AD+AC",
+				PassedCards:    "0|",
 			},
 			wantState: PlayingState,
 		},
@@ -803,6 +928,7 @@ func TestPlayCard(t *testing.T) {
 				CurrentBidding: "0|P|P|P|7",
 				CurrentTrick:   "3|H|AD|7D|KS",
 				CurrentTally:   "0|0|0",
+				PassedCards:    "0|",
 			},
 			wantState: PlayingState,
 		},
@@ -824,11 +950,12 @@ func TestPlayCard(t *testing.T) {
 				CurrentTrick:   "3|H",   // Lead-off position (3) won last trick; hearts still trump.
 				CurrentTally:   "1|0|1", // One card played; team 1/3 got the point.
 				LastTrick:      "3|H|AD|7D|KS|KC",
+				PassedCards:    "0|",
 			},
 			wantState: PlayingState,
 		},
 		{
-			name: "last card transitions to next hand",
+			name: "last card transitions to bidding on next hand",
 			gs: &storage.Game{
 				PlayerIDs:        pids,
 				CurrentHands:     "++AC+",
@@ -841,15 +968,45 @@ func TestPlayCard(t *testing.T) {
 			card: "AC",
 			want: &storage.Game{
 				PlayerIDs:        pids,
-				CurrentHands:     "",                           // New shuffle
-				CurrentDealerPos: 0,                            // Dealer position moves to the left.
-				CurrentBidding:   "1|",                         // Bidding resets, starting with position to left of dealer.
-				CurrentTrick:     "",                           // New hand.
-				CurrentTally:     "0|0|0",                      // Tally resets.
-				Score:            "52-10|-7**1|0|missed 7 bid", // Score added from tally.
+				CurrentHands:     "",                         // New shuffle
+				CurrentDealerPos: 0,                          // Dealer position moves to the left.
+				CurrentBidding:   "1|",                       // Bidding resets, starting with position to left of dealer.
+				CurrentTrick:     "",                         // New hand.
+				CurrentTally:     "0|0|0",                    // Tally resets.
+				Score:            "52-10|-7**1|0|miss 7 bid", // Score added from tally.
 				LastTrick:        "3|H|AD|AH|AS|AC",
+				PassedCards:      "1|", // Passed cards must reset.
 			},
 			wantState:   BiddingState,
+			wantNewHand: true,
+		},
+		{
+			name: "last card transitions to passing card if rules stipulate",
+			gs: &storage.Game{
+				PlayerIDs:        pids,
+				CurrentHands:     "++AC+",
+				CurrentDealerPos: 3,
+				CurrentBidding:   "0|P|P|P|7",
+				CurrentTrick:     "3|H|AD|AH|AS",
+				CurrentTally:     "7|9|0",
+				PassedCards:      "0|7C|8C|9C|TC",
+				Rules:            storage.Rules{PassCard: true},
+			},
+			pid:  "CAL",
+			card: "AC",
+			want: &storage.Game{
+				PlayerIDs:        pids,
+				CurrentHands:     "",                         // New shuffle
+				CurrentDealerPos: 0,                          // Dealer position moves to the left.
+				CurrentBidding:   "1|",                       // Bidding resets, starting with position to left of dealer.
+				CurrentTrick:     "",                         // New hand.
+				CurrentTally:     "0|0|0",                    // Tally resets.
+				Score:            "52-10|-7**1|0|miss 7 bid", // Score added from tally.
+				LastTrick:        "3|H|AD|AH|AS|AC",
+				PassedCards:      "1|", // Passed cards must reset.
+				Rules:            storage.Rules{PassCard: true},
+			},
+			wantState:   PassingState,
 			wantNewHand: true,
 		},
 		{
@@ -868,13 +1025,14 @@ func TestPlayCard(t *testing.T) {
 			want: &storage.Game{
 				Complete:         true,
 				PlayerIDs:        pids,
-				CurrentHands:     "+++",                           // Hands are empty.
-				CurrentDealerPos: 3,                               // Dealer position does not update.
-				CurrentBidding:   "0|P|P|7|P",                     // Bidding does not clear.
-				CurrentTrick:     "3|H|AD|AH|AS|AC",               // Trick does not clear.
-				CurrentTally:     "8|10|0",                        // Tally does not clear.
-				Score:            "52||0-50|0||60|0**0|1|bid out", // Score added from tally.
+				CurrentHands:     "+++",                             // Hands are empty.
+				CurrentDealerPos: 3,                                 // Dealer position does not update.
+				CurrentBidding:   "0|P|P|7|P",                       // Bidding does not clear.
+				CurrentTrick:     "3|H|AD|AH|AS|AC",                 // Trick does not clear.
+				CurrentTally:     "8|10|0",                          // Tally does not clear.
+				Score:            "52||0-50|0||60|0**0|1|bid out 7", // Score added from tally.
 				LastTrick:        "3|H|AD|AH|AS|AC",
+				PassedCards:      "0|",
 			},
 			wantState: CompletedState,
 		},

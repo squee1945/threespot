@@ -229,6 +229,7 @@ func TestBiddingRoundPlaceBid(t *testing.T) {
 		})
 	}
 }
+
 func TestBiddingRoundCurrentTurnPosErrors(t *testing.T) {
 	encoded := "0|P|P|P|7"
 	br := buildBiddingRound(t, encoded)

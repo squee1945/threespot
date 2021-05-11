@@ -101,7 +101,6 @@ func (r *biddingRound) placeBid(playerPos int, bid Bid) error {
 	}
 	r.bids = append(r.bids, bid)
 	return nil
-
 }
 
 func (r *biddingRound) CurrentTurnPos() (int, error) {

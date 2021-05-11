@@ -25,12 +25,14 @@ type Game interface {
 	PosToPlay() (int, error)
 	Tally() Tally
 
+	PassedCards() PassingRound
 	CurrentBidding() BiddingRound
 	CurrentTrick() Trick
 	LastTrick() Trick
 	AvailableBids(Player) ([]Bid, error)
 
 	AddPlayer(ctx context.Context, player Player, pos int) (Game, error)
+	PassCard(ctx context.Context, player Player, card deck.Card) (Game, error)
 	PlaceBid(ctx context.Context, player Player, bid Bid) (Game, error)
 	CallTrump(ctx context.Context, player Player, trump deck.Suit) (Game, error)
 	PlayCard(ctx context.Context, player Player, card deck.Card) (Game, error)
@@ -45,14 +47,18 @@ var (
 	ErrPlayerPositionFilled = errors.New("Player position is already filled")
 	ErrPlayerAlreadyAdded   = errors.New("Player is already added")
 	ErrIncorrectBidOrder    = errors.New("Bidding out of order")
+	ErrIncorrectPassOrder   = errors.New("Passing out of order")
 	ErrIncorrectCaller      = errors.New("Player cannot call trump")
 	ErrIncorrectPlayOrder   = errors.New("Playing out of order")
 	ErrInvalidBid           = errors.New("Invalid bid")
+	ErrNotPassing           = errors.New("Not currently passing")
 	ErrNotBidding           = errors.New("Not currently bidding")
 	ErrNotCalling           = errors.New("Not currently calling trump")
 	ErrNotPlaying           = errors.New("Not currently playing cards")
 	ErrMissingCard          = errors.New("Player does not have this card")
 	ErrNotFollowingSuit     = errors.New("Must follow lead suit")
+	ErrAlreadyPassed        = errors.New("Player has already passed a card")
+	ErrPassingNotAllowed    = errors.New("Passing not allowed by game rules")
 )
 
 type GameState string
@@ -63,6 +69,7 @@ func (gs GameState) String() string {
 
 var (
 	JoiningState   GameState = "JOINING"
+	PassingState   GameState = "PASSING"
 	BiddingState   GameState = "BIDDING"
 	CallingState   GameState = "CALLING" // Trump
 	PlayingState   GameState = "PLAYING"
@@ -81,6 +88,7 @@ type game struct {
 
 	score Score // The score of the game.
 
+	passedCards      PassingRound // Passed cards for current round.
 	currentDealerPos int          // The position of the current dealer.
 	currentBidding   BiddingRound // The bids for the current hand.
 	currentHands     Hands        // Cards held by each player, parallel with the PlayerIDs above.
@@ -156,6 +164,9 @@ func (g *game) State() GameState {
 	if g.playerCount() < 4 {
 		return JoiningState
 	}
+	if g.rules != nil && g.rules.PassCard() && !g.passedCards.IsDone() {
+		return PassingState
+	}
 	if !g.currentBidding.IsDone() {
 		return BiddingState
 	}
@@ -176,6 +187,10 @@ func (g *game) PlayerPos(player Player) (int, error) {
 		}
 	}
 	return -1, errors.New("unknown player")
+}
+
+func (g *game) PassedCards() PassingRound {
+	return g.passedCards
 }
 
 func (g *game) CurrentBidding() BiddingRound {
@@ -296,6 +311,57 @@ func (g *game) AddPlayer(ctx context.Context, player Player, pos int) (Game, err
 		}
 	}
 	return newG, nil
+}
+
+func (g *game) PassCard(ctx context.Context, player Player, card deck.Card) (Game, error) {
+	// Rule check.
+	if !g.Rules().PassCard() {
+		return nil, ErrPassingNotAllowed
+	}
+
+	// Are we in passing state?
+	if g.State() != PassingState {
+		return nil, ErrNotPassing
+	}
+
+	// Does this player have this card to pass?
+	pos, err := g.PlayerPos(player)
+	if err != nil {
+		return nil, err
+	}
+	playerHand, err := g.currentHands.Hand(pos)
+	if err != nil {
+		return nil, err
+	}
+	if !playerHand.Contains(card) {
+		return nil, ErrMissingCard
+	}
+
+	// Pass the card - remove from this player's hand, add to the passed cards.
+	if err := g.passedCards.passCard(pos, card); err != nil {
+		return nil, err
+	}
+	if err := playerHand.removeCard(card); err != nil {
+		return nil, err
+	}
+
+	// Last card passed, exchange the cards, move to bidding.
+	if g.passedCards.IsDone() {
+		for i, card := range g.passedCards.Cards() {
+			pos := (g.passedCards.LeadPos() + i + 4) % 4
+			// Get the partner hand.
+			partnerPos := (pos + 2 + 4) % 4
+			partnerHand, err := g.currentHands.Hand(partnerPos)
+			if err != nil {
+				return nil, err
+			}
+			if err := partnerHand.addCard(card); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return g.save(ctx)
 }
 
 func (g *game) PlaceBid(ctx context.Context, player Player, bid Bid) (Game, error) {
@@ -491,11 +557,19 @@ func (g *game) startHand() error {
 	g.currentDealerPos = (g.currentDealerPos + 1) % 4
 
 	leadBidder := (g.currentDealerPos + 1) % 4 // to the left of the dealer
+
+	passingRound, err := NewPassingRound(leadBidder)
+	if err != nil {
+		return err
+	}
+	g.passedCards = passingRound
+
 	biddingRound, err := NewBiddingRound(leadBidder)
 	if err != nil {
 		return err
 	}
 	g.currentBidding = biddingRound
+
 	g.currentTrick = nil
 	g.currentTally = NewTally()
 	return nil
@@ -547,6 +621,12 @@ func storageFromGame(g *game) *storage.Game {
 		lastTrick = g.lastTrick.Encoded()
 	}
 
+	// Convert rules into storage version.
+	sr := storage.Rules{}
+	if g.rules != nil && g.rules.PassCard() {
+		sr.PassCard = g.rules.PassCard()
+	}
+
 	return &storage.Game{
 		PlayerIDs:        playerIDs,
 		Created:          g.created,
@@ -559,6 +639,8 @@ func storageFromGame(g *game) *storage.Game {
 		CurrentTrick:     currentTrick,
 		LastTrick:        lastTrick,
 		CurrentTally:     g.currentTally.Encoded(),
+		PassedCards:      g.passedCards.Encoded(),
+		Rules:            sr,
 	}
 }
 
@@ -619,6 +701,11 @@ func gameFromStorage(ctx context.Context, gameStore storage.GameStore, playerSto
 		return nil, err
 	}
 
+	passedCards, err := NewPassingRoundFromEncoded(gs.PassedCards)
+	if err != nil {
+		return nil, err
+	}
+
 	g := &game{
 		gameStore:        gameStore,
 		playerStore:      playerStore,
@@ -634,6 +721,7 @@ func gameFromStorage(ctx context.Context, gameStore storage.GameStore, playerSto
 		currentTrick:     trick,
 		lastTrick:        lastTrick,
 		currentTally:     tally,
+		passedCards:      passedCards,
 		rules:            rulesFromStorage(gs.Rules),
 	}
 	return g, nil

@@ -344,6 +344,27 @@ func TestHandContainsSuit(t *testing.T) {
 		})
 	}
 }
+
+func TestHandAddCard(t *testing.T) {
+	hand := buildHand(t, []string{"7C", "8C"})
+
+	err := hand.addCard(buildCard(t, "8C"))
+	if err == nil {
+		t.Fatal("missing expected error")
+	}
+
+	err = hand.addCard(buildCard(t, "9C"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Hand returns cards in a particular order.
+	want := []deck.Card{buildCard(t, "9C"), buildCard(t, "8C"), buildCard(t, "7C")}
+	if diff := cmp.Diff(want, hand.Cards(), compareCards); diff != "" {
+		t.Errorf("cards mismatch (-want +got):\n%s", diff)
+	}
+}
+
 func TestHandRemoveCard(t *testing.T) {
 	testCases := []struct {
 		name    string

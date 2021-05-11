@@ -25,6 +25,8 @@ type Game struct {
 	LastTrick        string `datastore:",noindex"` // Cards played for the previous trick.
 	CurrentTally     string `datastore:",noindex"` // The running tally for the current hand.
 
+	PassedCards string `datastore:",noindex"` // Cards passed for the current trick.
+
 	Rules Rules
 }
 

@@ -27,6 +27,8 @@ type Hand interface {
 	ContainsSuit(suit deck.Suit, ignoreCard deck.Card) bool
 	// removeCard removes the given card from the hand, returning an error if it is not present.
 	removeCard(card deck.Card) error
+	// addCard adds the given card, returning an error if the card is already in the hand.
+	addCard(card deck.Card) error
 	// IsEmpty returns true if there are no cards left in the hand.
 	IsEmpty() bool
 	// Encoded returns the encoded form of the hand.
@@ -193,6 +195,14 @@ func (h *hand) removeCard(card deck.Card) error {
 		newCards = append(newCards, c)
 	}
 	h.cards = newCards
+	return nil
+}
+
+func (h *hand) addCard(card deck.Card) error {
+	if h.Contains(card) {
+		return fmt.Errorf("duplicate card %s", card)
+	}
+	h.cards = append(h.cards, card)
 	return nil
 }
 
