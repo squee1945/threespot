@@ -46,6 +46,8 @@ var cards = (function() {
       this.moveToFront();
       this.angle = 0;
       this.percentage = 1.0;
+      this.left = left;
+      this.top = top;
     },
 
     showCard: function() {
@@ -91,6 +93,12 @@ var cards = (function() {
     rotate: function(angle) {
       this.angle = angle;
       this.transform();
+    },
+
+    nudge: function(deltaLeft, deltaTop) {
+      this.left = this.left + deltaLeft;
+      this.top = this.top + deltaTop;
+      $(this.el).css({left: this.left, top: this.top});
     }
   };
 

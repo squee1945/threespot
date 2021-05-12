@@ -13,15 +13,18 @@ type JoinStateResponse struct {
 	Version     string
 	PlayerNames []string
 	State       string
+	PlayerCount int
 }
 
 func BuildJoinState(g game.Game) *JoinStateResponse {
 	var names []string
+	var count int
 	for _, p := range g.Players() {
 		if p == nil {
 			names = append(names, "")
 			continue
 		}
+		count += 1
 		names = append(names, p.Name())
 	}
 	return &JoinStateResponse{
@@ -29,6 +32,7 @@ func BuildJoinState(g game.Game) *JoinStateResponse {
 		Version:     g.Version(),
 		PlayerNames: names,
 		State:       string(g.State()),
+		PlayerCount: count,
 	}
 }
 

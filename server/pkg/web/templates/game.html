@@ -170,15 +170,21 @@
         let playerCards = [];
         if (gameState.PlayerHand) {
             let left = 115 + ((8 - gameState.PlayerHand.length) * 32);
+            let passed = null;
             gameState.PlayerHand.forEach((card, i) => {
                 let c = new cards.Card(card, left + (i * 71), 395);
                 $(c.el).addClass("player-card");
                 if (gameState.CardReceived == card) {
                     $(c.el).addClass("card-received");
+                    c.nudge(-5, -5);
+                    passed = c;
                 }
                 c.makeVisible();
                 playerCards.push(c);
             });
+            if (passed) {
+                passed.moveToFront();
+            }
         }
 
         let stackPositions = [
@@ -321,10 +327,10 @@
         $("#last-trick").show();
 
         let lastTrickcardPosition = [
-            [58, 59],
-            [6, 23],
-            [58, -3],
-            [107, 23]
+            [58, 64],
+            [10, 32],
+            [58, 2],
+            [106, 32]
         ];
 
         let winningRot = rotate(gameState, lastTrickWinningPosition);
@@ -333,12 +339,18 @@
             let c = new cards.Card(card, lastTrickcardPosition[rot][0], lastTrickcardPosition[rot][1]);
             c.scale(.6);
             $(c.el).addClass("last-trick-card");
+            let nudge = false;
             if (i==0) {
                 $(c.el).addClass("lead-card");
+                nudge = true;
             }
             if (rot==winningRot) {
                 $(c.el).removeClass("lead-card");
                 $(c.el).addClass("winning-card");
+                nudge = top;
+            }
+            if (nudge) {
+                c.nudge(-3, -3);
             }
             c.makeVisible();
         });
@@ -393,7 +405,7 @@
         $(".trick-card").remove();
         $("#bidding").hide();
         $("#bids").show();
-        hideInfos(gameState);
+        showInfos(gameState);
         // Turn off all panels that show bids.
         for (let pos = 0; pos < 4; pos++) {
                  $("#bid-" + pos).removeClass("to-bid").hide();

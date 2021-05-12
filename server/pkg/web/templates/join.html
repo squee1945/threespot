@@ -68,7 +68,7 @@
     server.init();
 
     function repaint(joinState) {
-        if (joinState.State === "BIDDING") {
+        if (joinState.PlayerCount == 4) {
             location.href = "/game/" + id;
             return;
         }
