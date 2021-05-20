@@ -104,7 +104,7 @@
         }
         server.updateUser({"Name": name, "ID": id}, () => {
             $("#save-result").text("Saved!");
-            setTimeout(() => {$("#save-result").text(""); document.location='/join';}, 3000);
+            setTimeout(() => {$("#save-result").text(""); document.location='/join/'+id;}, 3000);
         });
     }
 

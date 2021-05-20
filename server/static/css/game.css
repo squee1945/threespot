@@ -188,7 +188,7 @@ li.your-turn {
 #trump {
     position: absolute;
     left: 379px; 
-    top: 205px;
+    top: 220px;
     display: none;
     text-align: center;
     font-weight: bold;
@@ -205,15 +205,22 @@ li.your-turn {
     font-size: 28px;
 }
 
-.other-bid {
+.action-plate {
     position: absolute;
     height: 50px;
     width: 125px;
+    left: 327px;
+    top: 329px; 
     font-size: 24px;
     line-height: 50px;
     font-weight: bold;
     text-align: center;
     background: #DDCC00;
+}
+
+.action-plate-me {
+    left: 300px;
+    width: 196px;
 }
 
 .calling {
