@@ -195,6 +195,7 @@ func (h *hand) removeCard(card deck.Card) error {
 		newCards = append(newCards, c)
 	}
 	h.cards = newCards
+	sort.SliceStable(h.cards, handSorter(h.cards))
 	return nil
 }
 
@@ -203,6 +204,7 @@ func (h *hand) addCard(card deck.Card) error {
 		return fmt.Errorf("duplicate card %s", card)
 	}
 	h.cards = append(h.cards, card)
+	sort.SliceStable(h.cards, handSorter(h.cards))
 	return nil
 }
 

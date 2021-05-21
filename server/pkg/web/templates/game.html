@@ -19,6 +19,13 @@
     <div id="trump"></div>
     <div id="no-trump">No Trump</div>
 
+    <div id="dealing" class="shadow">
+        <form>
+            <h5>Deal the cards!</h5>
+            <button id="dealing-button">Deal</button>
+        </form>
+    </div>
+
     <div id="bidding" class="shadow">
         <form>
             <h5>Pick your bid</h5>
@@ -126,11 +133,13 @@
         hidePassedCards();
         hideTrump();
         hideInfos();
+        hideDealing();
         hideBidding();
         hideCalling();
         hideCalled();
         removeTrick();
         removeHand();
+        removeCenterStack();
 
         showNames(gameState);
         updateInfos(gameState);
@@ -138,6 +147,9 @@
         repaintScore(gameState);
 
         switch (gameState.State) {
+            case "DEALING":
+                repaintDealing(gameState);
+                break;
             case "PASSING":
                 repaintPassing(gameState);
                 break;
@@ -154,8 +166,32 @@
                 repaintCompleted(gameState);
                 break;
             default:
-                console.log("Unknown state '" + s + "'");
+                console.log("Unknown state '"+gameState.State+"'");
         }
+    }
+
+    function removeCenterStack() {
+        $(".center-stack").remove();
+    }
+
+    function showCenterStack(num) {
+        for (let i = 0; i < 20; i++) {
+            let c = new cards.Card('JOK', 350+i, 200+i);
+            $(c.el).addClass("center-stack");
+            c.hideCard();
+            c.makeVisible();
+        }
+    }
+
+    function repaintDealing(gameState) {
+        if (myTurn(gameState)) {
+            showDealing();
+        } else {
+            let rot = rotate(gameState, gameState.DealerPosition);
+            showAction(rot, "Dealing");
+        }
+        showCenterStack(20);
+        showTrick(gameState);
     }
 
     function repaintPassing(gameState) {
@@ -171,10 +207,6 @@
             let rot = rotate(gameState, gameState.LeadPassPosition + i);
             showPassedCard(gameState, rot);
         });
-
-        if (!cardPassed) {
-            showTrick(gameState);
-        }
 
         // Show the player to play's action and hand.
         let cls = [];
@@ -247,6 +279,22 @@
         elem.addClass("action-plate").addClass("shadow");
         addClasses(elem, cls);
         elem.html(message).show();
+    }
+
+    function hideDealing() {
+        $("#dealing").hide();
+    }
+
+    function showDealing() {
+        $("#dealing").show();
+        $("#dealing-button").prop("disabled", false);
+        $("#dealing-button").click((event) => {
+            event.preventDefault();
+            $("#dealing-button").prop("disabled", true);
+            server.dealCards(id, (gameState) => {
+                repaint(gameState);
+            });
+        });
     }
 
     function hidePassedCards() {
@@ -488,7 +536,7 @@
         }
 
         // if no current trick and there is a last trick, then show last trick for N seconds before proceeding.
-        if (gameState.LastTrick && !gameState.Trick && !gameState.BidsPlaced) {
+        if (gameState.LastTrick && !gameState.Trick) {
             let winningRot = rotate(gameState, gameState.LastTrickWinningPosition);
             gameState.LastTrick.forEach((card, i) => {
                 let rot = rotate(gameState, gameState.LastTrickLeadPosition + i);

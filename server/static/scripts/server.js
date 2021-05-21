@@ -91,6 +91,21 @@ var server = (function() {
         .fail(alertFailure);
     }
 
+    function dealCards(id, done) {
+        var data = {
+            ID: id,
+        }
+        $.ajax({
+            url: "/api/deal",
+            type: "POST",
+            dataType: "json",
+            contentType: "json",
+            data: JSON.stringify(data),
+        })
+        .done(done)
+        .fail(alertFailure);
+    }
+
     function placeBid(id, bid, done) {
         var data = {
             ID: id,
@@ -162,6 +177,7 @@ var server = (function() {
         updateUser: updateUser,
         newGame: newGame,
         joinGame: joinGame,
+        dealCards: dealCards,
         passCard: passCard,
         placeBid: placeBid,
         playCard: playCard,

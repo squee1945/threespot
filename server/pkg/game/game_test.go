@@ -15,6 +15,7 @@ var (
 	})
 
 	ignoreDates = cmpopts.IgnoreFields(storage.Game{}, "Created", "Updated")
+	ignoreHands = cmpopts.IgnoreFields(storage.Game{}, "CurrentHands")
 )
 
 func TestNewGame(t *testing.T) {
@@ -96,9 +97,17 @@ func TestState(t *testing.T) {
 			},
 		},
 		{
+			want: DealingState,
+			gs: &storage.Game{
+				PlayerIDs:      []string{"ABE", "BOB", "CAL", "DON"},
+				CurrentBidding: "0|P|P|P",
+			},
+		},
+		{
 			want: BiddingState,
 			gs: &storage.Game{
 				PlayerIDs:      []string{"ABE", "BOB", "CAL", "DON"},
+				CurrentHands:   "AH+AS+AD+AC", // Non-empty hand
 				CurrentBidding: "0|P|P|P",
 			},
 		},
@@ -106,6 +115,7 @@ func TestState(t *testing.T) {
 			want: CallingState,
 			gs: &storage.Game{
 				PlayerIDs:      []string{"ABE", "BOB", "CAL", "DON"},
+				CurrentHands:   "AH+AS+AD+AC", // Non-empty hand
 				CurrentBidding: "0|P|P|P|7",
 			},
 		},
@@ -114,6 +124,7 @@ func TestState(t *testing.T) {
 			gs: &storage.Game{
 				PlayerIDs:      []string{"ABE", "BOB", "CAL", "DON"},
 				CurrentBidding: "0|P|P|P|7",
+				CurrentHands:   "AH+AS+AD+AC", // Non-empty hand
 				CurrentTrick:   "3|D",
 			},
 		},
@@ -202,10 +213,20 @@ func TestPosToPlay(t *testing.T) {
 		want int
 	}{
 		{
+			name: "dealing pos",
+			gs: &storage.Game{
+				CurrentDealerPos: 3,
+				PlayerIDs:        []string{"ABE", "BOB", "CAL", "DON"},
+				CurrentBidding:   "2|P|P|P",
+			},
+			want: 3,
+		},
+		{
 			name: "bidding pos",
 			gs: &storage.Game{
 				PlayerIDs:      []string{"ABE", "BOB", "CAL", "DON"},
 				CurrentBidding: "2|P|P|P",
+				CurrentHands:   "AH+AS+AD+AC",
 			},
 			want: 1,
 		},
@@ -214,6 +235,7 @@ func TestPosToPlay(t *testing.T) {
 			gs: &storage.Game{
 				PlayerIDs:      []string{"ABE", "BOB", "CAL", "DON"},
 				CurrentBidding: "2|P|P|7|P",
+				CurrentHands:   "AH+AS+AD+AC",
 			},
 			want: 0,
 		},
@@ -223,6 +245,7 @@ func TestPosToPlay(t *testing.T) {
 				PlayerIDs:      []string{"ABE", "BOB", "CAL", "DON"},
 				CurrentBidding: "0|P|P|P|7",
 				CurrentTrick:   "3|D",
+				CurrentHands:   "AH+AS+AD+AC",
 			},
 			want: 3,
 		},
@@ -280,6 +303,7 @@ func TestAvailableBids(t *testing.T) {
 			gs: &storage.Game{
 				PlayerIDs:      []string{"ABE", "BOB", "CAL", "DON"},
 				CurrentBidding: "2",
+				CurrentHands:   "AH+AS+AD+AC",
 			},
 			pid:  "CAL",
 			want: orderedBids, // all bids
@@ -289,6 +313,7 @@ func TestAvailableBids(t *testing.T) {
 			gs: &storage.Game{
 				PlayerIDs:      []string{"ABE", "BOB", "CAL", "DON"},
 				CurrentBidding: "1|P|P",
+				CurrentHands:   "AH+AS+AD+AC",
 			},
 			pid:  "DON",
 			want: orderedBids, // all bids
@@ -298,6 +323,7 @@ func TestAvailableBids(t *testing.T) {
 			gs: &storage.Game{
 				PlayerIDs:      []string{"ABE", "BOB", "CAL", "DON"},
 				CurrentBidding: "1|P|P|P|7",
+				CurrentHands:   "AH+AS+AD+AC",
 			},
 			pid:     "DON",
 			wantErr: true,
@@ -307,6 +333,7 @@ func TestAvailableBids(t *testing.T) {
 			gs: &storage.Game{
 				PlayerIDs:      []string{"ABE", "BOB", "CAL", "DON"},
 				CurrentBidding: "2",
+				CurrentHands:   "AH+AS+AD+AC",
 			},
 			pid:     "NOTINGAME", // Not in this game.
 			wantErr: true,
@@ -317,6 +344,7 @@ func TestAvailableBids(t *testing.T) {
 				PlayerIDs:        []string{"ABE", "BOB", "CAL", "DON"},
 				CurrentBidding:   "2|C|P|P",
 				CurrentDealerPos: 1,
+				CurrentHands:     "AH+AS+AD+AC",
 			},
 			pid:  "BOB",
 			want: []string{"P", "C", "CN"},
@@ -326,6 +354,7 @@ func TestAvailableBids(t *testing.T) {
 			gs: &storage.Game{
 				PlayerIDs:      []string{"ABE", "BOB", "CAL", "DON"},
 				CurrentBidding: "0",
+				CurrentHands:   "AH+AS+AD+AC",
 			},
 			pid:     "BOB", // Should be ABE's turn.
 			wantErr: true,
@@ -502,6 +531,82 @@ func TestAddPlayer(t *testing.T) {
 	}
 }
 
+func TestDealCards(t *testing.T) {
+	pids := []string{"ABE", "BOB", "CAL", "DON"}
+	testCases := []struct {
+		name      string
+		gs        *storage.Game
+		pid       string
+		want      *storage.Game
+		wantState GameState
+		wantErr   error
+	}{
+		{
+			name: "not in dealing state",
+			gs: &storage.Game{
+				PlayerIDs: []string{"ABE"}, // Still joining
+			},
+			pid:     "BOB",
+			wantErr: ErrNotDealing,
+		},
+		{
+			name: "incorrect dealer order",
+			gs: &storage.Game{
+				PlayerIDs:        pids,
+				CurrentDealerPos: 3,
+			},
+			pid:     "BOB",
+			wantErr: ErrIncorrectDealer,
+		},
+		{
+			name: "hard started",
+			gs: &storage.Game{
+				PlayerIDs:        pids,
+				CurrentDealerPos: 1,
+			},
+			pid: "BOB",
+			want: &storage.Game{
+				PlayerIDs:        pids,
+				Score:            "52-",
+				CurrentDealerPos: 2,
+				CurrentBidding:   "3|",
+				CurrentTally:     "0|0|0",
+				PassedCards:      "3|",
+			},
+			wantState: BiddingState,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.Background()
+			g, _, playerStore := buildGame(t, tc.gs)
+			player := getPlayer(t, playerStore, tc.pid)
+
+			gotGame, err := g.DealCards(ctx, player)
+
+			if tc.wantErr != nil && tc.wantErr != err {
+				t.Fatalf("incorrect error got=%v want=%v", err, tc.wantErr)
+			}
+			if tc.wantErr == nil && err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if tc.wantErr != nil {
+				return
+			}
+
+			if got, want := gotGame.State(), tc.wantState; got != want {
+				t.Errorf("State()=%s want=%s", got, want)
+			}
+			gotGameStorage := storageFromGame(gotGame.(*game))
+			opts := []cmp.Option{ignoreDates, ignoreHands}
+			if diff := cmp.Diff(tc.want, gotGameStorage, opts...); diff != "" {
+				t.Errorf("game storage mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestPassCard(t *testing.T) {
 	pids := []string{"ABE", "BOB", "CAL", "DON"}
 	testCases := []struct {
@@ -552,7 +657,7 @@ func TestPassCard(t *testing.T) {
 			name: "valid card",
 			gs: &storage.Game{
 				PlayerIDs:    pids,
-				CurrentHands: "AH+AS|8S+AD|8S+AC|8C",
+				CurrentHands: "AH+AS|8S+8S|AD+AC|8C",
 				PassedCards:  "0|8H",
 				Rules:        storage.Rules{PassCard: true},
 			},
@@ -563,7 +668,7 @@ func TestPassCard(t *testing.T) {
 				Score:          "52-",
 				PassedCards:    "0|8H|8S",
 				CurrentBidding: "0|",
-				CurrentHands:   "AH+AS+AD|8S+AC|8C",
+				CurrentHands:   "AH+AS+8S|AD+AC|8C",
 				CurrentTally:   "0|0|0",
 				Rules:          storage.Rules{PassCard: true},
 			},
@@ -585,7 +690,7 @@ func TestPassCard(t *testing.T) {
 				Score:            "52-",
 				CurrentDealerPos: 3,
 				PassedCards:      "0|8H|8S|8D|8C",
-				CurrentHands:     "AH|8D+AS|8C+AD|8H+AC|8S", // Partners get the passed cards.
+				CurrentHands:     "AH|8D+AS|8C+8H|AD+8S|AC", // Partners get the passed cards.
 				CurrentBidding:   "0|",
 				CurrentTally:     "0|0|0",
 				Rules:            storage.Rules{PassCard: true},
@@ -640,6 +745,7 @@ func TestPlaceBid(t *testing.T) {
 			gs: &storage.Game{
 				PlayerIDs:      pids,
 				CurrentBidding: "0|P|P|P|7",
+				CurrentHands:   "AH+AS+AD+AC",
 			},
 			pid:     "ABE",
 			bid:     "8",
@@ -650,6 +756,7 @@ func TestPlaceBid(t *testing.T) {
 			gs: &storage.Game{
 				PlayerIDs:      pids,
 				CurrentBidding: "0|8",
+				CurrentHands:   "AH+AS+AD+AC",
 			},
 			pid:     "BOB",
 			bid:     "7N",
@@ -762,6 +869,7 @@ func TestCallTrump(t *testing.T) {
 			gs: &storage.Game{
 				PlayerIDs:      pids,
 				CurrentBidding: "0|P|P",
+				CurrentHands:   "AH+AS+AD+AC",
 			},
 			pid:     "ABE",
 			trump:   "H",
@@ -773,6 +881,7 @@ func TestCallTrump(t *testing.T) {
 				PlayerIDs:      pids,
 				CurrentBidding: "0|P|P|P|7",
 				CurrentTrick:   "3|H",
+				CurrentHands:   "AH+AS+AD+AC",
 			},
 			pid:     "ABE",
 			trump:   "C",
@@ -783,6 +892,7 @@ func TestCallTrump(t *testing.T) {
 			gs: &storage.Game{
 				PlayerIDs:      pids,
 				CurrentBidding: "0|P|P|P|7",
+				CurrentHands:   "AH+AS+AD+AC",
 			},
 			pid:     "ABE",
 			trump:   "H",
@@ -844,14 +954,14 @@ func TestPlayCard(t *testing.T) {
 	pids := []string{"ABE", "BOB", "CAL", "DON"}
 	// hands := "AH|KH|7D+AS|KS+AC|KC+AD|KD"
 	testCases := []struct {
-		name        string
-		gs          *storage.Game
-		pid         string
-		card        string
-		want        *storage.Game
-		wantState   GameState
-		wantNewHand bool
-		wantErr     error
+		name          string
+		gs            *storage.Game
+		pid           string
+		card          string
+		want          *storage.Game
+		wantState     GameState
+		wantEmptyHand bool
+		wantErr       error
 	}{
 		{
 			name: "bidding not complete",
@@ -955,7 +1065,7 @@ func TestPlayCard(t *testing.T) {
 			wantState: PlayingState,
 		},
 		{
-			name: "last card transitions to bidding on next hand",
+			name: "last card transitions to dealing",
 			gs: &storage.Game{
 				PlayerIDs:        pids,
 				CurrentHands:     "++AC+",
@@ -968,20 +1078,20 @@ func TestPlayCard(t *testing.T) {
 			card: "AC",
 			want: &storage.Game{
 				PlayerIDs:        pids,
-				CurrentHands:     "",                         // New shuffle
-				CurrentDealerPos: 0,                          // Dealer position moves to the left.
-				CurrentBidding:   "1|",                       // Bidding resets, starting with position to left of dealer.
-				CurrentTrick:     "",                         // New hand.
-				CurrentTally:     "0|0|0",                    // Tally resets.
+				CurrentHands:     "", // New shuffle
+				CurrentDealerPos: 3,
+				CurrentBidding:   "0|P|P|P|7",
+				CurrentTrick:     "", // New hand.
+				CurrentTally:     "8|10|0",
 				Score:            "52-10|-7**1|0|miss 7 bid", // Score added from tally.
 				LastTrick:        "3|H|AD|AH|AS|AC",
-				PassedCards:      "1|", // Passed cards must reset.
+				PassedCards:      "0|",
 			},
-			wantState:   BiddingState,
-			wantNewHand: true,
+			wantState:     DealingState,
+			wantEmptyHand: true,
 		},
 		{
-			name: "last card transitions to passing card if rules stipulate",
+			name: "last card transitions to dealing if passing card rule",
 			gs: &storage.Game{
 				PlayerIDs:        pids,
 				CurrentHands:     "++AC+",
@@ -996,18 +1106,18 @@ func TestPlayCard(t *testing.T) {
 			card: "AC",
 			want: &storage.Game{
 				PlayerIDs:        pids,
-				CurrentHands:     "",                         // New shuffle
-				CurrentDealerPos: 0,                          // Dealer position moves to the left.
-				CurrentBidding:   "1|",                       // Bidding resets, starting with position to left of dealer.
-				CurrentTrick:     "",                         // New hand.
-				CurrentTally:     "0|0|0",                    // Tally resets.
+				CurrentHands:     "", // New shuffle
+				CurrentDealerPos: 3,
+				CurrentBidding:   "0|P|P|P|7",
+				CurrentTrick:     "", // New hand.
+				CurrentTally:     "8|10|0",
 				Score:            "52-10|-7**1|0|miss 7 bid", // Score added from tally.
 				LastTrick:        "3|H|AD|AH|AS|AC",
-				PassedCards:      "1|", // Passed cards must reset.
+				PassedCards:      "0|7C|8C|9C|TC",
 				Rules:            storage.Rules{PassCard: true},
 			},
-			wantState:   PassingState,
-			wantNewHand: true,
+			wantState:     DealingState,
+			wantEmptyHand: true,
 		},
 		{
 			name: "last card transitions to game completion",
@@ -1028,7 +1138,7 @@ func TestPlayCard(t *testing.T) {
 				CurrentHands:     "+++",                             // Hands are empty.
 				CurrentDealerPos: 3,                                 // Dealer position does not update.
 				CurrentBidding:   "0|P|P|7|P",                       // Bidding does not clear.
-				CurrentTrick:     "3|H|AD|AH|AS|AC",                 // Trick does not clear.
+				CurrentTrick:     "",                                // Trick resets.
 				CurrentTally:     "8|10|0",                          // Tally does not clear.
 				Score:            "52||0-50|0||60|0**0|1|bid out 7", // Score added from tally.
 				LastTrick:        "3|H|AD|AH|AS|AC",
@@ -1062,7 +1172,7 @@ func TestPlayCard(t *testing.T) {
 			}
 			gotGameStorage := storageFromGame(gotGame.(*game))
 			opts := []cmp.Option{ignoreDates}
-			if tc.wantNewHand {
+			if tc.wantEmptyHand {
 				opts = append(opts, cmpopts.IgnoreFields(storage.Game{}, "CurrentHands"))
 
 				for i := 0; i < 4; i++ {
@@ -1070,8 +1180,8 @@ func TestPlayCard(t *testing.T) {
 					if err != nil {
 						t.Fatal(err)
 					}
-					if len(hand.Cards()) != 8 {
-						t.Errorf("hand %d is not 8 cards", i)
+					if len(hand.Cards()) != 0 {
+						t.Errorf("hand %d is not 0 cards", i)
 					}
 				}
 			}

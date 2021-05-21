@@ -32,6 +32,7 @@ type Game interface {
 	AvailableBids(Player) ([]Bid, error)
 
 	AddPlayer(ctx context.Context, player Player, pos int) (Game, error)
+	DealCards(ctx context.Context, player Player) (Game, error)
 	PassCard(ctx context.Context, player Player, card deck.Card) (Game, error)
 	PlaceBid(ctx context.Context, player Player, bid Bid) (Game, error)
 	CallTrump(ctx context.Context, player Player, trump deck.Suit) (Game, error)
@@ -50,7 +51,9 @@ var (
 	ErrIncorrectPassOrder   = errors.New("Passing out of order")
 	ErrIncorrectCaller      = errors.New("Player cannot call trump")
 	ErrIncorrectPlayOrder   = errors.New("Playing out of order")
+	ErrIncorrectDealer      = errors.New("You're not the dealer")
 	ErrInvalidBid           = errors.New("Invalid bid")
+	ErrNotDealing           = errors.New("Not currently dealing")
 	ErrNotPassing           = errors.New("Not currently passing")
 	ErrNotBidding           = errors.New("Not currently bidding")
 	ErrNotCalling           = errors.New("Not currently calling trump")
@@ -69,9 +72,10 @@ func (gs GameState) String() string {
 
 var (
 	JoiningState   GameState = "JOINING"
+	DealingState   GameState = "DEALING"
 	PassingState   GameState = "PASSING"
 	BiddingState   GameState = "BIDDING"
-	CallingState   GameState = "CALLING" // Trump
+	CallingState   GameState = "CALLING"
 	PlayingState   GameState = "PLAYING"
 	CompletedState GameState = "COMPLETED"
 )
@@ -164,6 +168,10 @@ func (g *game) State() GameState {
 	if g.playerCount() < 4 {
 		return JoiningState
 	}
+	handCounts := g.HandCounts()
+	if handCounts[0] == 0 && handCounts[1] == 0 && handCounts[2] == 0 && handCounts[3] == 0 {
+		return DealingState
+	}
 	if g.rules != nil && g.rules.PassCard() && !g.passedCards.IsDone() {
 		return PassingState
 	}
@@ -211,6 +219,8 @@ func (g *game) DealerPos() int {
 
 func (g *game) PosToPlay() (int, error) {
 	switch g.State() {
+	case DealingState:
+		return g.DealerPos(), nil
 	case PassingState:
 		return g.passedCards.CurrentTurnPos()
 	case BiddingState:
@@ -315,13 +325,31 @@ func (g *game) AddPlayer(ctx context.Context, player Player, pos int) (Game, err
 	return newG, nil
 }
 
+func (g *game) DealCards(ctx context.Context, player Player) (Game, error) {
+	if g.State() != DealingState {
+		return nil, ErrNotDealing
+	}
+
+	pos, err := g.PlayerPos(player)
+	if err != nil {
+		return nil, err
+	}
+	if pos != g.DealerPos() {
+		return nil, ErrIncorrectDealer
+	}
+
+	if err := g.startHand(); err != nil {
+		return nil, err
+	}
+	return g.save(ctx)
+}
+
 func (g *game) PassCard(ctx context.Context, player Player, card deck.Card) (Game, error) {
 	// Rule check.
 	if !g.Rules().PassCard() {
 		return nil, ErrPassingNotAllowed
 	}
 
-	// Are we in passing state?
 	if g.State() != PassingState {
 		return nil, ErrNotPassing
 	}
@@ -367,7 +395,6 @@ func (g *game) PassCard(ctx context.Context, player Player, card deck.Card) (Gam
 }
 
 func (g *game) PlaceBid(ctx context.Context, player Player, bid Bid) (Game, error) {
-	// Are we in bidding state?
 	if g.State() != BiddingState {
 		return nil, ErrNotBidding
 	}
@@ -414,7 +441,6 @@ func (g *game) PlaceBid(ctx context.Context, player Player, bid Bid) (Game, erro
 }
 
 func (g *game) CallTrump(ctx context.Context, player Player, trump deck.Suit) (Game, error) {
-	// Are we in calling state?
 	if g.State() != CallingState {
 		return nil, ErrNotCalling
 	}
@@ -440,7 +466,6 @@ func (g *game) CallTrump(ctx context.Context, player Player, trump deck.Suit) (G
 }
 
 func (g *game) PlayCard(ctx context.Context, player Player, card deck.Card) (Game, error) {
-	// Are we in playing state?
 	if g.State() != PlayingState {
 		return nil, ErrNotPlaying
 	}
@@ -524,12 +549,9 @@ func (g *game) PlayCard(ctx context.Context, player Player, card deck.Card) (Gam
 
 			if hasWinner {
 				g.complete = true
-			} else {
-				// Else deal a new hand and go to bidding round.
-				if err := g.startHand(); err != nil {
-					return nil, err
-				}
 			}
+			g.currentTrick = nil
+			// This will fall-through to DealingState.
 
 		} else {
 			if err := g.startTrick(g.currentTrick.Trump(), winningPos); err != nil {

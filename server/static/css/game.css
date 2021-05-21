@@ -265,6 +265,34 @@ li.your-turn {
     margin-bottom: 1px;
 }
 
+#dealing {
+    position: absolute;
+    left: 315px; 
+    top: 365px; 
+    width: 170px;
+    height: 80px;
+    background: #DDCC00;
+    display: none;
+    text-align: center;
+    padding: 4px;
+}
+
+#dealing h5 {
+    font-size: 16px;
+    margin: 0px;
+    padding: 0px;
+}
+
+#dealing button {
+    width: 100px;
+    height: 36px;
+    font-size: 24px;
+    text-align: center;
+    font-weight: bold;
+    margin-top: 12px;
+}
+
+
 #calling {
     position: absolute;
     left: 120px;
