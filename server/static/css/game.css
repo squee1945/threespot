@@ -235,6 +235,18 @@ li.your-turn {
     font-size: 28px;
 }
 
+#hand-result {
+    position: absolute;
+    left: 440px; 
+    top: 150px;
+    display: none;
+    text-align: center;
+    font-weight: bold;
+    font-size: 18px;
+    background: #DDCC00;
+    padding: 8px;
+}
+
 .action-plate {
     position: absolute;
     height: 50px;
