@@ -2,38 +2,38 @@
 
 {{define "card-table"}}
     <div id="action-0" style="display:none;"></div>
-    <div id="action-1" style="left:98px; top:180px; display:none;"></div>
-    <div id="action-2" style="left:327px; top:126px; display:none;"></div>
-    <div id="action-3" style="left:559px; top:180px; display:none;"></div>
+    <div id="action-1" style="display:none;"></div>
+    <div id="action-2" style="display:none;"></div>
+    <div id="action-3" style="display:none;"></div>
 
-    <div id="name-0" class="name-plate" style="left:696px; top:393px; display:none;"></div>
-    <div id="name-1" class="name-plate" style="left:18px; top:281px; display:none;"></div>
-    <div id="name-2" class="name-plate" style="left:438px; top:24px; display:none;"></div>
-    <div id="name-3" class="name-plate" style="left:696px; top:281px; display:none;"></div>
+    <div id="name-0" class="name-plate name-plate-0" style="display:none;"></div>
+    <div id="name-1" class="name-plate name-plate-1" style="display:none;"></div>
+    <div id="name-2" class="name-plate name-plate-2" style="display:none;"></div>
+    <div id="name-3" class="name-plate name-plate-3" style="display:none;"></div>
 
-    <div id="info-0" class="info-plate" style="left:707px; top:415px; display:none;"><ul></ul></div>
-    <div id="info-1" class="info-plate" style="left:31px; top:300px; display:none;"><ul></ul></div>
-    <div id="info-2" class="info-plate" style="left:449px; top:44px; display:none;"><ul></ul></div>
-    <div id="info-3" class="info-plate" style="left:707px; top:300px; display:none;"><ul></ul></div>
+    <div id="info-0" class="info-plate info-plate-0" style="display:none;"><ul></ul></div>
+    <div id="info-1" class="info-plate info-plate-1" style="display:none;"><ul></ul></div>
+    <div id="info-2" class="info-plate info-plate-2" style="display:none;"><ul></ul></div>
+    <div id="info-3" class="info-plate info-plate-3" style="display:none;"><ul></ul></div>
 
-    <div id="trump"></div>
-    <div id="no-trump">No Trump</div>
+    <div id="trump" style="display:none;"></div>
+    <div id="no-trump" style="display:none;">No Trump</div>
 
-    <div id="dealing" class="shadow">
+    <div id="dealing" class="shadow" style="display:none;">
         <form>
             <h5>Deal the cards!</h5>
             <button id="dealing-button">Deal</button>
         </form>
     </div>
 
-    <div id="bidding" class="shadow">
+    <div id="bidding" class="shadow" style="display:none;">
         <form>
             <h5>Pick your bid</h5>
             <div id="bid-buttons"></div>
         </form>
     </div>
 
-    <div id="calling" class="shadow">
+    <div id="calling" class="shadow" style="display:none;">
         <form>
             <h5>Pick your trump</h5>
             <div id="trump-buttons"></div>
@@ -44,7 +44,7 @@
         <h5></h5>
     </div>
 
-    <div id="last-trick" class="shadow">
+    <div id="last-trick" class="shadow" style="display:none;">
         Last trick
         <div id="trick-tally" style="position:absolute; right:2px; top:2px;">
             Trick tally
@@ -95,7 +95,7 @@
         </div>    
     </div>
 
-    <div id="score-detail" class="shadow">
+    <div id="score-detail" class="shadow" style="display:none;">
         Score
         <table>
         <thead>
@@ -188,7 +188,7 @@
             showDealing();
         } else {
             let rot = rotate(gameState, gameState.DealerPosition);
-            showAction(rot, "Dealing");
+            showAction(rot, "Dealing", "BOX");
         }
         showCenterStack(20);
         showTrick(gameState);
@@ -209,16 +209,14 @@
         });
 
         // Show the player to play's action and hand.
-        let cls = [];
-        let msg = "Passing";
+        let rot = rotate(gameState, gameState.PositionToPlay);
         let click = null;
         if (myTurn(gameState)) {
-            cls.push("action-plate-me");
-            msg = "Pass a card!"
             click = (card) => server.passCard(id, card.code, (gameState) => repaint(gameState));
+            showAction(rot, "Pass a card!", "BOX", "action-plate-me");
+        } else {
+            think(gameState, rot, "passing" + gameState.PositionToPlay)
         }
-        let rot = rotate(gameState, gameState.PositionToPlay);
-        showAction(rot, msg, cls);
         showHand(gameState, click);
     }
 
@@ -233,19 +231,19 @@
         } else {
             // Show the player making a bid.
             let rot = rotate(gameState, gameState.PositionToPlay);
-            showAction(rot, "Bidding", "to-bid");
+            think(gameState, rot, "bidding" + gameState.PositionToPlay)
         }
     }
 
     function repaintCalling(gameState) {
         showOpponentStacks(gameState);
-        showBids(gameState);
+        //showBids(gameState);
         showHand(gameState);
         showCalling(gameState);
 
         // Update bidding card to show winning bid.
         let rot = rotate(gameState, gameState.PositionToPlay);
-        showAction(rot, gameState.WinningBid.Human + "<br><small>(Calling trump)</small>", "calling");
+        think(gameState, rot, "calling"+gameState.PositionToPlay);
     }
 
     function repaintPlaying(gameState) {
@@ -274,11 +272,39 @@
         }
     }
 
-    function showAction(rot, message, cls) {
+    function showAction(rot, message, style, cls) {
         let elem = $("#action-"+rot);
-        elem.addClass("action-plate").addClass("shadow");
-        addClasses(elem, cls);
-        elem.html(message).show();
+        elem.removeClass();
+        elem.addClass("action-plate").addClass("action-plate-"+rot);
+        let msg = message;
+        switch (style) {
+            case "THINK":
+                elem.addClass("think").addClass("bubble-"+rot);
+                break;
+            case "SAY":
+                let sayCls = "say-horizontal";
+                if (rot == 0 || rot == 2) {
+                    sayCls = "say-vertical";
+                }
+                elem.addClass(sayCls).addClass("bubble-"+rot);
+                msg = $("<div/>").html(msg);
+                break;
+            default:
+                elem.addClass("shadow");
+                addClasses(elem, cls);
+                msg = $("<div/>").html(msg);
+        }
+        elem.html(msg).show();
+    }
+
+    function think(gameState, rot, seed) {
+        let thinkingMessages = ["<div>....</div>", "<div>Hmm...</div>", "<div>..thinking..</div>", "<div>I dunno</div>", "<div>um</div>", "<div class='emoji'>🤨</div>", "<div class='emoji'>😭</div>", "<div class='emoji'>🤔</div>", "<div class='emoji'>🥺</div>", "<div class='emoji'>🤷</div>"];
+        let msg = thinkingMessages[cardHash(gameState, "" + seed) % thinkingMessages.length];
+        showAction(rot, msg, "THINK");
+    }
+
+    function say(rot, message) {
+        showAction(rot, message, "SAY");
     }
 
     function hideDealing() {
@@ -424,7 +450,7 @@
         }
         gameState.BidsPlaced.forEach((bid, i) => {
             let rot = rotate(gameState, gameState.LeadBidPosition + i);
-            showAction(rot, shortNoTrump(bid.Human));
+            say(rot, shortNoTrump(bid.Human));
         });
     }
 
