@@ -1083,7 +1083,7 @@ func TestPlayCard(t *testing.T) {
 				CurrentBidding:   "0|P|P|P|7",
 				CurrentTrick:     "", // New hand.
 				CurrentTally:     "8|10|0",
-				Score:            "52-10|-7**1|0|miss 7 bid", // Score added from tally.
+				Score:            "52-10|-7**1|0|missed 7 bid", // Score added from tally.
 				LastTrick:        "3|H|AD|AH|AS|AC",
 				PassedCards:      "0|",
 			},
@@ -1111,7 +1111,7 @@ func TestPlayCard(t *testing.T) {
 				CurrentBidding:   "0|P|P|P|7",
 				CurrentTrick:     "", // New hand.
 				CurrentTally:     "8|10|0",
-				Score:            "52-10|-7**1|0|miss 7 bid", // Score added from tally.
+				Score:            "52-10|-7**1|0|missed 7 bid", // Score added from tally.
 				LastTrick:        "3|H|AD|AH|AS|AC",
 				PassedCards:      "0|7C|8C|9C|TC",
 				Rules:            storage.Rules{PassCard: true},

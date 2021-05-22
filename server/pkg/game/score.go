@@ -292,7 +292,7 @@ func (s *score) addTally(br BiddingRound, tally Tally) (bool, error) {
 		} else {
 			// Team02 missed the bid.
 			sc[0] = last02 - (bidValue * multiplier)
-			note02 = fmt.Sprintf("miss %s bid", noteTrump)
+			note02 = fmt.Sprintf("missed %s bid", noteTrump)
 		}
 		sc[1] = last13 + points13
 	} else {
@@ -304,7 +304,7 @@ func (s *score) addTally(br BiddingRound, tally Tally) (bool, error) {
 		} else {
 			// Team13 missed the bid.
 			sc[1] = last13 - (bidValue * multiplier)
-			note13 = fmt.Sprintf("miss %s bid", noteTrump)
+			note13 = fmt.Sprintf("missed %s bid", noteTrump)
 		}
 		sc[0] = last02 + points02
 	}
