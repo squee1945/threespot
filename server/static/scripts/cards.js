@@ -99,6 +99,18 @@ var cards = (function() {
       this.left = this.left + deltaLeft;
       this.top = this.top + deltaTop;
       $(this.el).css({left: this.left, top: this.top});
+    },
+
+    animate: function(left, top, timing, callback) {
+      let prop = {
+        left: left,
+        top: top,
+      };
+      $(this.el).animate(prop, timing, "swing", callback);
+    },
+
+    addClass: function(cls) {
+      $(this.el).addClass(cls);
     }
   };
 

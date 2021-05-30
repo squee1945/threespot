@@ -175,19 +175,6 @@
         }
     }
 
-    function removeCenterStack() {
-        $(".center-stack").remove();
-    }
-
-    function showCenterStack(num) {
-        for (let i = 0; i < 20; i++) {
-            let c = new cards.Card('JOK', 350+i, 200+i);
-            $(c.el).addClass("center-stack");
-            c.hideCard();
-            c.makeVisible();
-        }
-    }
-
     function repaintDealing(gameState) {
         if (myTurn(gameState)) {
             showDealing();
@@ -195,15 +182,13 @@
             let rot = rotate(gameState, gameState.DealerPosition);
             showAction(rot, "Dealing", "BOX");
         }
-        showCenterStack(20);
+        showCenterStack(32);
         showTrick(gameState);
         showHandResult(gameState);
         setTimeout(() => hideHandResult(), 3000);
     }
 
     function repaintPassing(gameState) {
-        showOpponentStacks(gameState);
-
         // Show each passed card, face down in front of the player.
         let cardPassed = false;
         gameState.CardsPassed.forEach((isPassed, i) => {
@@ -216,29 +201,50 @@
         });
 
         // Show the player to play's action and hand.
+        let action = null;
         let rot = rotate(gameState, gameState.PositionToPlay);
         let click = null;
         if (myTurn(gameState)) {
             click = (card) => server.passCard(id, card.code, (gameState) => repaint(gameState));
-            showAction(rot, "Pass a card!", "BOX", "action-plate-me");
+            action = () => showAction(rot, "Pass a card!", "BOX", "action-plate-me");
         } else {
-            think(gameState, rot, "passing" + gameState.PositionToPlay)
+            action = () => think(gameState, rot, "passing" + gameState.PositionToPlay)
         }
-        showHand(gameState, click);
+
+        if (gameState.PositionToPlay == gameState.LeadPassPosition) {
+            deal(gameState, () => {
+                showHand(gameState, click);
+                action();
+            });
+        } else {
+            showOpponentStacks(gameState);
+            showHand(gameState, click);
+            action();
+        }
     }
 
     function repaintBidding(gameState) {
-        showOpponentStacks(gameState);
         showBids(gameState);
-        showHand(gameState);
 
         // Show bidding panel when your turn to bid.
+        let action =  null;
         if (myTurn(gameState)) {
-            showBidding(gameState);
+            action = () => showBidding(gameState);
         } else {
             // Show the player making a bid.
             let rot = rotate(gameState, gameState.PositionToPlay);
-            think(gameState, rot, "bidding" + gameState.PositionToPlay)
+            action = () => think(gameState, rot, "bidding" + gameState.PositionToPlay)
+        }
+
+        if (!gameState.Rules.PassCard && gameState.PositionToPlay == gameState.LeadBidPosition) {
+            deal(gameState, () => {
+                showHand(gameState);
+                action();
+            });
+        } else {
+            showOpponentStacks(gameState);
+            showHand(gameState);
+            action();
         }
     }
 
@@ -448,15 +454,29 @@
         });
     }
 
-    function showOpponentStacks(gameState) {
-        let stackPositions = [
-            [0, 0],
-            [13, 175],
-            [353, 15],
-            [693, 175]
-        ];
+    function removeCenterStack() {
+        $(".center-stack").remove();
+    }
 
+    function showCenterStack(num) {
+        let deck = [];
+        for (let i = 0; i < num; i++) {
+            let c = new cards.Card('JOK', 350+i, 200+i);
+            c.addClass("center-stack");
+            c.scale(0.9);
+            c.hideCard();
+            c.makeVisible();
+            deck.push(c);
+        }
+        return deck;
+    }
+
+    function hideOpponentStacks() {
         $(".opponent-card").remove();
+    }
+
+    function showOpponentStacks(gameState) {
+        hideOpponentStacks();
         for (let stack = 1; stack < 4; stack++) {
             let rot = (gameState.PlayerPosition + stack + 4) % 4;
             for (let i = 0; i < gameState.HandCounts[rot]; i++) {
@@ -465,6 +485,41 @@
                 c.scale(.9);
                 c.hideCard();
                 c.makeVisible();
+            }
+        }
+    }
+
+    function deal(gameState, callback) {
+        hideOpponentStacks();
+        let deck = showCenterStack(32);
+        let dealerRot = rotate(gameState, gameState.DealerPosition);
+        let getRot = (dealerRot + 4 + 1) % 4;
+        let delta = 0;
+        for (let i = 31; i >= 0; i--) {
+            if (getRot == 0) {
+                deck[i].addClass("player-stack");
+            }
+            let cb = null;
+            if (i == 0) {
+                cb = () => {
+                    $(".player-stack").remove();
+                    if (callback) {
+                        callback();
+                    }
+                };
+            }
+            function ani(getRot, delta) {
+                let timing = 250 + (Math.floor(Math.random() * 60) - 30);
+                let delay = (31-i)*50 + (Math.floor(Math.random() * 20) - 10);
+                setTimeout(() => {
+                    deck[i].animate(stackPositions[getRot][0]+(delta*2), stackPositions[getRot][1]+(delta*2), timing, cb);
+                    deck[i].moveToFront();
+                }, delay)
+            }
+            ani(getRot, delta);
+            getRot = (getRot + 4 + 1) % 4;
+            if (i % 4 == 0) {
+                delta++;
             }
         }
     }
@@ -763,6 +818,13 @@
         [279, 195],
         [359, 132],
         [438, 195]
+    ];
+
+    let stackPositions = [
+        [353, 380],
+        [13, 175],
+        [353, 15],
+        [693, 175]
     ];
 
     let cardHash = (state, card) => hash(id + (state.Score? state.Score.length: 0) + card);
